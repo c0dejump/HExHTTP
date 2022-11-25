@@ -34,11 +34,9 @@ def get_server_error(url, base_header):
             print("")
             print(f" \033[36m200 response header\033[0m {' ':<25} \033[36m400 response header\033[0m")
             for pbh, peh in zip(base_header, error_header):
-                if len(pbh) > 40:
-                    pbh = pbh.replace(pbh[40:], "...")
-                    print(' {pbh:<45} → {peh:<15}'.format(pbh=pbh, peh=peh)) 
-                else:
-                    print(' {pbh:<45} → {peh:<15}'.format(pbh=pbh, peh=peh))
+                pbh = pbh.replace(pbh[40:], "...") if len(pbh) > 40 else pbh
+                peh = peh.replace(peh[60:], "...\033[0m") if len(peh) > 60 else peh
+                print(' {pbh:<45} → {peh:<15}'.format(pbh=pbh, peh=peh))
             print("")
         else:
             pass

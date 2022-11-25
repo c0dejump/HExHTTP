@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import requests
+import traceback
+
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -17,7 +19,11 @@ def check_localhost(s, url, domain):
         try:
             req = s.get(url, headers=headers, verify=False, allow_redirects=False, timeout=10)
             if req.status_code in [301, 302]:
-                print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}{'→':^3}{req.headers['Location']}")
+                try:
+                    req_redirect = s.get(url, headers=headers, verify=False, allow_redirects=True, timeout=10)
+                    print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}{'→':^3}{req.headers['location']}")
+                except:
+                    print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}{'→':^3}{req.headers['location']}")
             else:
                 print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}")
         except:
@@ -28,7 +34,11 @@ def check_localhost(s, url, domain):
         try:
             req = s.get(url, headers=headers, allow_redirects=False, verify=False, timeout=10)
             if req.status_code in [301, 302]:
-                print(" └── {} → {} → {}".format(headers, req.status_code, req.headers['Location']))
+                try:
+                    req_redirect = s.get(url, headers=headers, verify=False, allow_redirects=True, timeout=10)
+                    print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}{'→':^3}{req.history}")
+                except:
+                    print(" └── {} → {} → {}".format(headers, req.status_code, req.headers['location']))
             else:
                 print(" └── {} → {}".format(headers, req.status_code))
         except:
