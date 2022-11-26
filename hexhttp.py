@@ -15,6 +15,13 @@ from modules.methods import check_methods
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
+def get_techno(url):
+    """
+    Check what is the reverse proxy/waf/cached server... and test based on the result
+    """
+    print("")
+
+
 def bf_hidden_header(url):
     print("")
 
