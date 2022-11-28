@@ -6,17 +6,19 @@ requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.
 
 
 def get_server_error(url, base_header):
-    print("\033[36m ├ Server error analyse\033[0m")
+    print("\n\033[36m ├ Server error analyse\033[0m")
     error_header = []
     valid_error = False
     error_length = 0
 
-    payloads_error = ["%2a","%EXT%", "%ff", "%0A"]
+    payloads_error = ["%2a","%EXT%", "%ff", "%0A", "..%3B"]
     for p in payloads_error:
         url_error = "{}{}".format(url,p) if url[-1] else "{}/{}".format(url,p)
         req_error = requests.get(url_error, verify=False, timeout=10)
 
         if req_error.status_code == 400 and not valid_error:
+
+            print(" i - 400 error code with {} paylaod".format(p))
 
             if error_length != len(req_error.content):
                 error_length = len(req_error.content)

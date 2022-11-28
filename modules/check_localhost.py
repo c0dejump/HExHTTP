@@ -7,7 +7,7 @@ import traceback
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-def check_localhost(s, url, domain):
+def check_localhost(url, s, domain):
     """
     Check_localhost: Function which try automatically if it's possible scanning with "localhost" host for discovery other files/directories
     """
