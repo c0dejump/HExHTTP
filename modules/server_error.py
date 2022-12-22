@@ -6,6 +6,9 @@ requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.
 
 
 def get_server_error(url, base_header, full):
+    """
+        Check diff btw server error and basic response
+    """
     print("\n\033[36m ├ Server error analyse\033[0m")
     error_header = []
     valid_error = False
