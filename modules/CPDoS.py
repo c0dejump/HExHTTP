@@ -1,3 +1,6 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import requests
 import traceback
 
@@ -14,13 +17,18 @@ def check_CPDoS(url, s, req_main, domain):
     headers = {"Host":"{}:1234".format(domain)}
     try:
         req_cpdos = s.get(url, headers=headers, verify=False, allow_redirects=False, timeout=10)
-        if req_cpdos.status_code in [301, 302, 421]:
+        if req_cpdos.status_code in [301, 302, 303, 421]:
             print(" ├ {} + [\033[33m{}\033[0m] → \033[33m{}\033[0m".format(url, headers, req_cpdos.status_code))
             #print(" └── CPDos exploit seem to be possible, next test...")
             redirect_req = True
     except requests.exceptions.Timeout:
-        print("└── \033[31m{} seem to timout, CPDos exploit seem to be possible\033[0m")
+        print(" └── \033[31m{} seem to timout, CPDos exploit seem to be possible\033[0m")
         return True
+    if "Location" in req_cpdos.headers:
+        for rch in req_cpdos.headers:
+            if rch == "Location":
+                print(" └── Location:  {}".format(req_cpdos.headers[rch]))
+                #return True
     if redirect_req:
         print(" --\033[36m├ Check if {} timeout...\033[0m".format(url))
 

@@ -9,11 +9,11 @@ from urllib.parse import urlparse
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-def get(url): req_p = requests.get(url, verify=False, allow_redirects=False, timeout=10); return req_p.status_code, "GET", len(req_p.content)
-def post(url): req_p = requests.post(url, verify=False, allow_redirects=False, timeout=10); return req_p.status_code, "POST", len(req_p.content)
-def put(url): req_pt = requests.put(url, verify=False, allow_redirects=False, timeout=10); return req_pt.status_code, "PUT", len(req_pt.content)
-def patch(url): req_ptch = requests.patch(url, verify=False, allow_redirects=False, timeout=10); return req_ptch.status_code, "PATCH", len(req_ptch.content)
-def options(url): req_o = requests.options(url, verify=False, allow_redirects=False, timeout=10); return req_o.status_code, "OPTIONS", len(req_o.content)
+def get(url): req_p = requests.get(url, verify=False, allow_redirects=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10); return req_p.status_code, "GET", len(req_p.content)
+def post(url): req_p = requests.post(url, verify=False, allow_redirects=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10); return req_p.status_code, "POST", len(req_p.content)
+def put(url): req_pt = requests.put(url, verify=False, allow_redirects=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10); return req_pt.status_code, "PUT", len(req_pt.content)
+def patch(url): req_ptch = requests.patch(url, verify=False, allow_redirects=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10); return req_ptch.status_code, "PATCH", len(req_ptch.content)
+def options(url): req_o = requests.options(url, verify=False, allow_redirects=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10); return req_o.status_code, "OPTIONS", len(req_o.content)
 
 
 def check_methods(url):

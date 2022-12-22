@@ -12,71 +12,29 @@ from modules.check_localhost import check_localhost
 from modules.server_error import get_server_error
 from modules.methods import check_methods
 from modules.CPDoS import check_CPDoS
+from modules.technologies import technology
+from modules.cdn import analyze_cdn
 
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-class analyze_cdn:
+def get_technos(req_main, url, s):
     """
-    Cloudflare:
-        X-Forwarded-Proto: http => 301/302/303 + CF-Cache-Status: HIT
-    Akamai:
-        ": 1 => 400 + Server-Timing: cdn-cache; desc=HIT
+    Check what is the reverse proxy/waf/cached server... and test based on the result
+    #TODO
     """
-
-    def get_cdn(self, req_main, url, s):
-        """
-        Check what is the reverse proxy/waf/cached server... and test based on the result
-        """
-        print("\033[36m ├ CDN analyse\033[0m")
-        technos = {
-        "Akamai": ["Akamai"],
-        "Cloudflare": ["cf-ray", "cloudflare", "Cf-Cache-Status", "Cf-Ray"],
-        "CacheFly": [""],
-        "Fastly": "",
-        }
-        for t in technos:
-            for v in technos[t]:
-                if v in req_main.text or v in req_main.headers:
+    print("\033[36m ├ Techno analyse\033[0m")
+    technos = {
+    "apache": ["Apache", "apache"],
+    "nginx": ["nginx"],
+    "Envoy": ["envoy"]
+    }
+    for t in technos:
+        for v in technos[t]:
+            for rt in req_main.headers:
+                if v in req_main.text or v in req_main.headers[rt] or v in rt:
                     return t;
-
-
-    def Cloudflare(self, url, s):
-        # X-Forwarded-Proto: http // redirect loop
-        headers = {"X-Forwarded-Proto": "http"}
-        cf_loop = s.get(url, headers=headers, verify=False, timeout=6)
-        if cf_loop in [301, 302, 303]:
-            print(cf_loop.headers)
-            if "CF-Cache-Status: HIT" in cf_loop.headers:
-                print("wwwooow")
-
-
-    def Akamai(self, url, s):
-        headers = {'"': "1"}
-        aka_loop = s.get(url, headers=headers, verify=False, timeout=6)
-        if aka_loop.status_code == 400:
-            print(aka_loop.headers)
-            if "desc=HIT" in aka_loop.headers:
-                print("wwwooow")
-
-
-
-class analyze_technos:
-    """
-    nginx:
-        X-Real-IP
-        Forwarded
-    apache:
-        X-Forwarded-Server
-        X-Real-IP
-        Max-Forwards
-    Envoy:
-        X-Envoy-external-adress
-        X-Envoy-internal
-        X-Envoy-Original-Dst-Host
-    """
-
 
 
 
@@ -115,6 +73,7 @@ def main(url):
     base_header = []
 
     a_cdn = analyze_cdn()
+    a_tech = technology()
 
     req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
     print("\n URL response: {}\n".format(req_main.status_code))
@@ -125,26 +84,34 @@ def main(url):
     for k in req_main.headers:
         base_header.append("{}: {}".format(k, req_main.headers[k]))
     #print(base_header)
-    get_server_error(url, base_header)
+    get_server_error(url, base_header, full)
     check_header(url, req_main)
     check_localhost(url, s, domain)
     check_methods(url)
     check_CPDoS(url, s, req_main, domain)
-    techno = a_cdn.get_cdn(req_main, url, s)
-    techno_result = getattr(a_cdn, techno)(url, s)
+    cdn = a_cdn.get_cdn(req_main, url, s)
+    if cdn:
+        cdn_result = getattr(a_cdn, cdn)(url, s)
+    techno = get_technos(req_main, url, s)
+    if techno:
+        techno_result = getattr(a_tech, techno)(url, s)
+
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-u", help="URL login to test \033[31m[required]\033[0m", dest='url')
+    parser.add_argument("--full", help="To display full header", dest='full', required=False, action='store_true')
     results = parser.parse_args()
                                      
     url = results.url
+    full = results.full
 
     domain =  urlparse(url).netloc
 
     s = requests.Session()
+    s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
     s.max_redirects = 60
 
     if len(sys.argv) < 2:

@@ -5,16 +5,16 @@ import requests
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-def get_server_error(url, base_header):
+def get_server_error(url, base_header, full):
     print("\n\033[36m ├ Server error analyse\033[0m")
     error_header = []
     valid_error = False
     error_length = 0
 
-    payloads_error = ["%2a","%EXT%", "%ff", "%0A", "..%3B"]
+    payloads_error = ["%2a","%EXT%", "%ff", "%0A", "..%3B/", "..%3B", "%2e"]
     for p in payloads_error:
         url_error = "{}{}".format(url,p) if url[-1] else "{}/{}".format(url,p)
-        req_error = requests.get(url_error, verify=False, timeout=10)
+        req_error = requests.get(url_error, verify=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10)
 
         if req_error.status_code == 400 and not valid_error:
 
@@ -36,8 +36,9 @@ def get_server_error(url, base_header):
             print("")
             print(f" \033[36m200 response header\033[0m {' ':<25} \033[36m400 response header\033[0m")
             for pbh, peh in zip(base_header, error_header):
-                pbh = pbh.replace(pbh[40:], "...") if len(pbh) > 40 else pbh
-                peh = peh.replace(peh[60:], "...\033[0m") if len(peh) > 60 else peh
+                if not full:
+                    pbh = pbh.replace(pbh[40:], "...") if len(pbh) > 40 else pbh
+                    peh = peh.replace(peh[60:], "...\033[0m") if len(peh) > 60 else peh
                 print(' {pbh:<45} → {peh:<15}'.format(pbh=pbh, peh=peh))
             print("")
         else:
