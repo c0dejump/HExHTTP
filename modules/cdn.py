@@ -16,7 +16,7 @@ class analyze_cdn:
         """
         print("\033[36m ├ CDN analyse\033[0m")
         cdns = {
-        "Akamai": ["Akamai", "X-Akamai","X-Akamai-Transformed"],
+        "Akamai": ["Akamai", "X-Akamai","X-Akamai-Transformed", "AkamaiGHost"],
         "Cloudflare": ["cf-ray", "cloudflare", "Cf-Cache-Status", "Cf-Ray"],
         #"CacheFly": "",
         #"Fastly": "",
@@ -34,17 +34,20 @@ class analyze_cdn:
         if cf_loop in [301, 302, 303]:
             print(cf_loop.headers)
             if "CF-Cache-Status: HIT" in cf_loop.headers:
-                print(" + Potential redirect loop exploit possible with \033[33m{}\033[0m payload".format(headers))
+                print("   \033[32m└──+\033[0m Potential redirect loop exploit possible with \033[32m{}\033[0m payload".format(headers))
 
 
     def Akamai(self, url, s):
         print("\033[36m --├ Akamai\033[0m")
         headers = {'"': "1"}
-        aka_loop = s.get(url, headers=headers, verify=False, timeout=6)
-        if aka_loop.status_code == 400:
-            for al in aka_loop.headers:
-                if al == "Server-Timing" and "desc=HIT" in aka_loop.headers[al]:
-                    print(" + Potential redirect loop exploit possible with \033[33m{}\033[0m payload".format(headers))
+        try:
+            aka_loop = s.get(url, headers=headers, verify=False, timeout=6)
+            if aka_loop.status_code == 400:
+                for al in aka_loop.headers:
+                    if al == "Server-Timing" and "desc=HIT" in aka_loop.headers[al]:
+                        print("   \033[32m└──+\033[0m Potential redirect loop exploit possible with \033[33m{}\033[0m payload".format(headers))
+        except:
+            print(" └── Error with this payload please check manually with this header: {}".format(headers))
 
     def envoy(self, url, s):
         print("\033[36m --├ Envoy\033[0m")

@@ -28,7 +28,7 @@ def get_technos(req_main, url, s):
     technos = {
     "apache": ["Apache", "apache"],
     "nginx": ["nginx"],
-    "Envoy": ["envoy"]
+    "envoy": ["envoy"]
     }
     for t in technos:
         for v in technos[t]:
@@ -57,15 +57,22 @@ def fuzz_x_header(url):
     print("")
 
 
-def check_header(url, req_main):
-    print("\033[36m ├ Header analyse\033[0m")
+def check_cache_header(url, req_main):
+    result = []
     for headi in base_header:
-        #print(headi)
         if "cache" in headi or "Cache" in headi:
-            print(" └── {}".format(headi))
+            result.append("{}:{}".format(headi.split(":")[0], headi.split(":")[1]))
     for vary in base_header:
         if "Vary" in vary:
-            print(" └── {}".format(vary))
+            result.append("{}:{}".format(vary.split(":")[0], vary.split(":")[1]))
+    return(result)
+
+
+def diff_check_cache_header(check_header_one, check_header_two):
+    print("\033[36m ├ Header cache analyse\033[0m")
+    print("\033[36m   First check{space:<25}Last check\033[0m".format(space=" "))
+    for cho, cht in zip(check_header_one, check_header_two):
+        print(' └──  {cho:<30} → {cht:<15}'.format(cho=cho, cht=cht))
 
 
 def main(url):
@@ -76,6 +83,7 @@ def main(url):
     a_tech = technology()
 
     req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
+    
     print("\n URL response: {}\n".format(req_main.status_code))
     if req_main.status_code not in [200, 302, 301, 403, 401]:
         choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
@@ -83,9 +91,11 @@ def main(url):
             sys.exit()
     for k in req_main.headers:
         base_header.append("{}: {}".format(k, req_main.headers[k]))
+
     #print(base_header)
+    check_header_one = check_cache_header(url, req_main)
+
     get_server_error(url, base_header, full)
-    check_header(url, req_main)
     check_localhost(url, s, domain)
     check_methods(url)
     check_CPDoS(url, s, req_main, domain)
@@ -95,6 +105,11 @@ def main(url):
     techno = get_technos(req_main, url, s)
     if techno:
         techno_result = getattr(a_tech, techno)(url, s)
+
+    second_req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
+    check_header_two = check_cache_header(url, second_req_main)
+
+    diff_check_cache_header(check_header_one, check_header_two)
 
 
 
