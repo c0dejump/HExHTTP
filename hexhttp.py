@@ -72,10 +72,13 @@ def diff_check_cache_header(check_header_one, check_header_two):
     print("\033[36m ├ Header cache analyse\033[0m")
     print("\033[36m   First check{space:<25}Last check\033[0m".format(space=" "))
     for cho, cht in zip(check_header_one, check_header_two):
+        if not full:
+            cho = cho.replace(cho[40:], "...") if len(cho) > 40 else cho
+            cht = cht.replace(cht[60:], "...\033[0m") if len(cht) > 60 else cht
         print(' └──  {cho:<30} → {cht:<15}'.format(cho=cho, cht=cht))
 
 
-def main(url):
+def main(url, s):
     global base_header
     base_header = []
 
@@ -107,6 +110,7 @@ def main(url):
         techno_result = getattr(a_tech, techno)(url, s)
 
     second_req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
+
     check_header_two = check_cache_header(url, second_req_main)
 
     diff_check_cache_header(check_header_one, check_header_two)
@@ -134,5 +138,5 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit()
 
-    main(url)
+    main(url, s)
 
