@@ -54,7 +54,11 @@ def fuzz_x_header(url):
         X-{COMPANY_NAME}-{FUZZ}
     (https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
     """
-    print("")
+    print("\033[36m ├ X-FUZZ analyse\033[0m")
+    f_header = {"Forwarded":"for=example.com;host=example.com;proto=https, for=23.45.67.89"}
+    req_f = requests.get(url, headers=f_header, timeout=10, verify=False)
+    if req_f.status_code == 500:
+        print(" └──  Header {} return 500 error".format(f_header))
 
 
 def check_cache_header(url, req_main):
@@ -65,6 +69,9 @@ def check_cache_header(url, req_main):
     for vary in base_header:
         if "Vary" in vary:
             result.append("{}:{}".format(vary.split(":")[0], vary.split(":")[1]))
+    """for age in base_header:
+        if "age" in age or "Age" in age:
+            result.append("{}:{}".format(age.split(":")[0], age.split(":")[1]))"""
     return(result)
 
 
@@ -87,7 +94,10 @@ def main(url, s):
 
     req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
     
-    print("\n URL response: {}\n".format(req_main.status_code))
+    print("\033[34m⟙\033[0m")
+    print(" URL response: {}".format(req_main.status_code))
+    print(" URL response size: {} bytes".format(len(req_main.content)))
+    print("\033[34m⟘\033[0m\n")
     if req_main.status_code not in [200, 302, 301, 403, 401]:
         choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
         if choice not in ["y", "Y"]:
@@ -96,6 +106,7 @@ def main(url, s):
         base_header.append("{}: {}".format(k, req_main.headers[k]))
 
     #print(base_header)
+    # first check header response
     check_header_one = check_cache_header(url, req_main)
 
     get_server_error(url, base_header, full)
@@ -109,10 +120,12 @@ def main(url, s):
     if techno:
         techno_result = getattr(a_tech, techno)(url, s)
 
-    second_req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
 
+    second_req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
+    #second check header response (to check if the header response changed)
     check_header_two = check_cache_header(url, second_req_main)
 
+    fuzz_x_header(url)
     diff_check_cache_header(check_header_one, check_header_two)
 
 
@@ -132,6 +145,7 @@ if __name__ == '__main__':
     s = requests.Session()
     s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
     s.max_redirects = 60
+
 
     if len(sys.argv) < 2:
         print("{}URL target is missing, try using -u <url> \n".format(INFO))

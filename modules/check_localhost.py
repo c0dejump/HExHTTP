@@ -11,7 +11,8 @@ def check_localhost(url, s, domain):
     """
     Check_localhost: Function which try automatically if it's possible scanning with "localhost" host for discovery other files/directories
     """
-    list_test = ["127.0.0.1", "localhost", "192.168.0.1"]
+    list_test = ["127.0.0.1", "localhost", "192.168.0.1", "127.0.1", "127.1", "::1", "127.0.0.2", "127.0.0.1", "127.0.0.1:22", 
+    "0.0.0.0", "0.0.0.0:443", "[::]:80", "127.0.0.1.nip.io", "127.127.127.127"]
 
     print("\033[36m ├ Host analyse\033[0m")
     for lt in list_test:
@@ -25,7 +26,7 @@ def check_localhost(url, s, domain):
                 except:
                     print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}{'→':^3}{req.headers['location']}")
             else:
-                print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}")
+                print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3} [{len(req.content)} bytes]")
         except:
             #traceback.print_exc() 
             pass
@@ -40,6 +41,6 @@ def check_localhost(url, s, domain):
                 except:
                     print(" └── {} → {} → {}".format(headers, req.status_code, req.headers['location']))
             else:
-                print(" └── {} → {}".format(headers, req.status_code))
+                print(" └── {} → {} [{} bytes]".format(headers, req.status_code, len(req.content)))
         except:
             pass
