@@ -56,9 +56,12 @@ def fuzz_x_header(url):
     """
     print("\033[36m ├ X-FUZZ analyse\033[0m")
     f_header = {"Forwarded":"for=example.com;host=example.com;proto=https, for=23.45.67.89"}
-    req_f = requests.get(url, headers=f_header, timeout=10, verify=False)
-    if req_f.status_code == 500:
-        print(" └──  Header {} return 500 error".format(f_header))
+    try:
+        req_f = requests.get(url, headers=f_header, timeout=10, verify=False)
+        if req_f.status_code == 500:
+            print(" └──  Header {} return 500 error".format(f_header))
+    except:
+        pass
 
 
 def check_cache_header(url, req_main):
@@ -95,9 +98,10 @@ def main(url, s):
     req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
     
     print("\033[34m⟙\033[0m")
+    print(" URL: {}".format(url))
     print(" URL response: {}".format(req_main.status_code))
     print(" URL response size: {} bytes".format(len(req_main.content)))
-    print("\033[34m⟘\033[0m\n")
+    print("\033[34m⟘\033[0m")
     if req_main.status_code not in [200, 302, 301, 403, 401]:
         choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
         if choice not in ["y", "Y"]:
@@ -133,11 +137,13 @@ def main(url, s):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-u", help="URL login to test \033[31m[required]\033[0m", dest='url')
+    parser.add_argument("-u", help="URL to test \033[31m[required]\033[0m", dest='url')
+    parser.add_argument("-f", help="URL file to test", dest='url_file', required=False)
     parser.add_argument("--full", help="To display full header", dest='full', required=False, action='store_true')
     results = parser.parse_args()
                                      
     url = results.url
+    url_file = results.url_file
     full = results.full
 
     domain =  urlparse(url).netloc
@@ -152,5 +158,21 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit()
 
-    main(url, s)
+    if url_file:
+        with open(url_file, "r") as urls:
+            urls = urls.read().splitlines()
+            for url in urls:
+                try:
+                    main(url, s)
+                except KeyboardInterrupt:
+                    pass
+                except:
+                    pass
+                print("")
+    else:
+        try:
+            main(url, s)
+        except KeyboardInterrupt:
+            sys.exit()
+        print("")
 

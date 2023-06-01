@@ -9,10 +9,11 @@ Header Exploitation HTTP
 ## Usage
 
 	usage: hexhttp.py [-h] [-u URL] [--full]
-
-  	-h, --help  show this help message and exit
-  	-u URL      URL login to test [required]
-  	--full      To display full header
+	
+	-h, --help   show this help message and exit
+	-u URL       URL to test [required]
+	-f URL_FILE  URL file to test
+	--full       To display full header
 
 
 ## Examples

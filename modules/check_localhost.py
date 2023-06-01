@@ -30,17 +30,3 @@ def check_localhost(url, s, domain):
         except:
             #traceback.print_exc() 
             pass
-    for lt in list_test:
-        headers = {"Host": domain, "host": lt}
-        try:
-            req = s.get(url, headers=headers, allow_redirects=False, verify=False, timeout=10)
-            if req.status_code in [301, 302]:
-                try:
-                    req_redirect = s.get(url, headers=headers, verify=False, allow_redirects=True, timeout=10)
-                    print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}{'→':^3}{req.history}")
-                except:
-                    print(" └── {} → {} → {}".format(headers, req.status_code, req.headers['location']))
-            else:
-                print(" └── {} → {} [{} bytes]".format(headers, req.status_code, len(req.content)))
-        except:
-            pass

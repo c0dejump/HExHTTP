@@ -40,6 +40,7 @@ def check_methods(url):
         try:
             result_list.append(funct(url))
         except:
+            print(" └── Error with {} method".format(funct))
             pass
             #traceback.print_exc()
     for rs, type_r, len_req, req_content in result_list:
