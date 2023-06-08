@@ -60,14 +60,17 @@ def check_CPDoS(url, s, req_main, domain):
     if req_main.status_code in [301, 302]:
         url = req_main.headers['location'] if "http" in req_main.headers['location'] else "{}{}".format(url, req_main.headers['location'])
     print("\033[36m ├ CPDoS analyse\033[0m")
+
     url = "{}?CPDoS=1".format(url)
+
     try:
         req_main = requests.get(url, verify=False, allow_redirects=False, timeout=10)
     except:
         pass
     main_status_code = req_main.status_code
+    
     print("\033[36m --├ {} [{}] \033[0m".format(url, main_status_code))
-    headers = [{"Host":"{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}]
+    headers = [{"Host":"{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}, {"X-Forwarded-Host": "XXX"}]
     for h in headers:
         try:
             req_cpdos = s.get(url, headers=h, verify=False, allow_redirects=False, timeout=10)
@@ -106,6 +109,10 @@ def check_CPDoS(url, s, req_main, domain):
                             print("   └── Not seem timeout but the page return {} status code with these informations:\n   -URL:{}\n   -HEADER{}, check it manually on {} if this page is down".format(req_cpdos_other_verification.status_code, url, h, url))
                     except:
                         pass
+            elif main_status_code != 404 and req_cpdos.status_code == 404:
+                req_cpdos_verify = s.get(url, verify=False, allow_redirects=False, timeout=6)
+                if req_cpdos_verify.status_code == 404:
+                    print("   └── \033[31m{} return 404 answer, CPDos exploit seem to be possible with {} payload !\033[0m".format(url, h))
         except requests.exceptions.Timeout:
             print(" └── \033[31m{} Seem to timout, CPDos exploit seem to be possible with {} header\033[0m".format(url, h))
             return True
