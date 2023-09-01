@@ -14,6 +14,7 @@ from modules.methods import check_methods
 from modules.CPDoS import check_CPDoS
 from modules.technologies import technology
 from modules.cdn import analyze_cdn
+from modules.cache_poisoning import check_cache_poisoning
 
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
@@ -117,6 +118,7 @@ def main(url, s):
     check_localhost(url, s, domain)
     check_methods(url)
     check_CPDoS(url, s, req_main, domain)
+    check_cache_poisoning(url)
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
         cdn_result = getattr(a_cdn, cdn)(url, s)

@@ -20,14 +20,16 @@ Header Exploitation HTTP
 
 ![alt tag](https://github.com/c0dejump/HExHTTP/blob/main/static/example_1.png)
 ![alt tag](https://github.com/c0dejump/HExHTTP/blob/main/static/example_2.png)
+![alt tag](https://github.com/c0dejump/HExHTTP/blob/main/static/basic_poisoning.png)
 
 ## Features
 
-- Server Error response checking [IP]
+- Server Error response checking
 - Localhost header response analysis
 - Methods response analysis
 - CPDoS technique
 - CND Analysis
+- Cache poisoning
 - Technologies analysis (Ngninx - Envoy - Apache) [IP]
 - Header cache reaction analysis [IP]
 

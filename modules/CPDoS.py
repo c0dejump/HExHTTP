@@ -25,7 +25,8 @@ def HHO(url, s, main_status_code):
         except KeyboardInterrupt:
             pass
         except:
-            print("plop")
+            pass
+            #print("plop")
     if cpdos_win:
         print("   └── \033[31m{} CPDos HHO seem work !\033[0m".format(url))
 
