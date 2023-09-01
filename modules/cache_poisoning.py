@@ -25,6 +25,7 @@ def basic_poisoning(url, matching_forward):
 			if "Cache-Status" in cs or "X-Cache" in cs or "x-drupal-cache" in cs:
 				#print(res.headers) #Debug
 				if res.headers[cs] == "HIT" or res.headers[cs] == "hit":
+					#print("HEADSHOT !!!") #Debug
 					res_header = res.headers
 
 	#print(res_header) Debug
@@ -41,7 +42,7 @@ def basic_poisoning(url, matching_forward):
 				print("  \033[31m └── Cache poisoning on {} seem work, the redirection to \"google.com\" seems work ! \033[0m".format(url_param))
 
 		elif matching_forward in req_verify_redirect.text or matching_forward in req_verify_url.text:
-			print("  \033[31m └── Cache poisoning on {} seem work, check the page to see if \"google.com\" is staying and have fun ! \033[0m".format(url_param))
+			print("  \033[31m └── Cache poisoning on {} seem work, double-check on the page to see if \"google.com\" is staying and have fun ! \033[0m".format(url_param))
 		#print(req_verify_redirect.status_code) #Debug
 
 
