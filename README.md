@@ -29,7 +29,7 @@ Header Exploitation HTTP
 - Methods response analysis
 - CPDoS technique
 - CND Analysis
-- Cache poisoning
+- Web cache poisoning unsafe handling of resource imports
 - Technologies analysis (Ngninx - Envoy - Apache) [IP]
 - Header cache reaction analysis [IP]
 
@@ -39,5 +39,6 @@ Header Exploitation HTTP
 - Cache Poisoning at Scale https://youst.in/posts/cache-poisoning-at-scale/
 - Web Cache Entanglement: Novel Pathways to Poisoning https://portswigger.net/research/web-cache-entanglement
 - Practical Web Cache Poisoning https://portswigger.net/research/practical-web-cache-poisoning
+- Exploiting cache design flaws https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws
 - Responsible denial of service with web cache poisoning https://portswigger.net/research/responsible-denial-of-service-with-web-cache-poisoning
 - https://cpdos.org/
