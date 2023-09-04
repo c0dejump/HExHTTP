@@ -20,7 +20,7 @@ Header Exploitation HTTP
 
 ![alt tag](https://github.com/c0dejump/HExHTTP/blob/main/static/example_1.png)
 ![alt tag](https://github.com/c0dejump/HExHTTP/blob/main/static/example_2.png)
-![alt tag](https://github.com/c0dejump/HExHTTP/blob/main/static/basic_poisoning.png)
+![alt tag](https://github.com/c0dejump/HExHTTP/blob/main/static/poisoner.png)
 
 ## Features
 

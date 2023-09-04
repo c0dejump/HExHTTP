@@ -1,1 +1,0 @@
- └── [31mVULNERABILITY CONFIRMED[0m | HEADER REFLECTION | EXPLICIT CACHE : TRUE | URL: [34mhttps://0a11005a035f667181477f9f008b0000.web-security-academy.net/?cacheBusterX47=128[0m | HEADER : {'x-forwarded-host': 'ndvyepenbvtidpvyzh.com'}

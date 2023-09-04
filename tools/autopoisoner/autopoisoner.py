@@ -27,8 +27,6 @@ if not (args.file or args.url):
 
 if args.output:
     outputFile = open(args.output, "w")
-else:
-    outputFile = open("output.txt", "w")
 
 if args.file :
     allURLs = [line.replace('\n', '') for line in open(args.file, "r")]
@@ -270,7 +268,7 @@ def sequential_cache_poisoning_check(urlList):
 
 def check_cache_poisoning(url_by_hexhttp=False):
     print("\033[36m ├ Basic cache poisoning analyse\033[0m")
-    
+
     url = args.url if not url_by_hexhttp else url_by_hexhttp
     if url:
         try:
