@@ -80,14 +80,10 @@ def check_cache_header(url, req_main):
     return(result)
 
 
-def diff_check_cache_header(check_header_one, check_header_two):
-    print("\033[36m ├ Header cache analyse\033[0m")
-    print("\033[36m   First check{space:<25}Last check\033[0m".format(space=" "))
-    for cho, cht in zip(check_header_one, check_header_two):
-        if not full:
-            cho = cho.replace(cho[40:], "...") if len(cho) > 40 else cho
-            cht = cht.replace(cht[60:], "...\033[0m") if len(cht) > 60 else cht
-        print(' └──  {cho:<30} → {cht:<15}'.format(cho=cho, cht=cht))
+def maj_check_cache_header(check_header):
+    print("\033[36m ├ Header cache\033[0m")
+    for ch in check_header:
+        print(' └──  {cho:<30}'.format(cho=ch))
 
 
 def main(url, s):
@@ -112,8 +108,6 @@ def main(url, s):
         base_header.append("{}: {}".format(k, req_main.headers[k]))
 
     #print(base_header)
-    # first check header response
-    check_header_one = check_cache_header(url, req_main)
 
     get_server_error(url, base_header, full)
     check_localhost(url, s, domain)
@@ -127,13 +121,10 @@ def main(url, s):
     if techno:
         techno_result = getattr(a_tech, techno)(url, s)
 
-
-    second_req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
-    #second check header response (to check if the header response changed)
-    check_header_two = check_cache_header(url, second_req_main)
+    check_header = check_cache_header(url, req_main)
 
     fuzz_x_header(url)
-    diff_check_cache_header(check_header_one, check_header_two)
+    maj_check_cache_header(check_header)
 
 
 
