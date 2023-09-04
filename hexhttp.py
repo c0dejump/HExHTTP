@@ -14,7 +14,8 @@ from modules.methods import check_methods
 from modules.CPDoS import check_CPDoS
 from modules.technologies import technology
 from modules.cdn import analyze_cdn
-from modules.cache_poisoning import check_cache_poisoning
+
+from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)

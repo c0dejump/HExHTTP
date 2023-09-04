@@ -42,3 +42,4 @@ Header Exploitation HTTP
 - Exploiting cache design flaws https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws
 - Responsible denial of service with web cache poisoning https://portswigger.net/research/responsible-denial-of-service-with-web-cache-poisoning
 - https://cpdos.org/
+- Cache poisoning https://github.com/Th0h0/autopoisoner 
