@@ -48,3 +48,15 @@ def get_server_error(url, base_header, full):
                 pass
         except:
             print(" ! Error with {} payload".format(p))
+    header_cache_error(url)
+
+
+def header_cache_error(url):
+        headers = {"\\":"1"}
+        try:
+            hce_req = requests.get(url, headers=headers, verify=False, timeout=10)
+            if hce_req.status_code == 400:
+                print(" i - 400 error code with {} payload header [{} bytes]".format(headers, len(hce_req.content)))
+                print(hce_req.headers)
+        except:
+            print(" i - Error code with {} payload header ".format(headers))

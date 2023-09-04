@@ -75,7 +75,7 @@ def check_CPDoS(url, s, req_main, domain):
     for h in headers:
         try:
             req_cpdos = s.get(url, headers=h, verify=False, allow_redirects=False, timeout=10)
-            if req_cpdos.status_code in [301, 302, 303, 421, 502]:
+            if req_cpdos.status_code in [301, 302, 303, 421, 502, 522]:
                 print(" \033[36m├\033[0m {} + [\033[33m{}\033[0m] → \033[33m{}\033[0m".format(url, h, req_cpdos.status_code))
                 #print(" └── CPDos exploit seem to be possible, next test...")
                 redirect_req = True
@@ -96,10 +96,10 @@ def check_CPDoS(url, s, req_main, domain):
                             if response_time > 1.5:
                                 n_timout += 1
                         except requests.exceptions.Timeout:
-                            print("   └── \033[31m{} Seem to timout, CPDos exploit seem to be possible !\033[0m".format(url))
+                            print("   └── \033[31m{} Seems to be timout, CPDos exploit seems to be possible !\033[0m".format(url))
                             url_timeout = True
                     if n_timout > 1:
-                        print("   └── \033[33m{} Answered {}/15 at more than 1,5scd, CPDos exploit seem to be possible !\033[0m".format(url, n_timout))
+                        print("   └── \033[33m{} Answered {}/15 at more than 1,5scd, CPDos exploit seems to be possible !\033[0m".format(url, n_timout))
                         url_timeout = True
                     if not url_timeout:
                         print("   └── Not seem timeout, you can check manually if the exploit is possible")
