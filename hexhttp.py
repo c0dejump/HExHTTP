@@ -6,14 +6,15 @@ import argparse
 import traceback
 import sys, os, re
 import time
-import traceback
 from urllib.parse import urlparse
+
 from modules.check_localhost import check_localhost
 from modules.server_error import get_server_error
 from modules.methods import check_methods
 from modules.CPDoS import check_CPDoS
 from modules.technologies import technology
 from modules.cdn import analyze_cdn
+from modules.cache_poisoning_files import check_cache_files
 
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
@@ -114,6 +115,7 @@ def main(url, s):
     check_methods(url)
     check_CPDoS(url, s, req_main, domain)
     check_cache_poisoning(url)
+    check_cache_files(url)
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
         cdn_result = getattr(a_cdn, cdn)(url, s)

