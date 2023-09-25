@@ -24,7 +24,8 @@ def get_hit(url, matching_forward):
 	for i in range(10):
 		res = requests.get(url, params=params, headers=headers, verify=False, allow_redirects=False)
 		for cs in res.headers:
-			if "Cache-Status" in cs or "X-Cache" in cs or "x-drupal-cache" in cs or "X-Proxy-Cache" in cs or "X-HS-CF-Cache-Status" in cs:
+			if "Cache-Status" in cs or "X-Cache" in cs or "x-drupal-cache" in cs or "X-Proxy-Cache" in cs or "X-HS-CF-Cache-Status" in cs \
+			or "X-Vercel-Cache" in cs or "X-nananana" in cs or "x-vercel-cache" in cs:
 				#print(res.headers) #Debug
 				if "hit" in res.headers[cs].lower():
 					#print("HEADSHOT !!!") #Debug

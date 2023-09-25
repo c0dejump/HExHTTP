@@ -117,9 +117,9 @@ def crawl_files(URL, response : requests.Response):
     return selectedFiles
 
 def use_caching(headers):
-    if headers.get("X-Cache-Hits") or headers.get("X-Cache") or headers.get("x-drupal-cache") or headers.get("X-HS-CF-Cache-Status") \
-    or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") or (headers.get("Cache-Control") \
-    or headers.get("X-Micro-Cache") and ("public" in headers.get("Cache-Control"))):
+    if headers.get("X-Cache-Hits") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") or headers.get("x-drupal-cache") \
+    or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") \
+    or (headers.get("Cache-Control") or headers.get("X-HS-CF-Cache-Status") or headers.get("X-nananana") or headers.get("X-Micro-Cache") and ("public" in headers.get("Cache-Control"))):
         return True
     else:
         return False
