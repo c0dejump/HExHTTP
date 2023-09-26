@@ -3,6 +3,7 @@ import argparse
 import random
 import re
 import os
+import sys
 import threading
 
 currentPath = os.path.dirname(__file__)
@@ -31,7 +32,11 @@ else:
     outputFile = open("output.txt", "w")
 
 if args.file :
-    allURLs = [line.replace('\n', '') for line in open(args.file, "r")]
+    try:
+        allURLs = [line.replace('\n', '') for line in open(args.file, "r")]
+    except FileNotFoundError:
+       	print("Error, input file not found")
+        sys.exit()
 
 CANARY = "ndvyepenbvtidpvyzh.com"
 
@@ -48,7 +53,6 @@ headersToFuzz = {
     "h0st": CANARY,
     "Transfer-Encoding": CANARY,
     "x-original-url": CANARY,
-    "x-original-host": CANARY,
     "x-forwarded-prefix": CANARY,
     "x-amz-server-side-encryption": CANARY,
     "trailer": CANARY,
@@ -59,8 +63,95 @@ headersToFuzz = {
     "content-type": CANARY,
     "api-version": CANARY,
     "acunetix-header": CANARY,
-    "accept-version": CANARY
-    }
+    "accept-version": CANARY,
+    "Access-Control-Allow-Origin": CANARY,
+    "Base-Url": CANARY,
+    "Cache_info": CANARY,
+    "Cf-Connecting-Ip": CANARY,
+    "Client-IP": CANARY,
+    "Coming_from": CANARY,
+    "Connect_via_ip": CANARY,
+    "Forwarded-For-IP": CANARY,
+    "Forwarded-For": CANARY,
+    "Forwarded": CANARY,
+    "Forwarded_for": CANARY,
+    "Forwarded_for_ip": CANARY,
+    "Forward-For": CANARY,
+    "Forward_for": CANARY,
+    "Http-Client-Ip": CANARY,
+    "Http-Forwarded-For-Ip": CANARY,
+    "Http-Pc-Remote-Addr": CANARY,
+    "Http-Proxy-Connection": CANARY,
+    "Http-Url": CANARY,
+    "Http-Via": CANARY,
+    "Http-Xroxy-Connection": CANARY,
+    "Http-X-Forwarded-For-Ip": CANARY,
+    "Http-X-Imforwards": CANARY,
+    "Origin": CANARY,
+    "Pc_remote_addr": CANARY,
+    "Pragma": CANARY,
+    "Proxy-Client-Ip": CANARY,
+    "Proxy-Host": CANARY,
+    "Proxy-Url": CANARY,
+    "Proxy": CANARY,
+    "Proxy_authorization": CANARY,
+    "Proxy_connection": CANARY,
+    "Real-Ip": CANARY,
+    "Redirect": CANARY,
+    "Referer": CANARY,
+    "Remote_addr": CANARY,
+    "Request-Uri": CANARY,
+    "Source-Ip": CANARY,
+    "True-Client-Ip": CANARY,
+    "Uri": CANARY,
+    "Url": CANARY,
+    "Via": CANARY,
+    "Wl-Proxy-Client-Ip": CANARY,
+    "Xonnection": CANARY,
+    "Xproxy": CANARY,
+    "Xroxy_connection": CANARY,
+    "X-Backend-Host": CANARY,
+    "X-Bluecoat-Via": CANARY,
+    "X-Cache-Info": CANARY,
+    "X-Client-IP": CANARY,
+    "X-Custom-IP-Authorization": CANARY,
+    "X-Forwarded-By": CANARY,
+    "X-Forwarded-For-Original": CANARY,
+    "X-Forwarded-For": CANARY,
+    "X-Forwarded-Host": CANARY,
+    "X-Forwarded-Server": CANARY,
+    "X-Forwarder-For": CANARY,
+    "X-Forward-For": CANARY,
+    "X-Forwared-Host": CANARY,
+    "X-From-Ip": CANARY,
+    "X-From": CANARY,
+    "X-Gateway-Host": CANARY,
+    "X-Http-Destinationurl": CANARY,
+    "X-Http-Host-Override": CANARY,
+    "X-Ip": CANARY,
+    "X-Originally-Forwarded-For": CANARY,
+    "X-Original-Remote-Addr": CANARY,
+    "X-Originating-IP": CANARY,
+    "X-Proxymesh-Ip": CANARY,
+    "X-Proxyuser-Ip": CANARY,
+    "X-Proxy-Url": CANARY,
+    "X-Real-Ip": CANARY,
+    "X-Remote-Addr": CANARY,
+    "X-Remote-IP": CANARY,
+    "X-Rewrite-Url": CANARY,
+    "X-True-IP": CANARY,
+    "X_cluster_client_ip": CANARY,
+    "X_coming_from": CANARY,
+    "X_delegate_remote_host": CANARY,
+    "X_forwarded": CANARY,
+    "X_forwarded_for_ip": CANARY,
+    "X_imforwards": CANARY,
+    "X_locking": CANARY,
+    "X_looking": CANARY,
+    "X_real_ip": CANARY,
+    "Zcache_control": CANARY,
+    "Z-Forwarded-For": CANARY 
+}
 
 def splitURLS(threadsSize): #Multithreading
 

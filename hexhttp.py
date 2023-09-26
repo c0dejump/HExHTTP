@@ -162,13 +162,23 @@ if __name__ == '__main__':
                     main(url, s)
                 except KeyboardInterrupt:
                     pass
+                except FileNotFoundError:
+                    print("Input file not found")
+                    sys.exit()
                 except:
                     pass
                 print("")
     else:
         try:
             main(url, s)
+        # basic errors
         except KeyboardInterrupt:
             sys.exit()
+        # requests errors
+        except requests.ConnectionError:
+            print("Error, cannot connect to target")
+        except requests.Timeout:
+            print("Error, request timeout")
+        except requests.exceptions.MissingSchema: 
+            print("Error, missing http:// or https:// schema")
         print("")
-
