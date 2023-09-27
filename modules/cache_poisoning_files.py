@@ -54,10 +54,10 @@ def wcp_import(url, matching_forward):
 
 	if req_verify_redirect.status_code in [301, 302] or req_verify_url.status_code in [301, 302]:
 		if matching_forward in req_verify_redirect.url or matching_forward in req_verify_url.url:
-			print("  \033[31m └── Cache poisoning on {} seem work, the redirection to \"ndvyepenbvtidpvyzh.com\" seems work ! \033[0m".format(url_param))
+			print("  \033[31m └── Cache poisoning on {} seem work, the redirection to \"ndvyepenbvtidpvyzh.com\" seems work with \"X-Forwarded-Host\"! \033[0m".format(url_param))
 
 	elif matching_forward in req_verify_redirect.text or matching_forward in req_verify_url.text:
-		print("  \033[31m └── Cache poisoning on {} seem work, double-check on the page to see if \"ndvyepenbvtidpvyzh.com\" is staying and have fun ! \033[0m".format(url_param))
+		print("  \033[31m └── Cache poisoning on {} seem work with \"X-Forwarded-Host\", double-check on the page to see if \"ndvyepenbvtidpvyzh.com\" is staying and have fun ! \033[0m".format(url_param))
 	#print(req_verify_redirect.status_code) #Debug
 
 
