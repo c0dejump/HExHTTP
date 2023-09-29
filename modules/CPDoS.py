@@ -14,7 +14,7 @@ def HHO(url, s, main_status_code):
         h = {"X-Oversized-Header-{}".format(i):"Big-Value-00000000000000000000000000000000000000000000000000000000000000000000"}
         try:
             req_hho = s.get(url, headers=h)
-            if req_hho.status_code in [400, 500] and req_hho.status_code != main_status_code:
+            if req_hho.status_code in [400, 413, 500] and req_hho.status_code != main_status_code:
                 print(h)
                 print(url)
                 print(req_hho.status_code)
@@ -36,7 +36,7 @@ def HMC(url, s, main_status_code):
     for c in chars:
         headers = {"X-Metachar-Header": c}
         req_hmc = s.get(url, headers=headers, timeout=10, verify=False)
-        if req_hmc.status_code in [400, 500]:
+        if req_hmc.status_code in [400, 413, 500]:
             req_verify_hmc = s.get(url, verify=False, timeout=10)
             if req_verify_hmc.status_code == req_hmc.status_code:
                 print("   └── \033[31m CPDos HMC on {} seem work with {} payload header ! \033[0m".format(url, headers))

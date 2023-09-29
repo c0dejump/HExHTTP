@@ -21,7 +21,7 @@ parser.add_argument("--behavior", "-b", action='store_true', help="activate a li
 args = parser.parse_args()
 
 LOCK = threading.Lock()
-TIMEOUT_DELAY = 10
+TIMEOUT_DELAY = 8
 
 if not (args.file or args.url):
     parser.error('No input selected: Please add --file or --url.')
@@ -217,7 +217,7 @@ def use_caching(headers):
 
 def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum, buster):
     try:
-        confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, timeout=TIMEOUT_DELAY)
+        confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY)
     except:
         return False
     if confirmationResponse.status_code == responseCandidate.status_code and confirmationResponse.text == responseCandidate.text:
@@ -235,11 +235,11 @@ def base_request(url):
     randNum = str(random.randrange(999))
     buster = str(random.randrange(999))
     try:
-        response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, timeout=TIMEOUT_DELAY)
+        response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
+        return response
     except:
         return None
 
-    return response
 
 def port_poisoning_check(url, initialResponse):
     randNum = str(random.randrange(999))
@@ -249,10 +249,10 @@ def port_poisoning_check(url, initialResponse):
     host = url.split("://")[1].split("/")[0]
     response = None
     try:
-        response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers={"Host": f"{host}:8888"}, allow_redirects=False, timeout=TIMEOUT_DELAY)
+        response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers={"Host": f"{host}:8888"}, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
         uri = f"{url}?cacheBusterX{randNum}={buster}"
     except:
-        return
+        return None
     explicitCache = str(use_caching(response.headers)).upper()
 
     if response.status_code != initialResponse.status_code:
@@ -289,13 +289,17 @@ def headers_poisoning_check(url, initialResponse):
         buster = str(random.randrange(999))
         response = None
         try:
-            response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=payload, allow_redirects=False, timeout=TIMEOUT_DELAY)
+            response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=payload, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
             uri = f"{url}?cacheBusterX{randNum}={buster}"
+        except KeyboardInterrupt:
+            pass
         except:
             potential_verbose_message("ERROR", args, url)
-            print("Request error... Skipping the URL.")
+            print("Request error... Skipping the {} URL.".format(uri))
             continue
         explicitCache = str(use_caching(response.headers)).upper()
+        sys.stdout.write("\033[34m  {}\033[0m\r".format(header))
+        sys.stdout.write("\033[K")
 
         if canary_in_response(response):
             findingState = 1
