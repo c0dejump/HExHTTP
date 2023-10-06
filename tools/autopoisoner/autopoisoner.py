@@ -21,7 +21,7 @@ parser.add_argument("--behavior", "-b", action='store_true', help="activate a li
 args = parser.parse_args()
 
 LOCK = threading.Lock()
-TIMEOUT_DELAY = 8
+TIMEOUT_DELAY = 10
 
 if not (args.file or args.url):
     parser.error('No input selected: Please add --file or --url.')
@@ -45,6 +45,7 @@ headersToFuzz = {
     "x-forwarded-host": CANARY,
     "x-forwarded-proto": "http",
     "x-http-method-override": "POST",
+    "x-http-method-override": "HEAD",
     "x-amz-website-redirect-location": CANARY,
     "x-rewrite-url": CANARY,
     "x-host": CANARY,
@@ -66,6 +67,7 @@ headersToFuzz = {
     "acunetix-header": CANARY,
     "accept-version": CANARY,
     "Access-Control-Allow-Origin": CANARY,
+    "Access-Control-Allow-Origin": "*",
     "Base-Url": CANARY,
     "Cache_info": CANARY,
     "Cf-Connecting-Ip": CANARY,
@@ -119,6 +121,7 @@ headersToFuzz = {
     "X-Forwarded-By": CANARY,
     "X-Forwarded-For-Original": CANARY,
     "X-Forwarded-For": CANARY,
+    "Y-Forwarded-For": CANARY,
     "X-Forwarded-Server": CANARY,
     "X-Forwarder-For": CANARY,
     "X-Forward-For": CANARY,
@@ -150,7 +153,7 @@ headersToFuzz = {
     "X_looking": CANARY,
     "X_real_ip": CANARY,
     "Zcache_control": CANARY,
-    "Z-Forwarded-For": CANARY 
+    "Z-Forwarded-For": CANARY
 }
 
 def splitURLS(threadsSize): #Multithreading

@@ -15,6 +15,7 @@ from modules.CPDoS import check_CPDoS
 from modules.technologies import technology
 from modules.cdn import analyze_cdn
 from modules.cache_poisoning_files import check_cache_files
+from modules.cookie_reflection import check_cookie_reflection
 
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
@@ -101,7 +102,7 @@ def main(url, s):
     print(" URL response: {}".format(req_main.status_code))
     print(" URL response size: {} bytes".format(len(req_main.content)))
     print("\033[34m⟘\033[0m")
-    if req_main.status_code not in [200, 302, 301, 403, 401]:
+    if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
         choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
         if choice not in ["y", "Y"]:
             sys.exit()
@@ -116,6 +117,7 @@ def main(url, s):
     check_CPDoS(url, s, req_main, domain)
     check_cache_poisoning(url)
     check_cache_files(url)
+    check_cookie_reflection(url)
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
         cdn_result = getattr(a_cdn, cdn)(url, s)
@@ -178,7 +180,7 @@ if __name__ == '__main__':
         except requests.ConnectionError:
             print("Error, cannot connect to target")
         except requests.Timeout:
-            print("Error, request timeout")
+            print("Error, request timeout (10s)")
         except requests.exceptions.MissingSchema: 
             print("Error, missing http:// or https:// schema")
         print("")

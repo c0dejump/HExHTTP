@@ -86,7 +86,7 @@ def check_CPDoS(url, s, req_main, domain):
     main_status_code = req_main.status_code
     
     print("\033[36m --├ {} [{}] \033[0m".format(url, main_status_code))
-    headers = [{"Host":"{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}, {"X-Forwarded-Host": "XXX"}, {"X-Forwarded-Host": "{}:1234".format(domain)}]
+    headers = [{"Host": "{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}, {"X-Forwarded-Host": "XXX"}, {"X-Forwarded-Host": "{}:1234".format(domain)}]
     for h in headers:
         try:
             req_cpdos = s.get(url, headers=h, verify=False, allow_redirects=False, timeout=10)
