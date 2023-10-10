@@ -69,7 +69,7 @@ def RefDos(url, s):
 
 
 
-def check_CPDoS(url, s, req_main, domain):
+def check_CPDoS(url, s, req_main, domain, custom_header):
     i = 0
     redirect_req = False
 

@@ -10,12 +10,12 @@ requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.
 
 
 
-def check_cookie_reflection(url):
+def check_cookie_reflection(url, custom_header):
 	print("\033[36m ├ Cookies Cache poisoning analyse\033[0m")
 
 	matching_forward = "ndvyepenbvtidpvyzh.com"
 
-	req = requests.get(url, verify=False, timeout=10)
+	req = requests.get(url, verify=False, timeout=10, headers=custom_header)
 	res_cookie = req.cookies
 
 	reflected = False
@@ -24,7 +24,7 @@ def check_cookie_reflection(url):
 
 	for rc in res_cookie:
 		if rc.value in req.text:
-			print(" --├ {} value for the {} cookie seems to be reflected in text".format(rc.value, rc.name))
+			print("\033[36m --├ {} value for the {} cookie seems to be reflected in text\033[0m".format(rc.value, rc.name))
 			reflected = True
 			cookie_obj = {rc.name: matching_forward}
 			#s.cookies.set("{}".format(rc.name), "{}".format(matching_forward), domain="{}".format(rc.domain))
@@ -40,7 +40,7 @@ def check_cookie_reflection(url):
 
 
 	if reflected:
-		url = "https://0afc0000043c969a805c9e5c00830085.web-security-academy.net/?cb={}".format(random.randint(0, 300)) 
+		url = "{}?cb={}".format(url, random.randint(0, 1337)) 
 		for i in range(10):
 			try:
 				req_cookie = requests.get(url, cookies=cookie_obj, verify=False)
@@ -49,7 +49,7 @@ def check_cookie_reflection(url):
 				traceback.print_exc()
 
 
-	req_verif = requests.get(url, verify=False)
+	req_verif = requests.get(url, verify=False, headers=custom_header)
 	if matching_forward in req_verif.text:
 			print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | COOKIE HEADER REFLECTION | \033[34m{}\033[0m | PAYLOAD: Cookie: {}".format(url, payload))
 	

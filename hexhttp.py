@@ -113,11 +113,11 @@ def main(url, s):
 
     get_server_error(url, base_header, full)
     check_localhost(url, s, domain)
-    check_methods(url)
-    check_CPDoS(url, s, req_main, domain)
-    check_cache_poisoning(url)
-    check_cache_files(url)
-    check_cookie_reflection(url)
+    check_methods(url, custom_header)
+    check_CPDoS(url, s, req_main, domain, custom_header)
+    check_cache_poisoning(url, custom_header, behavior)
+    check_cache_files(url, custom_header)
+    check_cookie_reflection(url, custom_header)
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
         cdn_result = getattr(a_cdn, cdn)(url, s)
@@ -138,11 +138,22 @@ if __name__ == '__main__':
     parser.add_argument("-u", help="URL to test \033[31m[required]\033[0m", dest='url')
     parser.add_argument("-f", help="URL file to test", dest='url_file', required=False)
     parser.add_argument("--full", help="To display full header", dest='full', required=False, action='store_true')
+    parser.add_argument("-H", help="Header HTTP custom", dest='custom_header', required=False)
+    parser.add_argument("--behavior", "-b", required=False, action='store_true', dest='behavior', help="activate a lighter version of verbose, highlighting interesting cache behavior") 
+
+
     results = parser.parse_args()
                                      
     url = results.url
     url_file = results.url_file
     full = results.full
+    custom_header = results.custom_header
+    behavior = results.behavior
+
+    if custom_header:
+        custom_header = {
+        custom_header.split(":")[0]:custom_header.split(":")[1]
+        }
 
     domain =  urlparse(url).netloc
 

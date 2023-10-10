@@ -5,38 +5,17 @@ import re
 import os
 import sys
 import threading
+import traceback
 
 currentPath = os.path.dirname(__file__)
 
 from tools.autopoisoner.print_utils import *
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--file", "-f", type=str, required=False, help="file containing URLs to be tested")
-parser.add_argument("--url", "-u", type=str, required=False, help="url to be tested")
-parser.add_argument("--threads", "-n", type=int, required=False, help= 'number of threads for the tool')
-parser.add_argument("--output", "-o", type=str, required=False, help='output file path')
-parser.add_argument("--verbose", "-v", action='store_true', help="activate verbose mode")
-parser.add_argument("--behavior", "-b", action='store_true', help="activate a lighter version of verbose, highlighting interesting cache behavior")
-
-args = parser.parse_args()
 
 LOCK = threading.Lock()
 TIMEOUT_DELAY = 10
 
-if not (args.file or args.url):
-    parser.error('No input selected: Please add --file or --url.')
-
-if args.output:
-    outputFile = open(args.output, "w")
-else:
-    outputFile = open("output.txt", "w")
-
-if args.file :
-    try:
-        allURLs = [line.replace('\n', '') for line in open(args.file, "r")]
-    except FileNotFoundError:
-       	print("Error, input file not found")
-        sys.exit()
+outputFile = open("output.txt", "w")
 
 CANARY = "ndvyepenbvtidpvyzh.com"
 
@@ -213,15 +192,16 @@ def crawl_files(URL, response : requests.Response):
 def use_caching(headers):
     if headers.get("X-Cache-Hits") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") or headers.get("x-drupal-cache") \
     or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") \
-    or (headers.get("Cache-Control") or headers.get("X-HS-CF-Cache-Status") or headers.get("X-nananana") or headers.get("X-Micro-Cache") and ("public" in headers.get("Cache-Control"))):
+    or (headers.get("Cache-Control") or headers.get("X-nananana") or headers.get("X-Micro-Cache") and ("public" in headers.get("Cache-Control"))):
         return True
     else:
         return False
 
-def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum, buster):
+def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum, buster, custom_header):
     try:
-        confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY)
+        confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY, headers=custom_header)
     except:
+        #traceback.print_exc()
         return False
     if confirmationResponse.status_code == responseCandidate.status_code and confirmationResponse.text == responseCandidate.text:
         if canary_in_response(responseCandidate):
@@ -234,57 +214,64 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
     else:
         return False
 
-def base_request(url):
+def base_request(url, custom_header):
     randNum = str(random.randrange(999))
     buster = str(random.randrange(999))
     try:
-        response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
+        response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY, headers=custom_header)
         return response
     except:
+        #traceback.print_exc()
         return None
 
 
-def port_poisoning_check(url, initialResponse):
+def port_poisoning_check(url, initialResponse, custom_header):
     randNum = str(random.randrange(999))
     buster = str(random.randrange(999))
     findingState = 0
 
     host = url.split("://")[1].split("/")[0]
     response = None
+    custom_head = {
+            "Host": f"{host}:8888",
+            }
+    if custom_header:
+        custom_head = custom_head.update(custom_header)
     try:
-        response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers={"Host": f"{host}:8888"}, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
+        response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=custom_head, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
         uri = f"{url}?cacheBusterX{randNum}={buster}"
     except:
+        #traceback.print_exc()
         return None
     explicitCache = str(use_caching(response.headers)).upper()
 
     if response.status_code != initialResponse.status_code:
         findingState = 1
-        potential_verbose_message("STATUS_CODE", args, url)
-        if vulnerability_confirmed(response, url, randNum, buster):
+        potential_verbose_message("STATUS_CODE", url)
+        if vulnerability_confirmed(response, url, randNum, buster, custom_header):
             findingState = 2
             behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, outputFile=outputFile,LOCK = LOCK)
         else:
-            potential_verbose_message("UNSUCCESSFUL", args, url)
-            if args.behavior:
+            potential_verbose_message("UNSUCCESSFUL", url)
+            if behavior:
                 behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url)
 
     elif abs(len(response.text) - len(initialResponse.text)) > 0.25 * len(initialResponse.text):
         findingState = 1
-        potential_verbose_message("LENGTH", args, url)
-        if vulnerability_confirmed(response, url, randNum, buster):
+        potential_verbose_message("LENGTH", url)
+        if vulnerability_confirmed(response, url, randNum, buster, custom_header):
             findingState = 2
             behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url , outputFile=outputFile, LOCK = LOCK)
 
         else:
-            potential_verbose_message("UNSUCCESSFUL", args,  url)
-            if args.behavior:
+            potential_verbose_message("UNSUCCESSFUL",  url)
+            if behavior:
                 behavior_or_confirmed_message(uri, "BEHAVIOR", "LENGTH", explicitCache, url)
 
     if findingState == 1:
         return "UNCONFIRMED"
 
-def headers_poisoning_check(url, initialResponse):
+def headers_poisoning_check(url, initialResponse, custom_header):
     findingState = 0
     for header in headersToFuzz.keys():
         payload = {header: headersToFuzz[header]}
@@ -297,8 +284,9 @@ def headers_poisoning_check(url, initialResponse):
         except KeyboardInterrupt:
             pass
         except:
-            potential_verbose_message("ERROR", args, url)
+            potential_verbose_message("ERROR", url)
             print("Request error... Skipping the {} URL.".format(uri))
+            #traceback.print_exc()
             continue
         explicitCache = str(use_caching(response.headers)).upper()
         sys.stdout.write("\033[34m  {}\033[0m\r".format(header))
@@ -306,78 +294,82 @@ def headers_poisoning_check(url, initialResponse):
 
         if canary_in_response(response):
             findingState = 1
-            potential_verbose_message("CANARY", args, url)
-            if vulnerability_confirmed(response, url, randNum, buster):
+            potential_verbose_message("CANARY", url)
+            if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
                 behavior_or_confirmed_message(uri, "CONFIRMED", "REFLECTION", explicitCache, url, header=payload, outputFile=outputFile, LOCK = LOCK)
 
             else:
-                potential_verbose_message("UNSUCCESSFUL", args, url)
-                if args.behavior:
+                potential_verbose_message("UNSUCCESSFUL", url)
+                if behavior:
                     behavior_or_confirmed_message(uri, "BEHAVIOR", "REFLECTION", explicitCache, url, header=payload)
 
         elif response.status_code != initialResponse.status_code:
             findingState = 1
-            potential_verbose_message("STATUS_CODE", args, url)
-            if vulnerability_confirmed(response, url, randNum, buster):
+            potential_verbose_message("STATUS_CODE", url)
+            if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
                 behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, header=payload, outputFile=outputFile,LOCK = LOCK)
             else:
-                potential_verbose_message("UNSUCCESSFUL", args, url)
-                if args.behavior:
+                potential_verbose_message("UNSUCCESSFUL", url)
+                if behavior:
                     behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, header=payload)
 
         elif abs(len(response.text) - len(initialResponse.text)) > 0.25 * len(initialResponse.text):
             findingState = 1
-            potential_verbose_message("LENGTH", args, url)
-            if vulnerability_confirmed(response, url, randNum, buster):
+            potential_verbose_message("LENGTH", url)
+            if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
                 behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=payload, outputFile=outputFile, LOCK = LOCK)
             else:
-                potential_verbose_message("UNSUCCESSFUL", args, url)
-                if args.behavior:
+                potential_verbose_message("UNSUCCESSFUL", url)
+                if behavior:
                     behavior_or_confirmed_message(uri, "BEHAVIOR", "LENGTH", explicitCache, url, header=payload)
 
     if findingState == 1:
         return "UNCONFIRMED"
 
-def crawl_and_scan(url, initialResponse):
+def crawl_and_scan(url, initialResponse, custom_header):
     selectedURLS = crawl_files(url, initialResponse)
     for url in selectedURLS:
-        potential_verbose_message("CRAWLING", args, url)
-        initResponse = base_request(url)
-        port_poisoning_check(url, initResponse)
-        headers_poisoning_check(url, initResponse)
+        potential_verbose_message("CRAWLING", url)
+        initResponse = base_request(url, custom_header)
+        port_poisoning_check(url, initResponse, custom_header)
+        headers_poisoning_check(url, initResponse, custom_header)
 
 
-def cache_poisoning_check(url):
-    initialResponse = base_request(url)
-    if not initialResponse:
-        potential_verbose_message("ERROR", args, url)
-        return
+def cache_poisoning_check(url, custom_header):
+    initialResponse = base_request(url, custom_header)
 
-    if initialResponse.status_code in (200, 304, 302, 301, 401, 402, 403):
-        resultPort = port_poisoning_check(url, initialResponse)
-        resultHeaders = headers_poisoning_check(url, initialResponse)
+    if initialResponse.status_code in (200, 304, 302, 301, 401, 402, 403, 303, 404, 400, 500):
+        resultPort = port_poisoning_check(url, initialResponse, custom_header)
+        resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
         if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
-            crawl_and_scan(url, initialResponse)
+            crawl_and_scan(url, initialResponse, custom_header)
+
+    if not initialResponse:
+        #traceback.print_exc()
+        potential_verbose_message("ERROR", url)
+        return
 
 def sequential_cache_poisoning_check(urlList):
 
     for url in urlList:
         cache_poisoning_check(url)
 
-def check_cache_poisoning(url_by_hexhttp=False):
+def check_cache_poisoning(url, custom_header, behavior_):
     print("\033[36m ├ Cache poisoning analyse\033[0m")
 
-    url = args.url if not url_by_hexhttp else url_by_hexhttp
+    global behavior
+    behavior = behavior_
+
     if url:
         try:
-            cache_poisoning_check(url)
+            cache_poisoning_check(url, custom_header)
         except:
             print("\nInvalid URL")
-    elif args.file:
-
+            #traceback.print_exc()
+    elif file:
         if not args.threads or args.threads == 1:
             sequential_cache_poisoning_check(allURLs)
         else:
@@ -393,4 +385,28 @@ def check_cache_poisoning(url_by_hexhttp=False):
     outputFile.close()
 
 if __name__ == '__main__':
-    check_cache_poisoning(url_by_hexhttp)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--file", "-f", type=str, required=False, help="file containing URLs to be tested")
+    parser.add_argument("--url", "-u", type=str, required=False, help="url to be tested")
+    parser.add_argument("--threads", "-n", type=int, required=False, help= 'number of threads for the tool')
+    parser.add_argument("--output", "-o", type=str, required=False, help='output file path')
+    parser.add_argument("--verbose", "-v", required=False, action='store_true', help="activate verbose mode")
+    parser.add_argument("--behavior", "-b", required=False, action='store_true', help="activate a lighter version of verbose, highlighting interesting cache behavior") 
+
+    args = parser.parse_args()
+    if not (args.file or args.url):
+        parser.error('No input selected: Please add --file or --url.')
+
+    if args.output:
+        outputFile = open(args.output, "w")
+    else:
+        outputFile = open("output.txt", "w")
+
+    if args.file :
+        try:
+            allURLs = [line.replace('\n', '') for line in open(args.file, "r")]
+        except FileNotFoundError:
+            print("Error, input file not found")
+            sys.exit()
+    check_cache_poisoning(args.url)

@@ -30,7 +30,7 @@ def options(url): req_o = requests.options(url, verify=False, allow_redirects=Fa
 def trace(url): req_o = requests.trace(url, verify=False, allow_redirects=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10); return req_o.status_code, "TRACE", len(req_o.content), req_p.content
 
 
-def check_methods(url):
+def check_methods(url, custom_header):
     """ 
     Try other method 
     Ex: OPTIONS /admin

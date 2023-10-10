@@ -11,13 +11,16 @@ params = {
 	    'cp': '1337',
 		}
 
-def get_hit(url, matching_forward):
+def get_hit(url, matching_forward, custom_header):
 	#web cache poisoning to exploit unsafe handling of resource imports
 	headers = {
 	    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
 	    'X-Forwarded-Host': matching_forward,
 		}
 
+	if custom_header:
+		headers = headers.update(custom_header)
+		
 	res_header = {}
 	#print(" - {}?cp={}".format(url, params["cp"])) #Debug
 
@@ -44,13 +47,13 @@ def get_hit(url, matching_forward):
 	return res_header
 
 
-def wcp_import(url, matching_forward):
-	print(" --├ {}?cp={} have HIT Cache-Status".format(url, params["cp"]))
+def wcp_import(url, matching_forward, custom_header):
+	print("\033[36m --├ {}?cp={} have HIT Cache-Status\033[0m".format(url, params["cp"]))
 
 	url_param = "{}?cp={}".format(url, params["cp"])
 
-	req_verify_redirect = requests.get(url, params=params, verify=False)
-	req_verify_url = requests.get(url_param, verify=False, allow_redirects=True)
+	req_verify_redirect = requests.get(url, params=params, headers=custom_header, verify=False)
+	req_verify_url = requests.get(url_param, headers=custom_header, verify=False, allow_redirects=True)
 
 	if req_verify_redirect.status_code in [301, 302] or req_verify_url.status_code in [301, 302]:
 		if matching_forward in req_verify_redirect.url or matching_forward in req_verify_url.url:
@@ -60,7 +63,7 @@ def wcp_import(url, matching_forward):
 	#print(req_verify_redirect.status_code) #Debug
 
 
-def check_cache_files(uri):
+def check_cache_files(uri, custom_header):
 
 
 	matching_forward = "ndvyepenbvtidpvyzh.com"
@@ -68,8 +71,8 @@ def check_cache_files(uri):
 	for endpoints in ["test.js", "test.css"]:
 		url = "{}{}".format(uri, endpoints)
 		try:
-			valid_hit = get_hit(url, matching_forward)
+			valid_hit = get_hit(url, matching_forward, custom_header)
 			if valid_hit:
-				wcp_import(url, matching_forward)
+				wcp_import(url, matching_forward, custom_header)
 		except:
 			print(" ! Error with {}".format(url))

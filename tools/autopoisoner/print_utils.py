@@ -1,5 +1,6 @@
-def potential_verbose_message(message, args, url="default"):
-    if args.verbose:
+def potential_verbose_message(message, url="default"):
+    verbose = False
+    if verbose:
         if message == "ERROR":
             print(f"[VERBOSE] Request Error for {url}")
         elif message == "CANARY":
