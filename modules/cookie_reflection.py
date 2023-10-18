@@ -24,7 +24,7 @@ def check_cookie_reflection(url, custom_header):
 
 	for rc in res_cookie:
 		if rc.value in req.text:
-			print("\033[36m --├ {} value for the {} cookie seems to be reflected in text\033[0m".format(rc.value, rc.name))
+			print("\033[36m --├ {}\033[0m value for the\033[36m {}\033[0m cookie seems to be reflected in text".format(rc.value, rc.name))
 			reflected = True
 			cookie_obj = {rc.name: matching_forward}
 			#s.cookies.set("{}".format(rc.name), "{}".format(matching_forward), domain="{}".format(rc.domain))

@@ -24,13 +24,13 @@ def behavior_or_confirmed_message(uri, behaviorOrConfirmed, behaviorType, explic
                    }
 
     if header != "default":
-        message = f" └── \033[31m{messageDict[behaviorOrConfirmed]}\033[0m | {messageDict[behaviorType]} | EXPLICIT CACHE : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}\n"
+        message = f" └── \033[31m{messageDict[behaviorOrConfirmed]}\033[0m | {messageDict[behaviorType]} | EXPLICIT CACHE : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
         print(message)
         if behaviorOrConfirmed == "CONFIRMED":
             with LOCK:
                 outputFile.write(message)
     else:
-        message = f" └── \033[31m{messageDict[behaviorOrConfirmed]}\033[0m | PORT {messageDict[behaviorType]} | EXPLICIT CACHE : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}\n"
+        message = f" └── \033[31m{messageDict[behaviorOrConfirmed]}\033[0m | PORT {messageDict[behaviorType]} | EXPLICIT CACHE : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
         print(message)
         if behaviorOrConfirmed == "CONFIRMED":
             with LOCK:

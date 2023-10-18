@@ -28,7 +28,7 @@ def get_hit(url, matching_forward, custom_header):
 		res = requests.get(url, params=params, headers=headers, verify=False, allow_redirects=False)
 		for cs in res.headers:
 			if "Cache-Status" in cs or "X-Cache" in cs or "x-drupal-cache" in cs or "X-Proxy-Cache" in cs or "X-HS-CF-Cache-Status" in cs \
-			or "X-Vercel-Cache" in cs or "X-nananana" in cs or "x-vercel-cache" in cs:
+			or "X-Vercel-Cache" in cs or "X-nananana" in cs or "x-vercel-cache" in cs or "X-TZLA-EDGE-Cache-Hit" in cs:
 				#print(res.headers) #Debug
 				if "hit" in res.headers[cs].lower():
 					#print("HEADSHOT !!!") #Debug
@@ -47,8 +47,8 @@ def get_hit(url, matching_forward, custom_header):
 	return res_header
 
 
-def wcp_import(url, matching_forward, custom_header):
-	print("\033[36m --├ {}?cp={} have HIT Cache-Status\033[0m".format(url, params["cp"]))
+def wcp_import(url, matching_forward, custom_header, req_status):
+	print("\033[36m --├ {}?cp={}\033[0m have HIT Cache-Status".format(url, params["cp"]))
 
 	url_param = "{}?cp={}".format(url, params["cp"])
 
@@ -60,6 +60,8 @@ def wcp_import(url, matching_forward, custom_header):
 			print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | DIFFERENT STATUS-CODE | \033[34m{}\033[0m | PAYLOAD: X-Forwarded-Host".format(url_param))
 	elif matching_forward in req_verify_redirect.text or matching_forward in req_verify_url.text:
 		print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HEADER REFLECTION | \033[34m{}\033[0m | PAYLOAD: X-Forwarded-Host".format(url_param))
+	elif req_verify_url.status_code != req_status:
+		print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | DIFFERENT STATUS-CODE:\033[36m {} → {}\033[0m | \033[34m{}\033[0m | PAYLOAD: X-Forwarded-Host".format(req_status, req_verify_url.status_code, url_param))
 	#print(req_verify_redirect.status_code) #Debug
 
 
@@ -70,9 +72,11 @@ def check_cache_files(uri, custom_header):
 
 	for endpoints in ["test.js", "test.css"]:
 		url = "{}{}".format(uri, endpoints)
+		req_status = requests.get(url, params=params, verify=False, allow_redirects=False)
+		req_status = req_status.status_code
 		try:
 			valid_hit = get_hit(url, matching_forward, custom_header)
 			if valid_hit:
-				wcp_import(url, matching_forward, custom_header)
+				wcp_import(url, matching_forward, custom_header, req_status)
 		except:
 			print(" ! Error with {}".format(url))

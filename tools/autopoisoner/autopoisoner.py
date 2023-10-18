@@ -132,7 +132,8 @@ headersToFuzz = {
     "X_looking": CANARY,
     "X_real_ip": CANARY,
     "Zcache_control": CANARY,
-    "Z-Forwarded-For": CANARY
+    "Z-Forwarded-For": CANARY,
+    "x-nextjs-cache": CANARY
 }
 
 def splitURLS(threadsSize): #Multithreading
@@ -191,8 +192,8 @@ def crawl_files(URL, response : requests.Response):
 
 def use_caching(headers):
     if headers.get("X-Cache-Hits") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") or headers.get("x-drupal-cache") \
-    or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") \
-    or (headers.get("Cache-Control") or headers.get("X-nananana") or headers.get("X-Micro-Cache") and ("public" in headers.get("Cache-Control"))):
+    or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") or headers.get("X-Proxy-Cache") \
+    or (headers.get("Cache-Control") or headers.get("X-TZLA-EDGE-Cache-Hit") or headers.get("X-nananana") or headers.get("X-Micro-Cache") and ("public" in headers.get("Cache-Control"))):
         return True
     else:
         return False
@@ -285,7 +286,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
             pass
         except:
             potential_verbose_message("ERROR", url)
-            print("Request error... Skipping the {} URL.".format(uri))
+            print("Request error, Skipping the {} URL with {}".format(uri, payload))
             #traceback.print_exc()
             continue
         explicitCache = str(use_caching(response.headers)).upper()
