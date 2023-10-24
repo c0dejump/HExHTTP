@@ -13,8 +13,9 @@ Header Exploitation HTTP
 	-h, --help        show this help message and exit
 	-u URL            URL to test [required]
 	-f URL_FILE       URL file to test
-	--full            To display full header
 	-H CUSTOM_HEADER  Header HTTP custom
+	--full            To display full header
+	--auth AUTH       HTTP authentification. Ex: --auth admin:admin)
 	--behavior, -b    activate a lighter version of verbose, highlighting interesting cache behavior
 
 
