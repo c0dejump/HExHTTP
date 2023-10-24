@@ -7,7 +7,7 @@ import traceback
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-def check_localhost(url, s, domain):
+def check_localhost(url, s, domain, authent):
     """
     Check_localhost: Function which try automatically if it's possible scanning with "localhost" host for discovery other files/directories
     """
@@ -21,7 +21,7 @@ def check_localhost(url, s, domain):
             req = s.get(url, headers=headers, verify=False, allow_redirects=False, timeout=10)
             if req.status_code in [301, 302]:
                 try:
-                    req_redirect = s.get(url, headers=headers, verify=False, allow_redirects=True, timeout=10)
+                    req_redirect = s.get(url, headers=headers, verify=False, allow_redirects=True, timeout=10, auth=authent)
                     print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}{'→':^3}{req.headers['location']}")
                 except:
                     print(f" └── Host: {lt:<13}{'→':^3} {req.status_code:>3}{'→':^3}{req.headers['location']}")

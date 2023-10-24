@@ -5,7 +5,7 @@ import requests
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-def get_server_error(url, base_header, full):
+def get_server_error(url, base_header, full, authent):
     """
         Check diff btw server error and basic response
     """
@@ -18,7 +18,7 @@ def get_server_error(url, base_header, full):
     for p in payloads_error:
         url_error = "{}{}".format(url,p) if url[-1] else "{}/{}".format(url,p)
         try:
-            req_error = requests.get(url_error, verify=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10)
+            req_error = requests.get(url_error, verify=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10, auth=authent)
 
             if req_error.status_code in [400, 500] and not valid_error:
                 print(" i - 400 error code with {} payload [{} bytes]".format(p, len(req_error.content)))
@@ -48,13 +48,13 @@ def get_server_error(url, base_header, full):
                 pass
         except:
             print(" ! Error with {} payload".format(p))
-    header_cache_error(url)
+    header_cache_error(url, authent)
 
 
-def header_cache_error(url):
+def header_cache_error(url, authent):
         headers = {"\\":"1"}
         try:
-            hce_req = requests.get(url, headers=headers, verify=False, timeout=10)
+            hce_req = requests.get(url, headers=headers, verify=False, timeout=10, auth=authent)
             if hce_req.status_code == 400:
                 print(" i - 400 error code with {} payload header [{} bytes]".format(headers, len(hce_req.content)))
                 print(hce_req.headers)

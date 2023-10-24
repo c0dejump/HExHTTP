@@ -95,7 +95,7 @@ def main(url, s):
     a_cdn = analyze_cdn()
     a_tech = technology()
 
-    req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
+    req_main = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
     
     print("\033[34m⟙\033[0m")
     print(" URL: {}".format(url))
@@ -111,13 +111,13 @@ def main(url, s):
 
     #print(base_header)
 
-    get_server_error(url, base_header, full)
-    check_localhost(url, s, domain)
-    check_methods(url, custom_header)
-    check_CPDoS(url, s, req_main, domain, custom_header)
-    check_cache_poisoning(url, custom_header, behavior)
-    check_cache_files(url, custom_header)
-    check_cookie_reflection(url, custom_header)
+    get_server_error(url, base_header, full, authent)
+    check_localhost(url, s, domain, authent)
+    check_methods(url, custom_header, authent)
+    check_CPDoS(url, s, req_main, domain, custom_header, authent)
+    check_cache_poisoning(url, custom_header, authent)
+    check_cache_files(url, custom_header, authent)
+    check_cookie_reflection(url, custom_header, authent)
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
         cdn_result = getattr(a_cdn, cdn)(url, s)
@@ -137,8 +137,9 @@ if __name__ == '__main__':
 
     parser.add_argument("-u", help="URL to test \033[31m[required]\033[0m", dest='url')
     parser.add_argument("-f", help="URL file to test", dest='url_file', required=False)
-    parser.add_argument("--full", help="To display full header", dest='full', required=False, action='store_true')
     parser.add_argument("-H", help="Header HTTP custom", dest='custom_header', required=False)
+    parser.add_argument("--full", help="To display full header", dest='full', required=False, action='store_true')
+    parser.add_argument("--auth", help="HTTP authentification. \033[33mEx: --auth admin:admin)\033[0m", required=False, dest="auth")
     parser.add_argument("--behavior", "-b", required=False, action='store_true', dest='behavior', help="activate a lighter version of verbose, highlighting interesting cache behavior") 
 
 
@@ -149,18 +150,34 @@ if __name__ == '__main__':
     full = results.full
     custom_header = results.custom_header
     behavior = results.behavior
+    auth = results.auth
 
     if custom_header:
         custom_header = {
         custom_header.split(":")[0]:custom_header.split(":")[1]
         }
 
+
+    global authent
+
+    if auth:
+        r = requests.get(url, allow_redirects=False, verify=False, auth=(auth.split(":")[0], auth.split(":")[1]))
+        if r.status_code in [200, 302, 301]:
+            print("\n+ Authentification successfull\n")
+            authent = (auth.split(":")[0], auth.split(":")[1])
+        else:
+            print("\n- Authentification error")
+            continue_error = input("The authentification seems bad, continue ? [y/N]")
+            if continue_error not in ["y", "Y"]:
+                sys.exit()
+    else:
+        authent = False
+
     domain =  urlparse(url).netloc
 
     s = requests.Session()
     s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
     s.max_redirects = 60
-
 
     if len(sys.argv) < 2:
         print("{}URL target is missing, try using -u <url> \n".format(INFO))
