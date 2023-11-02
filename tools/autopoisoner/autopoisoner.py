@@ -88,6 +88,7 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
     try:
         confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY, headers=custom_header)
     except:
+        #print("91")
         #traceback.print_exc()
         return False
     if confirmationResponse.status_code == responseCandidate.status_code and confirmationResponse.text == responseCandidate.text:
@@ -106,8 +107,10 @@ def base_request(url, custom_header):
     buster = str(random.randrange(999))
     try:
         response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY, headers=custom_header)
+        #print(response)
         return response
     except:
+        #print("112")
         #traceback.print_exc()
         return None
 
@@ -128,6 +131,7 @@ def port_poisoning_check(url, initialResponse, custom_header):
         response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=custom_head, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
         uri = f"{url}?cacheBusterX{randNum}={buster}"
     except:
+        #print("133")
         #traceback.print_exc()
         return None
     explicitCache = str(use_caching(response.headers)).upper()
@@ -173,6 +177,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
         except:
             potential_verbose_message("ERROR", url)
             print("Request error, Skipping the {} URL with {}".format(uri, payload))
+            #print("179")
             #traceback.print_exc()
             continue
         explicitCache = str(use_caching(response.headers)).upper()
@@ -228,13 +233,14 @@ def crawl_and_scan(url, initialResponse, custom_header):
 def cache_poisoning_check(url, custom_header):
     initialResponse = base_request(url, custom_header)
 
-    if initialResponse.status_code in (200, 304, 302, 301, 401, 402, 403, 303, 404, 400, 500):
+    if initialResponse.status_code in (200, 304, 302, 301, 308, 401, 402, 403, 303, 404, 406, 400, 500):
         resultPort = port_poisoning_check(url, initialResponse, custom_header)
         resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
         if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
             crawl_and_scan(url, initialResponse, custom_header)
 
     if not initialResponse:
+        #print("242")
         #traceback.print_exc()
         potential_verbose_message("ERROR", url)
         return
@@ -255,7 +261,8 @@ def check_cache_poisoning(url, custom_header, behavior_):
             cache_poisoning_check(url, custom_header)
         except:
             print("\nInvalid URL")
-            traceback.print_exc()
+            #print("263")
+            #traceback.print_exc()
     elif file:
         if not args.threads or args.threads == 1:
             sequential_cache_poisoning_check(allURLs)
