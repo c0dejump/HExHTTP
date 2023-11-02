@@ -28,7 +28,8 @@ def get_hit(url, matching_forward, custom_header, authent):
 		res = requests.get(url, params=params, headers=headers, verify=False, allow_redirects=False, auth=authent)
 		for cs in res.headers:
 			if "Cache-Status" in cs or "X-Cache" in cs or "x-drupal-cache" in cs or "X-Proxy-Cache" in cs or "X-HS-CF-Cache-Status" in cs \
-			or "X-Vercel-Cache" in cs or "X-nananana" in cs or "x-vercel-cache" in cs or "X-TZLA-EDGE-Cache-Hit" in cs or "x-spip-cache" in cs:
+			or "X-Vercel-Cache" in cs or "X-nananana" in cs or "x-vercel-cache" in cs or "X-TZLA-EDGE-Cache-Hit" in cs or "x-spip-cache" in cs \
+			or "x-nextjs-cache" in cs or "x-pangle-cache-from" in cs or "X-Deploy-Web-Server-Cache-Hit" in cs:
 				#print(res.headers) #Debug
 				if "hit" in res.headers[cs].lower():
 					#print("HEADSHOT !!!") #Debug
@@ -70,7 +71,7 @@ def check_cache_files(uri, custom_header, authent):
 
 	matching_forward = "ndvyepenbvtidpvyzh.com"
 
-	for endpoints in ["test.js", "test.css"]:
+	for endpoints in ["plopiplop.js", "plopiplop.css"]:
 		url = "{}{}".format(uri, endpoints)
 		req_status = requests.get(url, params=params, verify=False, allow_redirects=False, auth=authent)
 		req_status = req_status.status_code

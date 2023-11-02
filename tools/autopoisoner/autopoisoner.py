@@ -6,6 +6,7 @@ import os
 import sys
 import threading
 import traceback
+from tools.autopoisoner.headerfuzz import headersToFuzz
 
 currentPath = os.path.dirname(__file__)
 
@@ -18,123 +19,6 @@ TIMEOUT_DELAY = 10
 outputFile = open("output.txt", "w")
 
 CANARY = "ndvyepenbvtidpvyzh.com"
-
-headersToFuzz = {
-    "x-forwarded-scheme": "http",
-    "x-forwarded-host": CANARY,
-    "x-forwarded-proto": "http",
-    "x-http-method-override": "POST",
-    "x-http-method-override": "HEAD",
-    "x-amz-website-redirect-location": CANARY,
-    "x-rewrite-url": CANARY,
-    "x-host": CANARY,
-    "user-agent": CANARY,
-    "handle": CANARY,
-    "h0st": CANARY,
-    "x-original-host": CANARY,
-    "Transfer-Encoding": CANARY,
-    "x-original-url": CANARY,
-    "x-forwarded-prefix": CANARY,
-    "x-amz-server-side-encryption": CANARY,
-    "trailer": CANARY,
-    "fastly-ssl": CANARY,
-    "fastly-host": CANARY,
-    "fastly-ff": CANARY,
-    "fastly-client-ip": CANARY,
-    "content-type": CANARY,
-    "api-version": CANARY,
-    "acunetix-header": CANARY,
-    "accept-version": CANARY,
-    "Access-Control-Allow-Origin": CANARY,
-    "Access-Control-Allow-Origin": "*",
-    "Base-Url": CANARY,
-    "Cache_info": CANARY,
-    "Cf-Connecting-Ip": CANARY,
-    "Client-IP": CANARY,
-    "Coming_from": CANARY,
-    "Connect_via_ip": CANARY,
-    "Forwarded-For-IP": CANARY,
-    "Forwarded-For": CANARY,
-    "Forwarded": CANARY,
-    "Forwarded_for": CANARY,
-    "Forwarded_for_ip": CANARY,
-    "Forward-For": CANARY,
-    "Forward_for": CANARY,
-    "Http-Client-Ip": CANARY,
-    "Http-Forwarded-For-Ip": CANARY,
-    "Http-Pc-Remote-Addr": CANARY,
-    "Http-Proxy-Connection": CANARY,
-    "Http-Url": CANARY,
-    "Http-Via": CANARY,
-    "Http-Xroxy-Connection": CANARY,
-    "Http-X-Forwarded-For-Ip": CANARY,
-    "Http-X-Imforwards": CANARY,
-    "Origin": CANARY,
-    "Pc_remote_addr": CANARY,
-    "Pragma": CANARY,
-    "Proxy-Client-Ip": CANARY,
-    "Proxy-Host": CANARY,
-    "Proxy-Url": CANARY,
-    "Proxy": CANARY,
-    "Proxy_authorization": CANARY,
-    "Proxy_connection": CANARY,
-    "Real-Ip": CANARY,
-    "Redirect": CANARY,
-    "Referer": CANARY,
-    "Remote_addr": CANARY,
-    "Request-Uri": CANARY,
-    "Source-Ip": CANARY,
-    "True-Client-Ip": CANARY,
-    "Uri": CANARY,
-    "Url": CANARY,
-    "Via": CANARY,
-    "Wl-Proxy-Client-Ip": CANARY,
-    "Xonnection": CANARY,
-    "Xproxy": CANARY,
-    "Xroxy_connection": CANARY,
-    "X-Backend-Host": CANARY,
-    "X-Bluecoat-Via": CANARY,
-    "X-Cache-Info": CANARY,
-    "X-Client-IP": CANARY,
-    "X-Custom-IP-Authorization": CANARY,
-    "X-Forwarded-By": CANARY,
-    "X-Forwarded-For-Original": CANARY,
-    "X-Forwarded-For": CANARY,
-    "Y-Forwarded-For": CANARY,
-    "X-Forwarded-Server": CANARY,
-    "X-Forwarder-For": CANARY,
-    "X-Forward-For": CANARY,
-    "X-Forwared-Host": CANARY,
-    "X-From-Ip": CANARY,
-    "X-From": CANARY,
-    "X-Gateway-Host": CANARY,
-    "X-Http-Destinationurl": CANARY,
-    "X-Http-Host-Override": CANARY,
-    "X-Ip": CANARY,
-    "X-Originally-Forwarded-For": CANARY,
-    "X-Original-Remote-Addr": CANARY,
-    "X-Originating-IP": CANARY,
-    "X-Proxymesh-Ip": CANARY,
-    "X-Proxyuser-Ip": CANARY,
-    "X-Proxy-Url": CANARY,
-    "X-Real-Ip": CANARY,
-    "X-Remote-Addr": CANARY,
-    "X-Remote-IP": CANARY,
-    "X-Rewrite-Url": CANARY,
-    "X-True-IP": CANARY,
-    "X_cluster_client_ip": CANARY,
-    "X_coming_from": CANARY,
-    "X_delegate_remote_host": CANARY,
-    "X_forwarded": CANARY,
-    "X_forwarded_for_ip": CANARY,
-    "X_imforwards": CANARY,
-    "X_locking": CANARY,
-    "X_looking": CANARY,
-    "X_real_ip": CANARY,
-    "Zcache_control": CANARY,
-    "Z-Forwarded-For": CANARY,
-    "x-nextjs-cache": CANARY
-}
 
 def splitURLS(threadsSize): #Multithreading
 
@@ -191,10 +75,11 @@ def crawl_files(URL, response : requests.Response):
     return selectedFiles
 
 def use_caching(headers):
-    if headers.get("X-Cache-Hits") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") or headers.get("x-drupal-cache") \
-    or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") or headers.get("X-Proxy-Cache") \
-    or (headers.get("Cache-Control") or headers.get("X-TZLA-EDGE-Cache-Hit") or headers.get("X-nananana") or headers.get("x-spip-cache") \
-    or headers.get("X-Micro-Cache") and ("public" in headers.get("Cache-Control"))):
+    if  headers.get("X-Cache-Hits") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") or headers.get("x-drupal-cache") \
+    or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") \
+    or headers.get("X-Proxy-Cache") or headers.get("X-TZLA-EDGE-Cache-Hit") or headers.get("X-nananana") or headers.get("x-spip-cache") \
+    or headers.get("x-pangle-cache-from") or headers.get("X-Deploy-Web-Server-Cache-Hit") or headers.get("X-Micro-Cache") or headers.get("X-Deploy-Web-Server-Cache-Hit") \
+    or (headers.get("Cache-Control") and ("public" in headers.get("Cache-Control"))):
         return True
     else:
         return False
@@ -252,23 +137,23 @@ def port_poisoning_check(url, initialResponse, custom_header):
         potential_verbose_message("STATUS_CODE", url)
         if vulnerability_confirmed(response, url, randNum, buster, custom_header):
             findingState = 2
-            behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, outputFile=outputFile,LOCK = LOCK)
+            behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, header=custom_head, outputFile=outputFile,LOCK = LOCK)
         else:
             potential_verbose_message("UNSUCCESSFUL", url)
             if behavior:
-                behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url)
+                behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, header=custom_head)
 
     elif abs(len(response.text) - len(initialResponse.text)) > 0.25 * len(initialResponse.text):
         findingState = 1
         potential_verbose_message("LENGTH", url)
         if vulnerability_confirmed(response, url, randNum, buster, custom_header):
             findingState = 2
-            behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url , outputFile=outputFile, LOCK = LOCK)
+            behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=custom_head, outputFile=outputFile, LOCK = LOCK)
 
         else:
             potential_verbose_message("UNSUCCESSFUL",  url)
             if behavior:
-                behavior_or_confirmed_message(uri, "BEHAVIOR", "LENGTH", explicitCache, url)
+                behavior_or_confirmed_message(uri, "BEHAVIOR", "LENGTH", explicitCache, url, header=custom_head)
 
     if findingState == 1:
         return "UNCONFIRMED"
@@ -279,10 +164,10 @@ def headers_poisoning_check(url, initialResponse, custom_header):
         payload = {header: headersToFuzz[header]}
         randNum = str(random.randrange(999))
         buster = str(random.randrange(999))
+        uri = f"{url}?cacheBusterX{randNum}={buster}"
         response = None
         try:
-            response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=payload, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
-            uri = f"{url}?cacheBusterX{randNum}={buster}"
+            response = requests.get(uri, headers=payload, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
         except KeyboardInterrupt:
             pass
         except:
@@ -370,7 +255,7 @@ def check_cache_poisoning(url, custom_header, behavior_):
             cache_poisoning_check(url, custom_header)
         except:
             print("\nInvalid URL")
-            #traceback.print_exc()
+            traceback.print_exc()
     elif file:
         if not args.threads or args.threads == 1:
             sequential_cache_poisoning_check(allURLs)
