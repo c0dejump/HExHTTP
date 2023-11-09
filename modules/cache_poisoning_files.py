@@ -29,7 +29,7 @@ def get_hit(url, matching_forward, custom_header, authent):
 		for cs in res.headers:
 			if "Cache-Status" in cs or "X-Cache" in cs or "x-drupal-cache" in cs or "X-Proxy-Cache" in cs or "X-HS-CF-Cache-Status" in cs \
 			or "X-Vercel-Cache" in cs or "X-nananana" in cs or "x-vercel-cache" in cs or "X-TZLA-EDGE-Cache-Hit" in cs or "x-spip-cache" in cs \
-			or "x-nextjs-cache" in cs or "x-pangle-cache-from" in cs or "X-Deploy-Web-Server-Cache-Hit" in cs:
+			or "x-nextjs-cache" in cs or "x-pangle-cache-from" in cs or "X-Deploy-Web-Server-Cache-Hit" in cs or "CDN-Cache" in cs:
 				#print(res.headers) #Debug
 				if "hit" in res.headers[cs].lower():
 					#print("HEADSHOT !!!") #Debug

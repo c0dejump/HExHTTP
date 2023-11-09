@@ -16,6 +16,7 @@ from modules.technologies import technology
 from modules.cdn import analyze_cdn
 from modules.cache_poisoning_files import check_cache_files
 from modules.cookie_reflection import check_cookie_reflection
+from modules.http_version import check_http_version
 
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
@@ -114,6 +115,7 @@ def main(url, s):
     get_server_error(url, base_header, full, authent)
     check_localhost(url, s, domain, authent)
     check_methods(url, custom_header, authent)
+    check_http_version(url)
     check_CPDoS(url, s, req_main, domain, custom_header, authent)
     check_cache_poisoning(url, custom_header, authent)
     check_cache_files(url, custom_header, authent)

@@ -61,10 +61,10 @@ def RefDos(url, s, authent):
     }
     req_ref = s.get(url, headers=headers, verify=False, timeout=10, auth=authent)
     if req_ref.status_code == 400:
-        print("   └── \033[31m{}  with header {} response 400\033[0m".format(url, headers))
+        print("   └── \033[31m{} with header {} response 400\033[0m".format(url, headers))
         for rf in req_ref.headers:
             if "cache" in rf.lower():
-                if "hit" in res.headers[rf].lower():
+                if "hit" in req_ref.headers[rf].lower():
                     print("   └── \033[31m Request to be cached, DOS seem possible !\033[0m".format(url, headers))
 
 

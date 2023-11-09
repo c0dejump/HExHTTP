@@ -77,7 +77,7 @@ def crawl_files(URL, response : requests.Response):
 def use_caching(headers):
     if  headers.get("X-Cache-Hits") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") or headers.get("x-drupal-cache") \
     or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") \
-    or headers.get("X-Proxy-Cache") or headers.get("X-TZLA-EDGE-Cache-Hit") or headers.get("X-nananana") or headers.get("x-spip-cache") \
+    or headers.get("X-Proxy-Cache") or headers.get("X-TZLA-EDGE-Cache-Hit") or headers.get("X-nananana") or headers.get("x-spip-cache") or headers.get("CDN-Cache") \
     or headers.get("x-pangle-cache-from") or headers.get("X-Deploy-Web-Server-Cache-Hit") or headers.get("X-Micro-Cache") or headers.get("X-Deploy-Web-Server-Cache-Hit") \
     or (headers.get("Cache-Control") and ("public" in headers.get("Cache-Control"))):
         return True
@@ -88,7 +88,7 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
     try:
         confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY, headers=custom_header)
     except:
-        #print("91")
+        print("Error on the 91 Lines")
         #traceback.print_exc()
         return False
     if confirmationResponse.status_code == responseCandidate.status_code and confirmationResponse.text == responseCandidate.text:
@@ -110,7 +110,7 @@ def base_request(url, custom_header):
         #print(response)
         return response
     except:
-        #print("112")
+        print("Error on the 112 Lines")
         #traceback.print_exc()
         return None
 
@@ -130,8 +130,10 @@ def port_poisoning_check(url, initialResponse, custom_header):
     try:
         response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=custom_head, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
         uri = f"{url}?cacheBusterX{randNum}={buster}"
+    except requests.Timeout:
+        print("Request timeout with {} URL with {}".format(uri, payload))
     except:
-        #print("133")
+        print("Error on the 133 Lines")
         #traceback.print_exc()
         return None
     explicitCache = str(use_caching(response.headers)).upper()
@@ -174,10 +176,13 @@ def headers_poisoning_check(url, initialResponse, custom_header):
             response = requests.get(uri, headers=payload, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
         except KeyboardInterrupt:
             pass
+        except requests.Timeout:
+            print("Request timeout with {} URL with {}".format(uri, payload))
+            continue
         except:
             potential_verbose_message("ERROR", url)
-            print("Request error, Skipping the {} URL with {}".format(uri, payload))
-            #print("179")
+            print("Request error with {} URL with {}".format(uri, payload))
+            print("Error on the 179 Lines")
             #traceback.print_exc()
             continue
         explicitCache = str(use_caching(response.headers)).upper()
@@ -240,10 +245,11 @@ def cache_poisoning_check(url, custom_header):
             crawl_and_scan(url, initialResponse, custom_header)
 
     if not initialResponse:
-        #print("242")
+        print("Error on the 248 Lines")
+        print(initialResponse)
         #traceback.print_exc()
         potential_verbose_message("ERROR", url)
-        return
+        return "ERROR"
 
 def sequential_cache_poisoning_check(urlList):
 
@@ -261,7 +267,7 @@ def check_cache_poisoning(url, custom_header, behavior_):
             cache_poisoning_check(url, custom_header)
         except:
             print("\nInvalid URL")
-            #print("263")
+            print("Error on the 263 Lines")
             #traceback.print_exc()
     elif file:
         if not args.threads or args.threads == 1:
