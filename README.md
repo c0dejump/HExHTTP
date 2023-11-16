@@ -30,9 +30,12 @@ Header Exploitation HTTP
 - Server Error response checking
 - Localhost header response analysis
 - Methods response analysis
+- HTTP version analysis [Experimental]
 - CPDoS technique
 - CND Analysis
 - Web cache poisoning
+- Range poisoning/error (416 response error) [Experimental]
+- Cookie Reflection
 - Technologies analysis (Ngninx - Envoy - Apache) [IP]
 
 

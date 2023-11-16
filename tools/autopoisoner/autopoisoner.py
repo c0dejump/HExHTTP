@@ -87,6 +87,10 @@ def use_caching(headers):
 def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum, buster, custom_header):
     try:
         confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY, headers=custom_header)
+    except requests.Timeout:
+        if behavior:
+            print("Request timeout with {} URL with {}".format(uri, custom_head))
+        return False
     except:
         print("Error on the 91 Lines")
         #traceback.print_exc()
@@ -125,44 +129,46 @@ def port_poisoning_check(url, initialResponse, custom_header):
     custom_head = {
             "Host": f"{host}:8888",
             }
+    uri = f"{url}?cacheBusterX{randNum}={buster}"
     if custom_header:
         custom_head = custom_head.update(custom_header)
     try:
         response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=custom_head, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
-        uri = f"{url}?cacheBusterX{randNum}={buster}"
-    except requests.Timeout:
-        print("Request timeout with {} URL with {}".format(uri, payload))
-    except:
-        print("Error on the 133 Lines")
-        #traceback.print_exc()
-        return None
-    explicitCache = str(use_caching(response.headers)).upper()
+        explicitCache = str(use_caching(response.headers)).upper()
 
-    if response.status_code != initialResponse.status_code:
-        findingState = 1
-        potential_verbose_message("STATUS_CODE", url)
-        if vulnerability_confirmed(response, url, randNum, buster, custom_header):
-            findingState = 2
-            behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, header=custom_head, outputFile=outputFile,LOCK = LOCK)
-        else:
-            potential_verbose_message("UNSUCCESSFUL", url)
-            if behavior:
-                behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, header=custom_head)
+        if response.status_code != initialResponse.status_code:
+            findingState = 1
+            potential_verbose_message("STATUS_CODE", url)
+            if vulnerability_confirmed(response, url, randNum, buster, custom_header):
+                findingState = 2
+                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, header=custom_head, outputFile=outputFile,LOCK = LOCK)
+            else:
+                potential_verbose_message("UNSUCCESSFUL", url)
+                if behavior:
+                    behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, header=custom_head)
 
-    elif abs(len(response.text) - len(initialResponse.text)) > 0.25 * len(initialResponse.text):
-        findingState = 1
-        potential_verbose_message("LENGTH", url)
-        if vulnerability_confirmed(response, url, randNum, buster, custom_header):
-            findingState = 2
-            behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=custom_head, outputFile=outputFile, LOCK = LOCK)
+        elif abs(len(response.text) - len(initialResponse.text)) > 0.25 * len(initialResponse.text):
+            findingState = 1
+            potential_verbose_message("LENGTH", url)
+            if vulnerability_confirmed(response, url, randNum, buster, custom_header):
+                findingState = 2
+                behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=custom_head, outputFile=outputFile, LOCK = LOCK)
 
         else:
             potential_verbose_message("UNSUCCESSFUL",  url)
             if behavior:
                 behavior_or_confirmed_message(uri, "BEHAVIOR", "LENGTH", explicitCache, url, header=custom_head)
 
-    if findingState == 1:
-        return "UNCONFIRMED"
+        if findingState == 1:
+            return "UNCONFIRMED"
+    except requests.Timeout:
+        if behavior:
+            print("Request timeout with {} URL with {}".format(uri, custom_head))
+    except:
+        print("Error on the 133 Lines")
+        #traceback.print_exc()
+        return None
+    
 
 def headers_poisoning_check(url, initialResponse, custom_header):
     findingState = 0
@@ -177,13 +183,15 @@ def headers_poisoning_check(url, initialResponse, custom_header):
         except KeyboardInterrupt:
             pass
         except requests.Timeout:
-            print("Request timeout with {} URL with {}".format(uri, payload))
+            if behavior:
+                print("Request timeout with {} URL with {}".format(uri, payload))
             continue
         except:
-            potential_verbose_message("ERROR", url)
-            print("Request error with {} URL with {}".format(uri, payload))
-            print("Error on the 179 Lines")
-            #traceback.print_exc()
+            if behavior:
+                potential_verbose_message("ERROR", url)
+                print("Request error with {} URL with {}".format(uri, payload))
+                print("Error on the 179 Lines")
+                traceback.print_exc()
             continue
         explicitCache = str(use_caching(response.headers)).upper()
         sys.stdout.write("\033[34m  {}\033[0m\r".format(header))
@@ -238,13 +246,13 @@ def crawl_and_scan(url, initialResponse, custom_header):
 def cache_poisoning_check(url, custom_header):
     initialResponse = base_request(url, custom_header)
 
-    if initialResponse.status_code in (200, 304, 302, 301, 308, 401, 402, 403, 303, 404, 406, 400, 500):
+    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 308, 400, 401, 402, 403, 404, 406, 416, 500):
         resultPort = port_poisoning_check(url, initialResponse, custom_header)
         resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
         if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
             crawl_and_scan(url, initialResponse, custom_header)
 
-    if not initialResponse:
+    else:
         print("Error on the 248 Lines")
         print(initialResponse)
         #traceback.print_exc()
@@ -267,7 +275,7 @@ def check_cache_poisoning(url, custom_header, behavior_):
             cache_poisoning_check(url, custom_header)
         except:
             print("\nInvalid URL")
-            print("Error on the 263 Lines")
+            print("Error on the 270 Lines")
             #traceback.print_exc()
     elif file:
         if not args.threads or args.threads == 1:

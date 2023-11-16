@@ -17,6 +17,7 @@ from modules.cdn import analyze_cdn
 from modules.cache_poisoning_files import check_cache_files
 from modules.cookie_reflection import check_cookie_reflection
 from modules.http_version import check_http_version
+from modules.range_check import range_error_check
 
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
@@ -120,6 +121,8 @@ def main(url, s):
     check_cache_poisoning(url, custom_header, authent)
     check_cache_files(url, custom_header, authent)
     check_cookie_reflection(url, custom_header, authent)
+    range_error_check(url)
+    
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
         cdn_result = getattr(a_cdn, cdn)(url, s)
@@ -131,7 +134,6 @@ def main(url, s):
 
     fuzz_x_header(url)
     maj_check_cache_header(check_header)
-
 
 
 if __name__ == '__main__':
