@@ -122,7 +122,7 @@ def main(url, s):
     check_cache_files(url, custom_header, authent)
     check_cookie_reflection(url, custom_header, authent)
     range_error_check(url)
-    
+
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
         cdn_result = getattr(a_cdn, cdn)(url, s)
@@ -143,7 +143,7 @@ if __name__ == '__main__':
     parser.add_argument("-f", help="URL file to test", dest='url_file', required=False)
     parser.add_argument("-H", help="Header HTTP custom", dest='custom_header', required=False)
     parser.add_argument("--full", help="To display full header", dest='full', required=False, action='store_true')
-    parser.add_argument("--auth", help="HTTP authentification. \033[33mEx: --auth admin:admin)\033[0m", required=False, dest="auth")
+    parser.add_argument("--auth", help="HTTP authentification. \033[33mEx: --auth admin:admin\033[0m", required=False, dest="auth")
     parser.add_argument("--behavior", "-b", required=False, action='store_true', dest='behavior', help="activate a lighter version of verbose, highlighting interesting cache behavior") 
 
 

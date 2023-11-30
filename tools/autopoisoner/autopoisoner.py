@@ -1,9 +1,8 @@
 import requests
 import argparse
 import random
-import re
-import os
-import sys
+import re, os, sys
+import time
 import threading
 import traceback
 from tools.autopoisoner.headerfuzz import headersToFuzz
@@ -246,12 +245,13 @@ def crawl_and_scan(url, initialResponse, custom_header):
 def cache_poisoning_check(url, custom_header):
     initialResponse = base_request(url, custom_header)
 
-    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 308, 400, 401, 402, 403, 404, 406, 416, 500):
+    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 406, 416, 500):
         resultPort = port_poisoning_check(url, initialResponse, custom_header)
         resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
         if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
             crawl_and_scan(url, initialResponse, custom_header)
-
+    elif initialResponse.status_code == 429:
+        time.sleep(3)
     else:
         print("Error on the 248 Lines")
         print(initialResponse)

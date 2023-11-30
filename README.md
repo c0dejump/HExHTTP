@@ -15,7 +15,7 @@ Header Exploitation HTTP
 	-f URL_FILE       URL file to test
 	-H CUSTOM_HEADER  Header HTTP custom
 	--full            To display full header
-	--auth AUTH       HTTP authentification. Ex: --auth admin:admin)
+	--auth AUTH       HTTP authentification. Ex: --auth admin:admin
 	--behavior, -b    activate a lighter version of verbose, highlighting interesting cache behavior
 
 
