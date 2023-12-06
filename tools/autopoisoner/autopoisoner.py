@@ -74,8 +74,8 @@ def crawl_files(URL, response : requests.Response):
     return selectedFiles
 
 def use_caching(headers):
-    if  headers.get("X-Cache-Hits") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") or headers.get("x-drupal-cache") \
-    or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") \
+    if  headers.get("X-Cache-Hits") or headers.get("X-Nextjs-Cache") or headers.get("x-nextjs-cache") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") \
+    or headers.get("x-drupal-cache") or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") \
     or headers.get("X-Proxy-Cache") or headers.get("X-TZLA-EDGE-Cache-Hit") or headers.get("X-nananana") or headers.get("x-spip-cache") or headers.get("CDN-Cache") \
     or headers.get("x-pangle-cache-from") or headers.get("X-Deploy-Web-Server-Cache-Hit") or headers.get("X-Micro-Cache") or headers.get("X-Deploy-Web-Server-Cache-Hit") \
     or (headers.get("Cache-Control") and ("public" in headers.get("Cache-Control"))):
@@ -164,7 +164,7 @@ def port_poisoning_check(url, initialResponse, custom_header):
         if behavior:
             print("Request timeout with {} URL with {}".format(uri, custom_head))
     except:
-        print("Error on the 133 Lines")
+        print(" └── Error with Host: {}:8888 header".format(host))
         #traceback.print_exc()
         return None
     
@@ -245,7 +245,7 @@ def crawl_and_scan(url, initialResponse, custom_header):
 def cache_poisoning_check(url, custom_header):
     initialResponse = base_request(url, custom_header)
 
-    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 406, 416, 500):
+    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 406, 416, 500, 503, 520):
         resultPort = port_poisoning_check(url, initialResponse, custom_header)
         resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
         if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
@@ -257,7 +257,7 @@ def cache_poisoning_check(url, custom_header):
         print(initialResponse)
         #traceback.print_exc()
         potential_verbose_message("ERROR", url)
-        return "ERROR"
+        #return "ERROR"
 
 def sequential_cache_poisoning_check(urlList):
 

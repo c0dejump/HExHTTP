@@ -61,7 +61,7 @@ def fuzz_x_header(url):
     (https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
     """
     print("\033[36m ├ X-FUZZ analyse\033[0m")
-    f_header = {"Forwarded":"for=example.com;host=example.com;proto=https, for=23.45.67.89"}
+    f_header = {"Forwarded":"for=example.com;host=example.com;proto=https, for=example.com"}
     try:
         req_f = requests.get(url, headers=f_header, timeout=10, verify=False)
         if req_f.status_code == 500:

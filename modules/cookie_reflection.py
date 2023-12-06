@@ -23,6 +23,7 @@ def check_cookie_reflection(url, custom_header, authent):
 	cookie_obj = {}
 
 	for rc in res_cookie:
+		#print(rc.value)
 		if rc.value in req.text:
 			print("\033[36m --├ {}\033[0m value for the\033[36m {}\033[0m cookie seems to be reflected in text".format(rc.value, rc.name))
 			reflected = True
@@ -48,10 +49,13 @@ def check_cookie_reflection(url, custom_header, authent):
 			except:
 				traceback.print_exc()
 
+	try:
+		req_verif = requests.get(url, verify=False, headers=custom_header, auth=authent)
+		if matching_forward in req_verif.text:
+				print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | COOKIE HEADER REFLECTION | \033[34m{}\033[0m | PAYLOAD: Cookie: {}".format(url, payload))
+	except requests.exceptions.Timeout:
+		print("plop timeout")
 
-	req_verif = requests.get(url, verify=False, headers=custom_header, auth=authent)
-	if matching_forward in req_verif.text:
-			print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | COOKIE HEADER REFLECTION | \033[34m{}\033[0m | PAYLOAD: Cookie: {}".format(url, payload))
 	
 
 

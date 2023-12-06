@@ -18,11 +18,13 @@ def range_error_check(url):
     header_range = {
     "Range": "bytes=nobytes"
     }
+    
     for i in range(10):
         try:
             req_range = requests.get(url, verify=False, headers=header_range, timeout=10)
         except:
-            pass
+            print("Error with Range: bytes=nobytes header")
+
     if req_range.status_code == 416:
         print("\033[36m --├\033[0m 416 - {} [{} bytes]".format(url, len(req_range.content)))
         for rr in req_range.headers:
@@ -37,7 +39,7 @@ def range_error_check(url):
             print(url)
             print(req_range.headers)
             if req_verify.status_code == 416:
-                print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | 416 STATUS-CODE cached | \033[34m{}\033[0m | PAYLOAD: Range: bytes=none".format(url))
+                print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | 416 STATUS-CODE cached | \033[34m{}\033[0m | PAYLOAD: Range: bytes=nobytes".format(url))
     elif req_range.status_code == 202:
         print("plop 202")
 

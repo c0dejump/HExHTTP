@@ -5,6 +5,7 @@ import urllib3
 import requests
 import traceback
 from urllib.parse import urlparse
+from urllib3 import Timeout, PoolManager
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
@@ -29,11 +30,48 @@ def put(url): req_pt = requests.put(url, verify=False, allow_redirects=False, he
 def patch(url): req_ptch = requests.patch(url, verify=False, allow_redirects=False, headers=header, timeout=10); return req_ptch.status_code, req_ptch.headers, "PATCH", len(req_ptch.content), req_ptch.content
 def options(url): req_o = requests.options(url, verify=False, allow_redirects=False, headers=header, timeout=10); return req_o.status_code, req_o.headers, "OPTIONS", len(req_o.content), req_o.content
 
+
+
+def check_other_methods(ml, url, http):
+    try:
+        resp = http.request(ml, url) #check response with a bad method
+        rs = resp.status
+        resp_h = resp.headers
+
+        cache_status = False
+        try:
+            rs = desc_method[rs]
+        except:
+            rs = rs
+        for rh in resp_h:
+            if "Cache-Status" in rh or "X-Cache" in rh or "x-drupal-cache" in rh or "X-Proxy-Cache" in rh or "X-HS-CF-Cache-Status" in rh \
+            or "X-Vercel-Cache" in rh or "X-nananana" in rh or "x-vercel-cache" in rh or "X-TZLA-EDGE-Cache-Hit" in rh or "x-spip-cache" in rh \
+            or "x-nextjs-cache" in rh:
+                cache_status = True
+        len_req = len(resp.data.decode('utf-8'))
+        if len(ml) > 4:
+            print(f" └── {ml}{'':<3}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
+        elif len(ml) < 4:
+            print(f" └── {ml}{'':<5}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
+        else:
+            print(f" └── {ml}{'':<4}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
+        #print(resp.data)
+    except requests.packages.urllib3.exceptions.MaxRetryError as e:
+        print(f" └── {ml}{'':<4}: Error due to a too many redirects")
+    except:
+        pass
+        #traceback.print_exc()
+
+
+
 def check_methods(url, custom_header, authent):
     """ 
     Try other method 
     Ex: OPTIONS /admin
     """
+    htimeout = Timeout(connect=7.0, read=7.0)
+    http = PoolManager(timeout=htimeout)
+
     print("\033[36m ├ Methods analyse\033[0m")
     result_list = []
     for funct in [get, post, put, patch, options]:
@@ -57,146 +95,7 @@ def check_methods(url, custom_header, authent):
                 cache_status = True 
                 cache_res = rh
         print(" └── {type_r:<8}: {rs:<3} [{len_req} bytes] [Cacheable: {cache_status}]".format(type_r=type_r, rs=rs, len_req=len_req, cache_status=cache_status))
-    #HELP METHOD
-    try:
-        http = urllib3.PoolManager()
-        resp = http.request('HELP', url)
-        rs = resp.status
-        resp_h = resp.headers
 
-        cache_status = False
-        try:
-            rs = desc_method[rs]
-        except:
-            rs = rs
-        for rh in resp_h:
-            if "Cache-Status" in rh or "X-Cache" in rh or "x-drupal-cache" in rh or "X-Proxy-Cache" in rh or "X-HS-CF-Cache-Status" in rh \
-            or "X-Vercel-Cache" in rh or "X-nananana" in rh or "x-vercel-cache" in rh or "X-TZLA-EDGE-Cache-Hit" in rh or "x-spip-cache" in rh \
-            or "x-nextjs-cache" in rh:
-                cache_status = True
-        len_req = len(resp.data.decode('utf-8'))
-        print(f" └── HELP{'':<4}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
-        #print(resp.data)
-    except requests.packages.urllib3.exceptions.MaxRetryError as e:
-        print(f" └── HELP{'':<4}: Error due to a too many redirects")
-    except:
-        pass
-    #PURGE METHOD
-    try:
-        http = urllib3.PoolManager()
-        resp = http.request('PURGE', url)
-        rs = resp.status
-        resp_h = resp.headers
-
-        cache_status = False
-        try:
-            rs = desc_method[rs]
-        except:
-            rs = rs
-        for rh in resp_h:
-            if "Cache-Status" in rh or "X-Cache" in rh or "x-drupal-cache" in rh or "X-Proxy-Cache" in rh or "X-HS-CF-Cache-Status" in rh \
-            or "X-Vercel-Cache" in rh or "X-nananana" in rh or "x-vercel-cache" in rh or "X-TZLA-EDGE-Cache-Hit" in rh or "x-spip-cache" in rh \
-            or "x-nextjs-cache" in rh:
-                cache_status = True
-        len_req = len(resp.data.decode('utf-8'))
-        print(f" └── PURGE{'':<3}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
-    except requests.packages.urllib3.exceptions.MaxRetryError as e:
-        print(f" └── PURGE{'':<3}: Error due to a too many redirects")
-    except Exception:
-        pass
-    #DEBUG METHOD
-    try:
-        http = urllib3.PoolManager()
-        resp = http.request('DEBUG', url) #check response with a bad method
-        rs = resp.status
-        resp_h = resp.headers
-
-        cache_status = False
-        try:
-            rs = desc_method[rs]
-        except:
-            rs = rs
-        for rh in resp_h:
-            if "Cache-Status" in rh or "X-Cache" in rh or "x-drupal-cache" in rh or "X-Proxy-Cache" in rh or "X-HS-CF-Cache-Status" in rh \
-            or "X-Vercel-Cache" in rh or "X-nananana" in rh or "x-vercel-cache" in rh or "X-TZLA-EDGE-Cache-Hit" in rh or "x-spip-cache" in rh \
-            or "x-nextjs-cache" in rh:
-                cache_status = True
-        len_req = len(resp.data.decode('utf-8'))
-        print(f" └── DEBUG{'':<3}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
-        #print(resp.data)
-    except requests.packages.urllib3.exceptions.MaxRetryError as e:
-        print(f" └── DEBUG{'':<3}: Error due to a too many redirects")
-    except:
-        pass
-    #TRACE METHOD
-    try:
-        http = urllib3.PoolManager()
-        resp = http.request('TRACE', url) #check response with a bad method
-        rs = resp.status
-        resp_h = resp.headers
-
-        cache_status = False
-        try:
-            rs = desc_method[rs]
-        except:
-            rs = rs
-        for rh in resp_h:
-            if "Cache-Status" in rh or "X-Cache" in rh or "x-drupal-cache" in rh or "X-Proxy-Cache" in rh or "X-HS-CF-Cache-Status" in rh \
-            or "X-Vercel-Cache" in rh or "X-nananana" in rh or "x-vercel-cache" in rh or "X-TZLA-EDGE-Cache-Hit" in rh or "x-spip-cache" in rh \
-            or "x-nextjs-cache" in rh:
-                cache_status = True
-        len_req = len(resp.data.decode('utf-8'))
-        print(f" └── TRACE{'':<3}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
-        #print(resp.data)
-    except requests.packages.urllib3.exceptions.MaxRetryError as e:
-        print(f" └── TRACE{'':<3}: Error due to a too many redirects")
-    except:
-        pass
-    #BAN METHOD
-    try:
-        http = urllib3.PoolManager()
-        resp = http.request('BAN', url) #check response with a bad method
-        rs = resp.status
-        resp_h = resp.headers
-
-        cache_status = False
-        try:
-            rs = desc_method[rs]
-        except:
-            rs = rs
-        for rh in resp_h:
-            if "Cache-Status" in rh or "X-Cache" in rh or "x-drupal-cache" in rh or "X-Proxy-Cache" in rh or "X-HS-CF-Cache-Status" in rh \
-            or "X-Vercel-Cache" in rh or "X-nananana" in rh or "x-vercel-cache" in rh or "X-TZLA-EDGE-Cache-Hit" in rh or "x-spip-cache" in rh \
-            or "x-nextjs-cache" in rh:
-                cache_status = True
-        len_req = len(resp.data.decode('utf-8'))
-        print(f" └── BAN{'':<5}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
-        #print(resp.data)
-    except requests.packages.urllib3.exceptions.MaxRetryError as e:
-        print(f" └── BAN{'':<5}: Error due to a too many redirects")
-    except:
-        pass
-    #PLOP unknown METHOD
-    try:
-        http = urllib3.PoolManager()
-        resp = http.request('PLOP', url) #check response with a bad method
-        rs = resp.status
-        resp_h = resp.headers
-
-        cache_status = False
-        try:
-            rs = desc_method[rs]
-        except:
-            rs = rs
-        for rh in resp_h:
-            if "Cache-Status" in rh or "X-Cache" in rh or "x-drupal-cache" in rh or "X-Proxy-Cache" in rh or "X-HS-CF-Cache-Status" in rh \
-            or "X-Vercel-Cache" in rh or "X-nananana" in rh or "x-vercel-cache" in rh or "X-TZLA-EDGE-Cache-Hit" in rh or "x-spip-cache" in rh \
-            or "x-nextjs-cache" in rh:
-                cache_status = True
-        len_req = len(resp.data.decode('utf-8'))
-        print(f" └── PLOP{'':<4}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
-        #print(resp.data)
-    except requests.packages.urllib3.exceptions.MaxRetryError as e:
-        print(f" └── PLOP{'':<4}: Error due to a too many redirects")
-    except:
-        pass
+    method_list = ["HELP", "PURGE", "DEBUG", "TRACE", "BAN", "PLOP"]
+    for ml in method_list:
+        check_other_methods(ml, url, http)

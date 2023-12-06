@@ -36,7 +36,7 @@ def HMC(url, s, main_status_code, authent):
     for c in chars:
         headers = {"X-Metachar-Header": c}
         req_hmc = s.get(url, headers=headers, timeout=10, verify=False, auth=authent)
-        if req_hmc.status_code in [400, 413, 500]:
+        if req_hmc.status_code in [400, 413, 500] and req_hmc.status_code != main_status_code:
             req_verify_hmc = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmc.status_code == req_hmc.status_code:
                 print("   └── \033[31m CPDos HMC on {} seem work with {} payload header ! \033[0m".format(url, headers))
@@ -60,7 +60,7 @@ def RefDos(url, s, authent):
     "Referer": "x"
     }
     req_ref = s.get(url, headers=headers, verify=False, timeout=10, auth=authent)
-    if req_ref.status_code == 400:
+    if req_ref.status_code == 400 and req_ref.status_code != main_status_code:
         print("   └── \033[31m{} with header {} response 400\033[0m".format(url, headers))
         for rf in req_ref.headers:
             if "cache" in rf.lower():

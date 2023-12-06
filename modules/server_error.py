@@ -57,6 +57,6 @@ def header_cache_error(url, authent):
             hce_req = requests.get(url, headers=headers, verify=False, timeout=10, auth=authent)
             if hce_req.status_code == 400:
                 print(" i - 400 error code with {} payload header [{} bytes]".format(headers, len(hce_req.content)))
-                print(hce_req.headers)
+                #print(hce_req.headers)
         except:
             print(" i - Error code with {} payload header ".format(headers))
