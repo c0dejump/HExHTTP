@@ -42,7 +42,8 @@ def get_hit(url, matching_forward, custom_header, authent):
                         #print(header_age) #Debug
                         #print(res.headers[cs]) #Debug
                         res = requests.get(url, params=params, headers=headers, verify=False, allow_redirects=False, auth=authent,timeout=10)
-                        header_age = res.headers[cs].lower()
+                        res_header = res.headers[cs].lower()
+                        header_age += 1
 
     #print(res_header) #Debug
     return res_header
@@ -82,4 +83,5 @@ def check_cache_files(uri, custom_header, authent):
         except requests.exceptions.Timeout:
             print(" └── Timeout Error with {}".format(endpoints))
         except:
+            #traceback.print_exc()
             print(" ! Error with {}".format(url))

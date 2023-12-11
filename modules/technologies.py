@@ -36,7 +36,7 @@ class technology:
             x_req = s.get(url, headers=aph, verify=False, timeout=10)
             print(f" └── {aph}{'→':^3} {x_req.status_code:>3} [{len(x_req.content)} bytes]")
             if "plop123" in x_req.text:
-                print("wooow")
+                print("plop123 reflected in text with {} payload".format(aph))
 
     def nginx(self, url, s):
         # Unkeyed Query Exploitation:
@@ -56,7 +56,7 @@ class technology:
                 x_req = s.get(url, headers=ngh, verify=False, timeout=10)
                 print(f" └── {ngh}{'→':^3} {x_req.status_code:>3} [{len(x_req.content)} bytes]")
                 if "plop123" in x_req.text:
-                    print("wooow")
+                    print("plop123 reflected in text with {} payload".format(ngh))
             except:
                 print(" └── Error with {} payload".format(ngh))
 
@@ -67,4 +67,4 @@ class technology:
             x_req = s.get(url, headers=aph, verify=False, timeout=10)
             print(f" └── {aph}{'→':^3} {x_req.status_code:>3} [{len(x_req.content)} bytes]")
             if "plop123" in x_req.text:
-                print("wooow")
+                print("plop123 reflected in text with {} payload".format(aph))

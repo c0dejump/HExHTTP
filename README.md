@@ -38,6 +38,10 @@ Header Exploitation HTTP
 - Cookie Reflection
 - Technologies analysis (Ngninx - Envoy - Apache) [IP]
 
+## TODO
+
+- Try with mobile user-agent 
+
 
 ### Based on :
 - YWH HTTP Header Exploitation: https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/
