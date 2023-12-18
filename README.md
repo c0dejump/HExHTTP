@@ -19,6 +19,12 @@ Header Exploitation HTTP
 	--behavior, -b    activate a lighter version of verbose, highlighting interesting cache behavior
 
 
+```
+	> $ python3 hexhttp.py -u url.com
+	> $ python3 hexhttp.py -f urls.txt | grep -i -E "url:|confirmed"
+	
+```
+
 ## Examples
 
 ![alt tag](https://github.com/c0dejump/HExHTTP/blob/main/static/example_1.png)

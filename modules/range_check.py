@@ -40,6 +40,7 @@ def range_error_check(url):
             print(req_range.headers)
             if req_verify.status_code == 416:
                 print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | 416 STATUS-CODE cached | \033[34m{}\033[0m | PAYLOAD: Range: bytes=nobytes".format(url))
+                vuln_found_notify(url, header_range)
     elif req_range.status_code == 202:
         print("plop 202")
 

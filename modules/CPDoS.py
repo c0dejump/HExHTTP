@@ -4,6 +4,7 @@
 import requests
 import traceback
 
+
 def HHO(url, s, main_status_code, authent):
     #HTTP Header Oversize 
 
@@ -58,7 +59,7 @@ def HMO(url, s, main_status_code, authent):
                 print("   └── \033[31m CPDos HMO on {} seem work with {} payload header ! \033[0m".format(url, headers))
 
 
-def RefDos(url, s, authent):
+def RefDos(url, s, main_status_code, authent):
     headers = {
     "Referer": "xy",
     "Referer": "x"
@@ -147,4 +148,4 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
     HHO(url, s, main_status_code, authent)
     HMC(url, s, main_status_code, authent)
     HMO(url, s, main_status_code, authent)
-    RefDos(url, s, authent)
+    RefDos(url, s, main_status_code, authent)

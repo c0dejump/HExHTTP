@@ -12,6 +12,7 @@ headersToFuzz = {
     "x-http-method-override": "POST",
     "x-http-method-override": "HEAD",
     "x-method-override": "HEAD",
+    "X-Forwarded-Port": 1234,
     "x-forwarded-host": CANARY,
     "x-amz-website-redirect-location": CANARY,
     "x-rewrite-url": CANARY,

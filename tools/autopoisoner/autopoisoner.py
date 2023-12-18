@@ -245,7 +245,7 @@ def crawl_and_scan(url, initialResponse, custom_header):
 def cache_poisoning_check(url, custom_header):
     initialResponse = base_request(url, custom_header)
 
-    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 503, 520):
+    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 502, 503, 520):
         resultPort = port_poisoning_check(url, initialResponse, custom_header)
         resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
         if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
@@ -276,7 +276,7 @@ def check_cache_poisoning(url, custom_header, behavior_):
         except:
             print("\nInvalid URL")
             print("Error on the 270 Lines")
-            #traceback.print_exc()
+            traceback.print_exc()
     elif file:
         if not args.threads or args.threads == 1:
             sequential_cache_poisoning_check(allURLs)

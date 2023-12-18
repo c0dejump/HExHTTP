@@ -5,6 +5,7 @@ import requests
 import traceback
 import sys
 import random
+from static.vuln_notify import vuln_found_notify
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
@@ -53,6 +54,7 @@ def check_cookie_reflection(url, custom_header, authent):
 		req_verif = requests.get(url, verify=False, headers=custom_header, auth=authent)
 		if matching_forward in req_verif.text:
 				print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | COOKIE HEADER REFLECTION | \033[34m{}\033[0m | PAYLOAD: Cookie: {}".format(url, payload))
+				vuln_found_notify(url, payload)
 	except requests.exceptions.Timeout:
 		print("plop timeout")
 
