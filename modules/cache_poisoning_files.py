@@ -50,7 +50,7 @@ def get_hit(url, matching_forward, custom_header, authent):
                         res_header = res.headers[cs].lower()
                         header_age += 1
     if word_in_text:
-        print("\033[34m └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{}?cp=1337\033[0m | PAYLOAD: X-Forwarded-Host".format(url))
+        print("\033[33m └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{}?cp=1337\033[0m | PAYLOAD: X-Forwarded-Host".format(url))
     #print(res_header) #Debug
     return res_header
 

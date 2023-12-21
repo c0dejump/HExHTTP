@@ -17,10 +17,10 @@ def potential_verbose_message(message, url="default"):
         elif message == "CRAWLING":
             print(f"[VERBOSE] Crawling. Scanning : {url}")
 
-def behavior_or_confirmed_message(uri, behaviorOrConfirmed, behaviorType, explicitCache, url, header = "default", outputFile = "default", LOCK = "default"):
+def behavior_or_confirmed_message(uri, behaviorOrConfirmed, behaviorType, explicitCache, url, status_code="default", header = "default", outputFile = "default", LOCK = "default"):
 
     messageDict = {"REFLECTION": "HEADER REFLECTION",
-                   "STATUS": "DIFFERENT STATUS-CODE",
+                   "STATUS": "DIFFERENT STATUS-CODE: {}".format(status_code),
                    "LENGTH": "DIFFERENT RESPONSE LENGTH",
                    "BEHAVIOR": "[INTERESTING BEHAVIOR]",
                    "CONFIRMED": "VULNERABILITY CONFIRMED"

@@ -1,7 +1,7 @@
 CANARY = "ndvyepenbvtidpvyzh.com"
 
 headersToFuzz = {
-    "x-forwarded-scheme": "http",
+    "x-forwarded-scheme": "nohttps",
     "x-forwarded-proto": "nohttps",
     "X_FORWARDED_PROTO": "nohttps",
     "X-Forwarded-Proto-Override": "nohttps",
@@ -24,6 +24,7 @@ headersToFuzz = {
     "x-wp-nonce": CANARY,
     "Transfer-Encoding": CANARY,
     "x-original-url": CANARY,
+    "Location": CANARY,
     "x-forwarded-prefix": CANARY,
     "x-amz-server-side-encryption": CANARY,
     "trailer": CANARY,

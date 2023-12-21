@@ -4,6 +4,7 @@
 import requests
 import traceback
 
+requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 def HHO(url, s, main_status_code, authent):
     #HTTP Header Oversize 
@@ -28,7 +29,7 @@ def HHO(url, s, main_status_code, authent):
                 i = 20
                 cpdos_win = True
             i += 1
-        except KeyboardIntercupt:
+        except KeyboardInterrupt:
             pass
         except:
             traceback.print_exc()

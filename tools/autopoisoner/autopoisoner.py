@@ -136,11 +136,12 @@ def port_poisoning_check(url, initialResponse, custom_header):
         explicitCache = str(use_caching(response.headers)).upper()
 
         if response.status_code != initialResponse.status_code:
+            status_code = "{} → {}".format(initialResponse.status_code, response.status_code)
             findingState = 1
             potential_verbose_message("STATUS_CODE", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, header=custom_head, outputFile=outputFile,LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_code=status_code, header=custom_head, outputFile=outputFile,LOCK = LOCK)
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
                 if behavior:
@@ -209,11 +210,12 @@ def headers_poisoning_check(url, initialResponse, custom_header):
                     behavior_or_confirmed_message(uri, "BEHAVIOR", "REFLECTION", explicitCache, url, header=payload)
 
         elif response.status_code != initialResponse.status_code:
+            status_code = "{} → {}".format(initialResponse.status_code, response.status_code)
             findingState = 1
             potential_verbose_message("STATUS_CODE", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, header=payload, outputFile=outputFile,LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_code=status_code, header=payload, outputFile=outputFile,LOCK = LOCK)
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
                 if behavior:

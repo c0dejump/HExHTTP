@@ -24,6 +24,8 @@ def check_http_version(url):
             print(" └── {:<9}: {:<3} {:<13} [HS: {}b]".format(v, req_v.status_code, "[{} bytes]".format(len(req_v.content)), len(req_v.headers)))
         except requests.exceptions.Timeout:
             print(" └── Timeout Error with {}".format(v))
+        except KeyboardInterrupt:
+            pass
         except:
             print(" └── Error with {}".format(v))
             #traceback.print_exc()
