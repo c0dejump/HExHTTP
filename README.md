@@ -3,7 +3,7 @@ Header Exploitation HTTP
 
 *HTTP header behavior analysis tool*
 
-### Beta version
+### V 1.0
 
 
 ## Usage
@@ -20,8 +20,8 @@ Header Exploitation HTTP
 
 
 ```
-	> $ python3 hexhttp.py -u url.com
-	> $ python3 hexhttp.py -f urls.txt | grep -i -E "url:|confirmed"
+> $ python3 hexhttp.py -u url.com
+> $ python3 hexhttp.py -f urls.txt -b | grep -i -E "url:|confirmed|behavior"
 	
 ```
 
