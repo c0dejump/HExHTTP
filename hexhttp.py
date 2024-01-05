@@ -113,15 +113,15 @@ def main(url, s):
 
     #print(base_header)
 
-    get_server_error(url, base_header, full, authent)
-    check_localhost(url, s, domain, authent)
-    check_methods(url, custom_header, authent)
-    check_http_version(url)
-    check_CPDoS(url, s, req_main, domain, custom_header, authent)
-    check_cache_poisoning(url, custom_header, authent)
+    #get_server_error(url, base_header, full, authent)
+    #check_localhost(url, s, domain, authent)
+    #check_methods(url, custom_header, authent)
+    #check_http_version(url)
+    #check_CPDoS(url, s, req_main, domain, custom_header, authent)
+    check_cache_poisoning(url, custom_header, behavior, authent)
     check_cache_files(url, custom_header, authent)
     check_cookie_reflection(url, custom_header, authent)
-    range_error_check(url)
+    #range_error_check(url)
 
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
