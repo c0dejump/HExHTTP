@@ -18,6 +18,7 @@ Header Exploitation HTTP
 	--auth AUTH       HTTP authentification. Ex: --auth admin:admin
 	--behavior, -b    activate a lighter version of verbose, highlighting interesting cache behavior
 
+*if notifypy dosn't work try ```python3 -m pip install notify-py```*
 
 ```
 > $ python3 hexhttp.py -u url.com
