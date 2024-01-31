@@ -89,7 +89,7 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
         confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY, headers=custom_header)
     except requests.Timeout:
         if behavior:
-            print("Request timeout with {} URL with {}".format(uri, custom_head))
+            print("Request timeout with {} URL with {}".format(url, custom_head))
         return False
     except:
         print("Error on the 91 Lines")
@@ -136,7 +136,7 @@ def port_poisoning_check(url, initialResponse, custom_header):
         response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=custom_head, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
         explicitCache = str(use_caching(response.headers)).upper()
 
-        if response.status_code != initialResponse.status_code:
+        if response.status_code != initialResponse.status_code and response.status_code != 429:
             status_codes = "{} → {}".format(initialResponse.status_code, response.status_code)
             findingState = 1
             potential_verbose_message("STATUS_CODE", url)
@@ -187,12 +187,14 @@ def headers_poisoning_check(url, initialResponse, custom_header):
             if behavior:
                 print("Request timeout with {} URL with {}".format(uri, payload))
             continue
+        except requests.ConnectionError:
+            continue
         except:
             if behavior:
                 potential_verbose_message("ERROR", url)
                 print("Request error with {} URL with {}".format(uri, payload))
                 print("Error on the 179 Lines")
-                traceback.print_exc()
+                #traceback.print_exc()
             continue
         explicitCache = str(use_caching(response.headers)).upper()
         sys.stdout.write("\033[34m  {}\033[0m\r".format(header))
@@ -210,7 +212,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
                 if behavior:
                     behavior_or_confirmed_message(uri, "BEHAVIOR", "REFLECTION", explicitCache, url, header=payload)
 
-        elif response.status_code != initialResponse.status_code:
+        elif response.status_code != initialResponse.status_code and response.status_code != 429:
             status_codes = "{} → {}".format(initialResponse.status_code, response.status_code)
             findingState = 1
             potential_verbose_message("STATUS_CODE", url)

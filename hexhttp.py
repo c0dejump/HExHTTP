@@ -184,7 +184,7 @@ if __name__ == '__main__':
     s.max_redirects = 60
 
     if len(sys.argv) < 2:
-        print("{}URL target is missing, try using -u <url> \n".format(INFO))
+        print("! URL target is missing, try using -u <url> \n")
         parser.print_help()
         sys.exit()
 
