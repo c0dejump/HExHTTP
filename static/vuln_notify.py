@@ -15,8 +15,4 @@ def vuln_found_notify(url, payload):
     notification.send()
 
 if __name__ == '__main__':
-<<<<<<< HEAD
     vuln_found_notify()
-=======
-    vuln_found_notify()
->>>>>>> 1cd1b10fda757506ca00e250833cbfc61c4ecc0e
