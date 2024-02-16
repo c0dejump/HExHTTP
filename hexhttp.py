@@ -18,6 +18,7 @@ from modules.cache_poisoning_files import check_cache_files
 from modules.cookie_reflection import check_cookie_reflection
 from modules.http_version import check_http_version
 from modules.range_check import range_error_check
+from modules.vhosts import check_vhost
 
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
@@ -114,6 +115,7 @@ def main(url, s):
     #print(base_header)
 
     get_server_error(url, base_header, full, authent)
+    check_vhost(domain, url)
     check_localhost(url, s, domain, authent)
     check_methods(url, custom_header, authent)
     check_http_version(url)

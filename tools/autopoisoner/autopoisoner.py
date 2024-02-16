@@ -89,7 +89,7 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
         confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY, headers=custom_header)
     except requests.Timeout:
         if behavior:
-            print("Request timeout with {} URL with {}".format(url, custom_head))
+            print("Request timeout with {} URL with {}".format(url, custom_header))
         return False
     except:
         print("Error on the 91 Lines")
@@ -116,7 +116,7 @@ def base_request(url, custom_header):
     except:
         print("Error on the 112 Lines")
         #traceback.print_exc()
-        return None
+        return False
 
 
 def port_poisoning_check(url, initialResponse, custom_header):
@@ -250,12 +250,12 @@ def crawl_and_scan(url, initialResponse, custom_header):
 def cache_poisoning_check(url, custom_header):
     initialResponse = base_request(url, custom_header)
 
-    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 502, 503, 520):
+    if initialResponse and initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 502, 503, 520):
         resultPort = port_poisoning_check(url, initialResponse, custom_header)
         resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
         if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
             crawl_and_scan(url, initialResponse, custom_header)
-    elif initialResponse.status_code == 429:
+    elif initialResponse and initialResponse.status_code == 429:
         time.sleep(3)
     else:
         print("Error on the 248 Lines")

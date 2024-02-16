@@ -3,7 +3,7 @@ Header Exploitation HTTP
 
 *HTTP header behavior analysis tool*
 
-### V 1.0
+### V 1.1
 
 
 ## Usage
@@ -36,6 +36,7 @@ Header Exploitation HTTP
 
 - Server Error response checking
 - Localhost header response analysis
+- Vhosts checking
 - Methods response analysis
 - HTTP version analysis [Experimental]
 - CPDoS technique
