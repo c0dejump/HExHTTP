@@ -1,5 +1,5 @@
 requests
 wafw00f
 urllib3
-notifypy
+notify-py
 pync
