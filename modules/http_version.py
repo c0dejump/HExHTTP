@@ -12,7 +12,11 @@ def check_http_version(url):
     print("\033[36m ├ HTTP Version analyse\033[0m")
     versions = ['HTTP/0.9','HTTP/1.0','HTTP/1.1','HTTP/2']
 
-    req = requests.get(url, verify=False)
+    try:
+        req = requests.get(url, verify=False, allow_redirects=False)
+    except Exception as e:
+        print(f" └── Error {e}")
+        return 0
 
     req_base_version = req.raw.version
     #print(req_base_version)
@@ -20,14 +24,14 @@ def check_http_version(url):
     for v in versions:
         HTTPConnection._http_vsn_str = v
         try:
-            req_v = requests.get(url, timeout=10, verify=False)
+            req_v = requests.get(url, timeout=10, verify=False, allow_redirects=False)
             print(" └── {:<9}: {:<3} {:<13} [HS: {}b]".format(v, req_v.status_code, "[{} bytes]".format(len(req_v.content)), len(req_v.headers)))
         except requests.exceptions.Timeout:
-            print(" └── Timeout Error with {}".format(v))
+            print(f" └── Timeout Error with {v}")
         except KeyboardInterrupt:
             pass
-        except:
-            print(" └── Error with {}".format(v))
+        except Exception as e:
+            print(f" └── Error with {v} : {e}")
             #traceback.print_exc()
 
     if req_base_version == 10:
