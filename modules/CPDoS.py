@@ -3,6 +3,8 @@
 
 import requests
 import traceback
+import random
+
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
@@ -83,7 +85,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
         url = req_main.headers['location'] if "http" in req_main.headers['location'] else "{}{}".format(url, req_main.headers['location'])
     print("\033[36m ├ CPDoS analyse\033[0m")
 
-    url = "{}?CPDoS=1".format(url)
+    url = "{}?CPDoS{}={}".format(url, random.randint(1, 100), random.randint(1, 100))
 
     try:
         req_main = requests.get(url, verify=False, allow_redirects=False, timeout=20, auth=authent)

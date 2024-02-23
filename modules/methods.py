@@ -96,6 +96,6 @@ def check_methods(url, custom_header, authent):
                 cache_res = rh
         print(" └── {type_r:<8}: {rs:<3} [{len_req} bytes] [Cacheable: {cache_status}]".format(type_r=type_r, rs=rs, len_req=len_req, cache_status=cache_status))
 
-    method_list = ["HELP", "PURGE", "DEBUG", "TRACE", "BAN", "PLOP"]
+    method_list = ["HELP", "PURGE", "DEBUG", "TRACE", "BAN", "PLOP", "FASTLYPURGE"]
     for ml in method_list:
         check_other_methods(ml, url, http)

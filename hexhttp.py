@@ -35,7 +35,8 @@ def get_technos(req_main, url, s):
     technos = {
     "apache": ["Apache", "apache"],
     "nginx": ["nginx"],
-    "envoy": ["envoy"]
+    "envoy": ["envoy"],
+    "akamai": ["Akamai", "akamai"]
     }
     for t in technos:
         for v in technos[t]:
@@ -114,16 +115,16 @@ def main(url, s):
 
     #print(base_header)
 
-    get_server_error(url, base_header, full, authent)
-    check_vhost(domain, url)
-    check_localhost(url, s, domain, authent)
-    check_methods(url, custom_header, authent)
-    check_http_version(url)
+    #get_server_error(url, base_header, full, authent)
+    #check_vhost(domain, url)
+    #check_localhost(url, s, domain, authent)
+    #check_methods(url, custom_header, authent)
+    #check_http_version(url)
     check_CPDoS(url, s, req_main, domain, custom_header, authent)
     check_cache_poisoning(url, custom_header, behavior, authent)
-    check_cache_files(url, custom_header, authent)
-    check_cookie_reflection(url, custom_header, authent)
-    range_error_check(url)
+    #check_cache_files(url, custom_header, authent)
+    #check_cookie_reflection(url, custom_header, authent)
+    #range_error_check(url)
 
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
@@ -179,8 +180,6 @@ if __name__ == '__main__':
     else:
         authent = False
 
-    domain =  urlparse(url).netloc
-
     s = requests.Session()
     s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
     s.max_redirects = 60
@@ -194,6 +193,7 @@ if __name__ == '__main__':
         with open(url_file, "r") as urls:
             urls = urls.read().splitlines()
             for url in urls:
+                domain =  urlparse(url).netloc
                 try:
                     main(url, s)
                 except KeyboardInterrupt:
@@ -206,6 +206,7 @@ if __name__ == '__main__':
                 print("")
     else:
         try:
+            domain =  urlparse(url).netloc
             main(url, s)
         # basic errors
         except KeyboardInterrupt:

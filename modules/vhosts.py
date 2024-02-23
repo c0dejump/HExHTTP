@@ -21,12 +21,12 @@ def check_vhost(domain, url):
         for ip in ips:
             try:
                 req_ip = requests.get(ip, verify=False, timeout=10)
-                if req_ip.status_code not in [404, 403, 425, 503, 500, 400] and len(req_ip.content) != len_index:
+                if req_ip.status_code not in [404, 403, 425, 503, 500, 400] and len(req_ip.content) not in range(len_index - 50, len_index + 50):
                     retrieve_ip = True
                     print(" \033[32m\u251c\033[0m The host IP seem to be different: {} [{}b] <> {} [{}b] ".format(url, len_index, ip, len(req_ip.content)))
             except:
                 #print(" \033[33m\u251c\033[0m The host IP have a problem, check it manualy please: {} ".format(ip))
                 pass
     except:
-        traceback.print_exc()
+        #traceback.print_exc()
         pass
