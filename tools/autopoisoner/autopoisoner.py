@@ -250,7 +250,7 @@ def crawl_and_scan(url, initialResponse, custom_header):
 def cache_poisoning_check(url, custom_header):
     initialResponse = base_request(url, custom_header)
 
-    if initialResponse and initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 502, 503, 520):
+    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 502, 503, 520):
         resultPort = port_poisoning_check(url, initialResponse, custom_header)
         resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
         if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
@@ -259,8 +259,7 @@ def cache_poisoning_check(url, custom_header):
         time.sleep(3)
     else:
         print("Error on the 248 Lines")
-        print(initialResponse)
-        #traceback.print_exc()
+        traceback.print_exc()
         potential_verbose_message("ERROR", url)
         #return "ERROR"
 

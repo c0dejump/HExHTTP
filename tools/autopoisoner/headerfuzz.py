@@ -31,6 +31,7 @@ headersToFuzz = {
     "X-Forwarded-Session-ID": CANARY,
     "X-Forwarded-Client-Cert": CANARY,
     "x-host": CANARY,
+    "X-Request-Id": CANARY,
     "X-Timer": CANARY,
     "user-agent": CANARY,
     "handle": CANARY,
