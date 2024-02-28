@@ -15,10 +15,6 @@ class technology:
             X-Forwarded-Server
             X-Real-IP
             Max-Forwards
-        Envoy:
-            X-Envoy-external-adress
-            X-Envoy-internal
-            X-Envoy-Original-Dst-Host
     Unkeyed Query Exploitation:
         Apache: // | //?"><script>
         Nginx: /%2F | /%2F?"><u>

@@ -259,7 +259,7 @@ def cache_poisoning_check(url, custom_header):
         time.sleep(3)
     else:
         print("Error on the 248 Lines")
-        traceback.print_exc()
+        #traceback.print_exc()
         potential_verbose_message("ERROR", url)
         #return "ERROR"
 
@@ -280,7 +280,7 @@ def check_cache_poisoning(url, custom_header, behavior_, authent):
         except:
             print("\nInvalid URL")
             print("Error on the 270 Lines")
-            traceback.print_exc()
+            #traceback.print_exc()
     elif file:
         if not args.threads or args.threads == 1:
             sequential_cache_poisoning_check(allURLs)

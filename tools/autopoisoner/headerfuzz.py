@@ -7,7 +7,7 @@ headersToFuzz = {
     "X-Forwarded-Proto-Override": "nohttps",
     "x-forwarded-protocol": "nohttps",
     "x-forward-proto": "nohttps",
-    "x-forwarded-proto": "13377",
+    "x-forwarded-proto": "31337",
     "X-Forwarded-Proto-orig": "nohttps",
     "X-Forwarded-Proto-Version": "nohttps",
     "X-Forwarded-SSL": "on",
@@ -142,4 +142,5 @@ headersToFuzz = {
     "Zcache_control": CANARY,
     "Z-Forwarded-For": CANARY,
     "x-nextjs-cache": CANARY,
+    "X-Echo-Set-Header": CANARY,
 }

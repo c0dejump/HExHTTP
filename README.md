@@ -3,7 +3,7 @@ Header Exploitation HTTP
 
 *HTTP header behavior analysis tool*
 
-### V 1.1
+### V 1.2
 
 
 ## Usage
@@ -40,15 +40,16 @@ Header Exploitation HTTP
 - Methods response analysis
 - HTTP version analysis [Experimental]
 - CPDoS technique
-- CND Analysis
 - Web cache poisoning
 - Range poisoning/error (416 response error) [Experimental]
 - Cookie Reflection
-- Technologies analysis (Ngninx - Envoy - Apache) [IP]
+- CND/proxies Analysis (Ngninx/Envoy/Apache/Akamai/Nginx) [IP]
 
 ## TODO
 
 - Try with mobile user-agent 
+- https://youst.in/posts/cache-key-normalization-denial-of-service/ [IP]
+- Not FP on WAF blocking
 
 
 ### Based on :

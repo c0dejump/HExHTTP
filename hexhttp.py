@@ -36,7 +36,7 @@ def get_technos(req_main, url, s):
     "apache": ["Apache", "apache"],
     "nginx": ["nginx"],
     "envoy": ["envoy"],
-    "akamai": ["Akamai", "akamai"]
+    "akamai": ["Akamai", "X-Akamai","X-Akamai-Transformed", "AkamaiGHost"]
     }
     for t in technos:
         for v in technos[t]:
@@ -50,6 +50,7 @@ def bf_hidden_header(url):
     """
     Check if hidden header used by website
     (https://webtechsurvey.com/common-response-headers)
+    #TODO
     """
     print("")
 
@@ -61,6 +62,7 @@ def fuzz_x_header(url):
         X-Original-{FUZZ}
         X-{COMPANY_NAME}-{FUZZ}
     (https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
+    #TODO
     """
     print("\033[36m ├ X-FUZZ analyse\033[0m")
     f_header = {"Forwarded":"for=example.com;host=example.com;proto=https, for=example.com"}
@@ -73,6 +75,7 @@ def fuzz_x_header(url):
 
 
 def check_cache_header(url, req_main):
+    print("\033[36m ├ Header cache\033[0m")
     result = []
     for headi in base_header:
         if "cache" in headi or "Cache" in headi:
@@ -80,16 +83,15 @@ def check_cache_header(url, req_main):
     for vary in base_header:
         if "Vary" in vary:
             result.append("{}:{}".format(vary.split(":")[0], vary.split(":")[1]))
-    """for age in base_header:
-        if "age" in age or "Age" in age:
-            result.append("{}:{}".format(age.split(":")[0], age.split(":")[1]))"""
-    return(result)
+    for age in base_header:
+        if age == "age" or age == "Age":
+            result.append("{}:{}".format(age.split(":")[0], age.split(":")[1]))
+    for get_custom_header in base_header:
+        if "Access" in get_custom_header:
+            result.append("{}:{}".format(get_custom_header.split(":")[0], get_custom_header.split(":")[1]))
+    for r in result:
+        print(' └──  {cho:<30}'.format(cho=r))
 
-
-def maj_check_cache_header(check_header):
-    print("\033[36m ├ Header cache\033[0m")
-    for ch in check_header:
-        print(' └──  {cho:<30}'.format(cho=ch))
 
 
 def main(url, s):
@@ -115,16 +117,16 @@ def main(url, s):
 
     #print(base_header)
 
-    get_server_error(url, base_header, full, authent)
-    check_vhost(domain, url)
-    check_localhost(url, s, domain, authent)
-    check_methods(url, custom_header, authent)
-    check_http_version(url)
+    #get_server_error(url, base_header, full, authent)
+    #check_vhost(domain, url)
+    #check_localhost(url, s, domain, authent)
+    #check_methods(url, custom_header, authent)
+    #check_http_version(url)
     check_CPDoS(url, s, req_main, domain, custom_header, authent)
     check_cache_poisoning(url, custom_header, behavior, authent)
     check_cache_files(url, custom_header, authent)
-    check_cookie_reflection(url, custom_header, authent)
-    range_error_check(url)
+    #check_cookie_reflection(url, custom_header, authent)
+    #range_error_check(url)
 
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
@@ -133,10 +135,8 @@ def main(url, s):
     if techno:
         techno_result = getattr(a_tech, techno)(url, s)
 
-    check_header = check_cache_header(url, req_main)
-
     fuzz_x_header(url)
-    maj_check_cache_header(check_header)
+    check_cache_header(url, req_main)
 
 
 if __name__ == '__main__':

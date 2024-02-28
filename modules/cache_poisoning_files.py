@@ -47,8 +47,9 @@ def get_hit(url, matching_forward, custom_header, authent):
                         #print(header_age) #Debug
                         #print(res.headers[cs]) #Debug
                         res = requests.get(url, params=params, headers=headers, verify=False, allow_redirects=False, auth=authent,timeout=10)
-                        res_header = res.headers[cs].lower()
                         header_age += 1
+                else:
+                    pass
     if word_in_text:
         print("\033[33m └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{}?cp=1337\033[0m | PAYLOAD: X-Forwarded-Host".format(url))
     #print(res_header) #Debug
@@ -92,5 +93,5 @@ def check_cache_files(uri, custom_header, authent):
         except requests.exceptions.Timeout:
             print(" └── Timeout Error with {}".format(endpoints))
         except:
-            #traceback.print_exc()
+            traceback.print_exc()
             print(" ! Error with {}".format(url))

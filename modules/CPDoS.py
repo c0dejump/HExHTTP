@@ -4,6 +4,7 @@
 import requests
 import traceback
 import random
+from urllib.parse import urlparse
 
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
@@ -37,7 +38,7 @@ def HHO(url, s, main_status_code, authent):
             traceback.print_exc()
             pass
     if cpdos_win:
-        print("   └── \033[31m{} CPDos HHO seem work !\033[0m".format(url))
+        print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HHO DOS | \033[34m{}\033[0m | PAYLOAD: {}".format(url, h))
 
 
 def HMC(url, s, main_status_code, authent):
@@ -48,7 +49,7 @@ def HMC(url, s, main_status_code, authent):
         if req_hmc.status_code in [400, 413, 500] and req_hmc.status_code != main_status_code:
             req_verify_hmc = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmc.status_code == req_hmc.status_code:
-                print("   └── \033[31m CPDos HMC on {} seem work with {} payload header ! \033[0m".format(url, headers))
+                print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HMC DOS | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
 
 
 def HMO(url, s, main_status_code, authent):
@@ -59,7 +60,7 @@ def HMO(url, s, main_status_code, authent):
         if req_hmo.status_code in [404, 405] and req_hmo.status_code != main_status_code:
             req_verify_hmo = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmo.status_code == req_hmo.status_code:
-                print("   └── \033[31m CPDos HMO on {} seem work with {} payload header ! \033[0m".format(url, headers))
+                print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HMO DOS | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
 
 
 def RefDos(url, s, main_status_code, authent):
@@ -73,7 +74,39 @@ def RefDos(url, s, main_status_code, authent):
         for rf in req_ref.headers:
             if "cache" in rf.lower():
                 if "hit" in req_ref.headers[rf].lower():
-                    print("   └── \033[31m Request to be cached, DOS seem possible !\033[0m".format(url, headers))
+                    print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | RefDos | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
+
+def HHCN(url, s, req_len, authent):
+    #Host Header case normalization
+
+    behavior = False
+
+    domain = urlparse(url).netloc
+
+    index = random.randint(0, len(domain) - 3)
+    letter = domain[index]
+    if letter != "." or letter != "-":
+        letter = domain[index].upper()
+    else:
+        letter = letter - 1
+        letter = domain[index].upper()
+    domain = domain[:index] + letter + domain[index + 1:]
+
+    headers = {"Host": domain}
+    req_hhcn = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
+    if len(req_hhcn.content) != req_len:
+        for rf in req_hhcn.headers:
+            if "cache" in rf.lower() or "age" in rf.lower():
+                behavior = True
+                for x in range(0, 10):
+                    req_hhcn = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
+        req_verify = s.get(url, verify=False, timeout=10, auth=authent)
+        if len(req_hhcn.content) == len(req_verify.content):
+            print(" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{}\033[0m | {}b <> {}b | PAYLOAD: {}".format(url, req_len, len(req_verify.content), headers))
+        else:
+            if behavior:
+                print(" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
+
 
 
 
@@ -85,17 +118,20 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
         url = req_main.headers['location'] if "http" in req_main.headers['location'] else "{}{}".format(url, req_main.headers['location'])
     print("\033[36m ├ CPDoS analyse\033[0m")
 
-    url = "{}?CPDoS{}={}".format(url, random.randint(1, 100), random.randint(1, 100))
+    url = "{}?CPDoS={}".format(url, random.randint(1, 100), random.randint(1, 100))
 
     try:
         req_main = requests.get(url, verify=False, allow_redirects=False, timeout=20, auth=authent)
     except:
         pass
+
+    req_len = len(req_main.content)
     main_status_code = req_main.status_code
     
     #print("\033[36m --├ {} [{}] \033[0m".format(url, main_status_code))
     headers = [{"Host": "{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}, {"X-Forwarded-Host": "XXX"}, {"X-Forwarded-Host": "{}:1234".format(domain)}]
     for h in headers:
+        url = "{}{}".format(url, random.randint(1, 10))
         hit_verify = False
         try:
             req_cpdos = s.get(url, headers=h, verify=False, allow_redirects=False, timeout=20, auth=authent)
@@ -152,3 +188,4 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
     HMC(url, s, main_status_code, authent)
     HMO(url, s, main_status_code, authent)
     RefDos(url, s, main_status_code, authent)
+    HHCN(url, s, req_len, authent)
