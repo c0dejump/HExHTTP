@@ -93,5 +93,5 @@ def check_cache_files(uri, custom_header, authent):
         except requests.exceptions.Timeout:
             print(" └── Timeout Error with {}".format(endpoints))
         except:
-            traceback.print_exc()
+            #traceback.print_exc()
             print(" ! Error with {}".format(url))

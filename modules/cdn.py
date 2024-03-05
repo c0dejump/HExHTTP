@@ -8,8 +8,6 @@ class analyze_cdn:
     """
     Cloudflare:
         X-Forwarded-Proto: http => 301/302/303 + CF-Cache-Status: HIT
-    Akamai:
-        ": 1 => 400 + Server-Timing: cdn-cache; desc=HIT
     #TODO
     """
 

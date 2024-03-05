@@ -143,4 +143,5 @@ headersToFuzz = {
     "Z-Forwarded-For": CANARY,
     "x-nextjs-cache": CANARY,
     "X-Echo-Set-Header": CANARY,
+    "Cache-Tag": CANARY
 }

@@ -4,6 +4,7 @@ from modules.proxies.apache import apache
 from modules.proxies.nginx import nginx
 from modules.proxies.envoy import envoy
 from modules.proxies.akamai import akamai
+from modules.proxies.fastly import fastly
 
 class technology:
     """
@@ -38,3 +39,9 @@ class technology:
     def akamai(self, url, s):
         print("\033[36m --├ Akamai analyse\033[0m")
         akamai(url, s)
+
+    def fastly(self, url, s):
+        print("\033[36m --├ Fastly analyse\033[0m")
+        fastly(url, s)
+
+

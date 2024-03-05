@@ -35,7 +35,7 @@ def HHO(url, s, main_status_code, authent):
         except KeyboardInterrupt:
             pass
         except:
-            traceback.print_exc()
+            #traceback.print_exc()
             pass
     if cpdos_win:
         print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HHO DOS | \033[34m{}\033[0m | PAYLOAD: {}".format(url, h))
@@ -80,7 +80,7 @@ def HHCN(url, s, authent):
     domain = domain[:index] + letter + domain[index + 1:]
 
     headers = {"Host": domain}
-    
+
     req_main = s.get(url, verify=False, timeout=10, auth=authent, allow_redirects=False)
     req_len = len(req_main.content)
 
@@ -98,8 +98,40 @@ def HHCN(url, s, authent):
             print(" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{}\033[0m | {}b <> {}b | PAYLOAD: {}".format(url, req_len, len(req_verify.content), headers))
         else:
             if behavior:
-                print(" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
+                print(" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{}\033[0m | {}b <> {}b | PAYLOAD: {}".format(url, req_len, len(req_verify.content), headers))
 
+
+
+def waf_rules(url, s, main_status_code, authent):
+    # Checking if the waf block doesn't in cache, ex: user-agent: sqlmap > blocked by waf > cached it
+    bad_ua = ["360Spider", "acapbot", "acoonbot", "ahrefs", "alexibot", "asterias", "attackbot", "backdorbot", "becomebot", "binlar", "blackwidow", "blekkobot", "blexbot", "blowfish", "bullseye", "bunnys", "butterfly", "careerbot", "casper", "checkpriv", "cheesebot", "cherrypick", "chinaclaw", "choppy", "clshttp", "cmsworld", "copernic", "copyrightcheck", "cosmos", "crescent", "cy_cho", "datacha", "demon", "diavol", "discobot", "dittospyder", "dotbot", "dotnetdotcom", "dumbot", "emailcollector", "emailsiphon", "emailwolf", "exabot", "extract", "eyenetie", "feedfinder", "flaming", "flashget", "flicky", "foobot", "g00g1e", "getright", "gigabot", "gozilla", "grabnet", "grafula", "harvest", "heritrix", "httrack", "icarus6j", "jetbot", "jetcar", "jikespider", "kmccrew", "leechftp", "libweb", "linkextractor", "linkscan", "linkwalker", "loader", "masscan", "miner", "majestic", "mechanize", "mj12bot", "morfeus", "moveoverbot", "netmechanic", "netspider", "nicerspro", "nikto", "ninja", "nutch", "octopus", "pagegrabber", "planetwork", "postrank", "proximic", "purebot", "pycurl", "python", "queryn", "queryseeker", "radian6", "radiation", "realdownload", "rogerbot", "scooter", "seekerspider", "semalt", "siclab", "sindice", "sistrix", "sitebot", "siteexplorer", "sitesnagger", "skygrid", "smartdownload", "snoopy", "sosospider", "spankbot", "spbot", "sqlmap", "stackrambler", "stripper", "sucker", "surftbot", "sux0r", "suzukacz", "suzuran", "takeout", "teleport", "telesoft", "true_robots", "turingos", "turnit", "vampire", "vikspider", "voideye", "webleacher", "webreaper", "webstripper", "webvac", "webviewer", "webwhacker", "winhttp", "wwwoffle", "woxbot", "xaldon", "xxxyy", "yamanalab", "yioopbot", "youda", "zeus", "zmeu", "zune", "zyborg"]
+    block_res = False
+    cache_block_res = False
+
+    list_block_ua = []
+    list_cache_block_ua = []
+
+    if main_status_code != 403:
+        for bua in bad_ua:
+            headers = {
+            "user-agent": bua
+            }
+            req_ua = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
+            if req_ua.status_code == 403:
+                list_block_ua.append(bua)
+                for rf in req_ua.headers:
+                    if "cache" in rf.lower():
+                        list_cache_block_ua.append(bua)
+        if list_block_ua:
+            if len(list_block_ua) > 1:
+                print("{} 403 with {}".format(url, len(list_block_ua)))
+            else:
+                print("{} 403 with {}".format(url, list_block_ua))
+        if list_cache_block_ua:
+            if len(list_cache_block_ua) > 1:
+                print("{} cached the 403 response with {} {}".format(url, len(list_cache_block_ua), list_cache_block_ua[1]))
+            else:
+                print("{} cached the 403 response with {}".format(url, list_cache_block_ua))
 
 
 def RefDos(url, s, main_status_code, authent):
@@ -192,8 +224,12 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
             pass         
         except:
             pass
-    HHO(url, s, main_status_code, authent)
-    HMC(url, s, main_status_code, authent)
-    HMO(url, s, main_status_code, authent)
-    HHCN(url, s, authent)
-    RefDos(url, s, main_status_code, authent)
+    try:
+        HHO(url, s, main_status_code, authent)
+        HMC(url, s, main_status_code, authent)
+        HMO(url, s, main_status_code, authent)
+        HHCN(url, s, authent)
+        RefDos(url, s, main_status_code, authent)
+        #waf_rules(url, s, main_status_code, authent)
+    except:
+        pass

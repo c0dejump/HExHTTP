@@ -26,7 +26,7 @@ from tools.autopoisoner.autopoisoner import check_cache_poisoning
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-def get_technos(req_main, url, s):
+def get_technos(a_tech, req_main, url, s):
     """
     Check what is the reverse proxy/waf/cached server... and test based on the result
     #TODO
@@ -36,14 +36,20 @@ def get_technos(req_main, url, s):
     "apache": ["Apache", "apache"],
     "nginx": ["nginx"],
     "envoy": ["envoy"],
-    "akamai": ["Akamai", "X-Akamai","X-Akamai-Transformed", "AkamaiGHost"]
+    "akamai": ["Akamai", "X-Akamai","X-Akamai-Transformed", "AkamaiGHost"],
+    "imperva": ["imperva", "Imperva"],
+    "fastly": ["fastly", "Fastly"]
     }
+
     for t in technos:
+        tech_hit = False
         for v in technos[t]:
             for rt in req_main.headers:
                 if v in req_main.text or v in req_main.headers[rt] or v in rt:
-                    return t;
-
+                    tech_hit = t
+        if tech_hit:
+            techno_result = getattr(a_tech, tech_hit)(url, s)
+            tech_it = False
 
 
 def bf_hidden_header(url):
@@ -76,6 +82,8 @@ def fuzz_x_header(url):
 
 def check_cache_header(url, req_main):
     print("\033[36m ├ Header cache\033[0m")
+    #basic_header = ["Content-Type", "Content-Length", "Date", "Content-Security-Policy", "Alt-Svc", "Etag", "Referrer-Policy", "X-Dns-Prefetch-Control", "X-Permitted-Cross-Domain-Policies"]
+
     result = []
     for headi in base_header:
         if "cache" in headi or "Cache" in headi:
@@ -89,6 +97,9 @@ def check_cache_header(url, req_main):
     for get_custom_header in base_header:
         if "Access" in get_custom_header:
             result.append("{}:{}".format(get_custom_header.split(":")[0], get_custom_header.split(":")[1]))
+    for get_custom_host in base_header:
+        if "host" in get_custom_header:
+            result.append("{}:{}".format(get_custom_host.split(":")[0], get_custom_host.split(":")[1]))
     for r in result:
         print(' └──  {cho:<30}'.format(cho=r))
 
@@ -131,9 +142,7 @@ def main(url, s):
     cdn = a_cdn.get_cdn(req_main, url, s)
     if cdn:
         cdn_result = getattr(a_cdn, cdn)(url, s)
-    techno = get_technos(req_main, url, s)
-    if techno:
-        techno_result = getattr(a_tech, techno)(url, s)
+    techno = get_technos(a_tech, req_main, url, s)
 
     fuzz_x_header(url)
     check_cache_header(url, req_main)

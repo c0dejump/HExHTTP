@@ -26,9 +26,9 @@ def envoy(url, s):
     ]
     for ehl in envoy_header_list:
         x_req = s.get(url, headers=ehl, verify=False, timeout=10)
-        print(f" └── {ehl}{'→':^3} {x_req.status_code:>3} [{len(x_req.content)} bytes]")
+        print(f"   └── {ehl}{'→':^3} {x_req.status_code:>3} [{len(x_req.content)} bytes]")
         if "plop123" in x_req.text or "plop123" in x_req.headers:
-            print("\033[33m └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{}\033[0m | PAYLOAD: {}".format(url, ehl))
+            print("\033[33m   └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{}\033[0m | PAYLOAD: {}".format(url, ehl))
 
 if __name__ == '__main__':
 
