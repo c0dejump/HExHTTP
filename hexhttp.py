@@ -28,29 +28,29 @@ requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.
 
 def get_technos(a_tech, req_main, url, s):
     """
-    Check what is the reverse proxy/waf/cached server... and test based on the result
+    Check what is the reverse proxy/WAF/cached server... and test based on the result.
     #TODO
     """
     print("\033[36m ├ Techno analyse\033[0m")
     technos = {
-    "apache": ["Apache", "apache"],
-    "nginx": ["nginx"],
-    "envoy": ["envoy"],
-    "akamai": ["Akamai", "X-Akamai","X-Akamai-Transformed", "AkamaiGHost"],
-    "imperva": ["imperva", "Imperva"],
-    "fastly": ["fastly", "Fastly"]
+        "apache": ["apache"],
+        "nginx": ["nginx"],
+        "envoy": ["envoy"],
+        "akamai": ["akamai", "x-akamai", "x-akamai-transformed", "akamaighost"],
+        "imperva": ["imperva"],
+        "fastly": ["fastly"]
     }
 
     for t in technos:
         tech_hit = False
         for v in technos[t]:
             for rt in req_main.headers:
-                if v in req_main.text or v in req_main.headers[rt] or v in rt:
+                # case-insensitive comparison
+                if v.lower() in req_main.text.lower() or v.lower() in req_main.headers[rt].lower() or v.lower() in rt.lower():
                     tech_hit = t
         if tech_hit:
             techno_result = getattr(a_tech, tech_hit)(url, s)
-            tech_it = False
-
+            tech_hit = False 
 
 def bf_hidden_header(url):
     """
