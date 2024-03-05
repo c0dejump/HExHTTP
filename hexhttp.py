@@ -149,15 +149,14 @@ def main(url, s):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="HExHTTP is a tool designed to perform tests on HTTP headers.")
 
-    parser.add_argument("-u", help="URL to test \033[31m[required]\033[0m", dest='url')
-    parser.add_argument("-f", help="URL file to test", dest='url_file', required=False)
-    parser.add_argument("-H", help="Header HTTP custom", dest='custom_header', required=False)
-    parser.add_argument("--full", help="To display full header", dest='full', required=False, action='store_true')
-    parser.add_argument("--auth", help="HTTP authentification. \033[33mEx: --auth admin:admin\033[0m", required=False, dest="auth")
-    parser.add_argument("--behavior", "-b", required=False, action='store_true', dest='behavior', help="activate a lighter version of verbose, highlighting interesting cache behavior") 
-
+    parser.add_argument("-u", "--url", dest='url', help="URL to test \033[31m[required]\033[0m")
+    parser.add_argument("-f", "--file", dest='url_file', help="File of URLs", required=False)
+    parser.add_argument("-H", "--header", dest='custom_header', help="Add a custom HTTP Header", required=False)
+    parser.add_argument("-F", "--full", dest='full', help="Display the full HTTP Header", required=False, action='store_true')
+    parser.add_argument("-a", "--auth", dest="auth", help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m", required=False)
+    parser.add_argument("-b", "--behavior", dest='behavior', help="Activates a simplified version of verbose, highlighting interesting cache behaviors", required=False, action='store_true') 
 
     results = parser.parse_args()
                                      
@@ -176,55 +175,51 @@ if __name__ == '__main__':
 
     global authent
 
-    if auth:
-        r = requests.get(url, allow_redirects=False, verify=False, auth=(auth.split(":")[0], auth.split(":")[1]))
-        if r.status_code in [200, 302, 301]:
-            print("\n+ Authentification successfull\n")
-            authent = (auth.split(":")[0], auth.split(":")[1])
-        else:
-            print("\n- Authentification error")
-            continue_error = input("The authentification seems bad, continue ? [y/N]")
-            if continue_error not in ["y", "Y"]:
-                sys.exit()
-    else:
-        authent = False
-
-    s = requests.Session()
-    s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
-    s.max_redirects = 60
-
-    if len(sys.argv) < 2:
-        print("! URL target is missing, try using -u <url> \n")
-        parser.print_help()
-        sys.exit()
-
-    if url_file:
-        with open(url_file, "r") as urls:
-            urls = urls.read().splitlines()
-            for url in urls:
-                domain =  urlparse(url).netloc
-                try:
-                    main(url, s)
-                except KeyboardInterrupt:
-                    pass
-                except FileNotFoundError:
-                    print("Input file not found")
+    try: 
+        if auth:
+            r = requests.get(url, allow_redirects=False, verify=False, auth=(auth.split(":")[0], auth.split(":")[1]))
+            if r.status_code in [200, 302, 301]:
+                print("\n+ Authentification successfull\n")
+                authent = (auth.split(":")[0], auth.split(":")[1])
+            else:
+                print("\n- Authentification error")
+                continue_error = input("The authentification seems bad, continue ? [y/N]")
+                if continue_error not in ["y", "Y"]:
+                    print("Exiting")
                     sys.exit()
-                except:
-                    pass
-                print("")
-    else:
-        try:
+        else:
+            authent = False
+
+        s = requests.Session()
+        s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
+        s.max_redirects = 60
+
+        if url_file:
+            with open(url_file, "r") as urls:
+                urls = urls.read().splitlines()
+                for url in urls:
+                    domain =  urlparse(url).netloc
+                    try:
+                        main(url, s)
+                    except KeyboardInterrupt:
+                        pass
+                    except FileNotFoundError:
+                        print("Input file not found")
+                        sys.exit()
+                    except Exception as e:
+                        print(f"Error : {e}")
+                    print("")
+        else:
             domain =  urlparse(url).netloc
             main(url, s)
         # basic errors
-        except KeyboardInterrupt:
-            sys.exit()
-        # requests errors
-        except requests.ConnectionError:
-            print("Error, cannot connect to target")
-        except requests.Timeout:
-            print("Error, request timeout (10s)")
-        except requests.exceptions.MissingSchema: 
-            print("Error, missing http:// or https:// schema")
-        print("")
+    except KeyboardInterrupt:
+        sys.exit()
+    # requests errors
+    except requests.ConnectionError:
+        print("Error, cannot connect to target")
+    except requests.Timeout:
+        print("Error, request timeout (10s)")
+    except requests.exceptions.MissingSchema: 
+        print("Error, missing http:// or https:// schema")
+    print("")

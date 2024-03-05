@@ -1,17 +1,9 @@
-FROM python:3.11.6-alpine
+FROM python:3.11-alpine
 
-WORKDIR /root/
-ADD . /root/
-
-RUN apk add \
-    gcc \
-    musl-dev \
-    libffi-dev \
-    openssl-dev \
-    libffi-dev
+WORKDIR /hexhttp/
+ADD . /hexhttp/
 
 RUN pip install -r requirements.txt
 RUN chmod +x hexhttp.py
 
-ENTRYPOINT ["./hexhttp.py"]
-CMD ["--help"]
+ENTRYPOINT ["/hexhttp/hexhttp.py"]
