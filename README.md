@@ -53,6 +53,9 @@ options:
 
 # Use a custom Header and authentication
 » ./hexhttp.py --header 'User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/123.0-BugBounty' --auth 'user:passwd' -u 'https://target.tld/' 
+
+# Loop on domains, grep for vulnerabilities only and send result with notify (from projectdiscovery)
+» for domain in $(cat domains.lst); do ./hexhttp.py -u "$domain" | grep -Eio "(INTERESTING|CONFIRMED)(.*)PAYLOAD.?:(.*){5,20}$" | notify -silent; done
 ```
 
 ## Examples
