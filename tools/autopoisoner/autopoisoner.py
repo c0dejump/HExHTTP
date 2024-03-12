@@ -313,7 +313,8 @@ if __name__ == '__main__':
     if args.output:
         outputFile = open(args.output, "w")
     else:
-        outputFile = open("output.txt", "w")
+        pass
+        # outputFile = open("output.txt", "w")
 
     if args.file :
         try:

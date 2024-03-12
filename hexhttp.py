@@ -25,6 +25,19 @@ from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
+# Arguments
+def args():
+    parser = argparse.ArgumentParser(description="HExHTTP is a tool designed to perform tests on HTTP headers.")
+
+    parser.add_argument("-u", "--url", dest='url', help="URL to test \033[31m[required]\033[0m")
+    parser.add_argument("-f", "--file", dest='url_file', help="File of URLs", required=False)
+    parser.add_argument("-H", "--header", dest='custom_header', help="Add a custom HTTP Header", required=False)
+    parser.add_argument("-A", "--user-agent", dest='user_agent', help="Add a custom User Agent", required=False)
+    parser.add_argument("-F", "--full", dest='full', help="Display the full HTTP Header", required=False, action='store_true')
+    parser.add_argument("-a", "--auth", dest="auth", help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m", required=False)
+    parser.add_argument("-b", "--behavior", dest='behavior', help="Activates a simplified version of verbose, highlighting interesting cache behaviors", required=False, action='store_true') 
+
+    return parser.parse_args()
 
 def get_technos(a_tech, req_main, url, s):
     """
@@ -60,7 +73,6 @@ def bf_hidden_header(url):
     """
     print("")
 
-
 def fuzz_x_header(url):
     """
     When fuzzing for custom X-Headers on a target, a setup example as below can be combined with a dictionary/bruteforce attack. This makes it possible to extract hidden headers that the target uses. 
@@ -78,7 +90,6 @@ def fuzz_x_header(url):
             print(" └──  Header {} return 500 error".format(f_header))
     except:
         pass
-
 
 def check_cache_header(url, req_main):
     print("\033[36m ├ Header cache\033[0m")
@@ -102,8 +113,6 @@ def check_cache_header(url, req_main):
             result.append("{}:{}".format(get_custom_host.split(":")[0], get_custom_host.split(":")[1]))
     for r in result:
         print(' └──  {cho:<30}'.format(cho=r))
-
-
 
 def main(url, s):
     global base_header
@@ -149,49 +158,52 @@ def main(url, s):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="HExHTTP is a tool designed to perform tests on HTTP headers.")
 
-    parser.add_argument("-u", "--url", dest='url', help="URL to test \033[31m[required]\033[0m")
-    parser.add_argument("-f", "--file", dest='url_file', help="File of URLs", required=False)
-    parser.add_argument("-H", "--header", dest='custom_header', help="Add a custom HTTP Header", required=False)
-    parser.add_argument("-F", "--full", dest='full', help="Display the full HTTP Header", required=False, action='store_true')
-    parser.add_argument("-a", "--auth", dest="auth", help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m", required=False)
-    parser.add_argument("-b", "--behavior", dest='behavior', help="Activates a simplified version of verbose, highlighting interesting cache behaviors", required=False, action='store_true') 
-
-    results = parser.parse_args()
-                                     
+    # Parse arguments                                 
+    results = args()
     url = results.url
     url_file = results.url_file
     full = results.full
     custom_header = results.custom_header
     behavior = results.behavior
     auth = results.auth
+    user_agent = results.user_agent
 
     if custom_header:
-        custom_header = {
-        custom_header.split(":")[0]:custom_header.split(":")[1]
-        }
-
+        try:
+            custom_header = {
+                custom_header.split(":")[0]:custom_header.split(":")[1]
+            }
+        except Exception as e:
+            print("Error, HTTP Header format need to be \"foo:bar\"")
+            sys.exit()
 
     global authent
 
     try: 
         if auth:
-            r = requests.get(url, allow_redirects=False, verify=False, auth=(auth.split(":")[0], auth.split(":")[1]))
-            if r.status_code in [200, 302, 301]:
-                print("\n+ Authentification successfull\n")
+            try:
                 authent = (auth.split(":")[0], auth.split(":")[1])
-            else:
-                print("\n- Authentification error")
-                continue_error = input("The authentification seems bad, continue ? [y/N]")
-                if continue_error not in ["y", "Y"]:
-                    print("Exiting")
-                    sys.exit()
+                r = requests.get(url, allow_redirects=False, verify=False, auth=authent)
+                if r.status_code in [200, 302, 301]:
+                    print("\n+ Authentication successfull\n")
+                else:
+                    print("\nAuthentication error")
+                    continue_error = input("The authentication seems bad, continue ? [y/N]")
+                    if continue_error not in ["y", "Y"]:
+                        print("Exiting")
+                        sys.exit()
+            except Exception as e:
+                print("Error, the authentication format need to be \"user:pass\"")
+                sys.exit()
         else:
             authent = False
 
         s = requests.Session()
-        s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
+        if user_agent:
+            s.headers.update({'User-agent': user_agent})
+        else: 
+            s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
         s.max_redirects = 60
 
         if url_file:
@@ -202,7 +214,8 @@ if __name__ == '__main__':
                     try:
                         main(url, s)
                     except KeyboardInterrupt:
-                        pass
+                        print("Exiting")
+                        sys.exit()
                     except FileNotFoundError:
                         print("Input file not found")
                         sys.exit()

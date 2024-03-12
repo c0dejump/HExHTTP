@@ -26,7 +26,7 @@ docker run --rm -it --net=host -v "$PWD:/hexhttp/" hexhttp:latest -u 'https://ta
 ## Usage
 
 ```bash
-usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-F] [-a AUTH] [-b]
+usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-F] [-a AUTH] [-b]
 
 HExHTTP is a tool designed to perform tests on HTTP headers.
 
@@ -37,6 +37,8 @@ options:
                         File of URLs
   -H CUSTOM_HEADER, --header CUSTOM_HEADER
                         Add a custom HTTP Header
+  -A USER_AGENT, --user-agent USER_AGENT
+                        Add a custom User Agent
   -F, --full            Display the full HTTP Header
   -a AUTH, --auth AUTH  Add an HTTP authentication. Ex: --auth admin:admin
   -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
@@ -51,8 +53,11 @@ options:
 # Scan a list of domains with behavior feature
 » ./hexhttp.py -b -f domains.lst
 
+# Add custom User-Agent
+» ./hexhttp.py -u 'https://target.tld/' --user-agent "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/123.0-BugBounty"
+
 # Use a custom Header and authentication
-» ./hexhttp.py --header 'User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/123.0-BugBounty' --auth 'user:passwd' -u 'https://target.tld/' 
+» ./hexhttp.py --header 'Foo: bar' --auth 'user:passwd' -u 'https://target.tld/' 
 
 # Loop on domains, grep for vulnerabilities only and send result with notify (from projectdiscovery)
 » for domain in $(cat domains.lst); do ./hexhttp.py -u "$domain" | grep -Eio "(INTERESTING|CONFIRMED)(.*)PAYLOAD.?:(.*){5,20}$" | notify -silent; done
