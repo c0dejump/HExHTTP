@@ -15,7 +15,7 @@ from tools.autopoisoner.print_utils import *
 LOCK = threading.Lock()
 TIMEOUT_DELAY = 10
 
-outputFile = open("output.txt", "w")
+# outputFile = open("output.txt", "w")
 
 CANARY = "ndvyepenbvtidpvyzh.com"
 CANARY_2 = "31337"
@@ -310,10 +310,10 @@ if __name__ == '__main__':
     if not (args.file or args.url):
         parser.error('No input selected: Please add --file or --url.')
 
-    if args.output:
-        outputFile = open(args.output, "w")
-    else:
-        pass
+    # if args.output:
+    #     outputFile = open(args.output, "w")
+    # else:
+    #     pass
         # outputFile = open("output.txt", "w")
 
     if args.file :

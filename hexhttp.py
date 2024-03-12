@@ -115,47 +115,51 @@ def check_cache_header(url, req_main):
         print(' └──  {cho:<30}'.format(cho=r))
 
 def main(url, s):
-    global base_header
-    base_header = []
+    try:
+        global base_header
+        base_header = []
 
-    a_cdn = analyze_cdn()
-    a_tech = technology()
+        a_cdn = analyze_cdn()
+        a_tech = technology()
 
-    req_main = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
-    
-    print("\033[34m⟙\033[0m")
-    print(" URL: {}".format(url))
-    print(" URL response: {}".format(req_main.status_code))
-    print(" URL response size: {} bytes".format(len(req_main.content)))
-    print("\033[34m⟘\033[0m")
-    if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
-        choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
-        if choice not in ["y", "Y"]:
-            sys.exit()
-    for k in req_main.headers:
-        base_header.append("{}: {}".format(k, req_main.headers[k]))
+        req_main = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
+        
+        print("\033[34m⟙\033[0m")
+        print(" URL: {}".format(url))
+        print(" URL response: {}".format(req_main.status_code))
+        print(" URL response size: {} bytes".format(len(req_main.content)))
+        print("\033[34m⟘\033[0m")
+        if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
+            choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
+            if choice not in ["y", "Y"]:
+                sys.exit()
+        for k in req_main.headers:
+            base_header.append("{}: {}".format(k, req_main.headers[k]))
 
-    #print(base_header)
+        #print(base_header)
 
-    get_server_error(url, base_header, full, authent)
-    check_vhost(domain, url)
-    check_localhost(url, s, domain, authent)
-    check_methods(url, custom_header, authent)
-    check_http_version(url)
-    check_CPDoS(url, s, req_main, domain, custom_header, authent)
-    check_cache_poisoning(url, custom_header, behavior, authent)
-    check_cache_files(url, custom_header, authent)
-    check_cookie_reflection(url, custom_header, authent)
-    range_error_check(url)
+        get_server_error(url, base_header, full, authent)
+        check_vhost(domain, url)
+        check_localhost(url, s, domain, authent)
+        check_methods(url, custom_header, authent)
+        check_http_version(url)
+        check_CPDoS(url, s, req_main, domain, custom_header, authent)
+        check_cache_poisoning(url, custom_header, behavior, authent)
+        check_cache_files(url, custom_header, authent)
+        check_cookie_reflection(url, custom_header, authent)
+        range_error_check(url)
 
-    cdn = a_cdn.get_cdn(req_main, url, s)
-    if cdn:
-        cdn_result = getattr(a_cdn, cdn)(url, s)
-    techno = get_technos(a_tech, req_main, url, s)
+        cdn = a_cdn.get_cdn(req_main, url, s)
+        if cdn:
+            cdn_result = getattr(a_cdn, cdn)(url, s)
+        techno = get_technos(a_tech, req_main, url, s)
 
-    fuzz_x_header(url)
-    check_cache_header(url, req_main)
-
+        fuzz_x_header(url)
+        check_cache_header(url, req_main)
+    except KeyboardInterrupt:
+        sys.exit()
+    except Exception as e:
+        print(f"Error : {e}")
 
 if __name__ == '__main__':
 
