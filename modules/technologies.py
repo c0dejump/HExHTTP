@@ -1,10 +1,11 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-from modules.proxies.apache import apache
-from modules.proxies.nginx import nginx
-from modules.proxies.envoy import envoy
-from modules.proxies.akamai import akamai
-from modules.proxies.fastly import fastly
+from modules.technos.apache import apache
+from modules.technos.nginx import nginx
+from modules.technos.envoy import envoy
+from modules.technos.akamai import akamai
+from modules.technos.fastly import fastly
+from modules.technos.cloudflare import cloudflare
 
 class technology:
     """
@@ -43,5 +44,9 @@ class technology:
     def fastly(self, url, s):
         print("\033[36m --├ Fastly analyse\033[0m")
         fastly(url, s)
+
+    def cloudflare(self, url, s):
+        print("\033[36m --├ Cloudflare analyse\033[0m")
+        cloudflare(url, s)
 
 

@@ -95,7 +95,7 @@ def HHCN(url, s, authent):
         req_verify = s.get(url, verify=False, timeout=10, auth=authent)
 
         if len(req_hhcn.content) == len(req_verify.content):
-            print(" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{}\033[0m | {}b <> {}b | PAYLOAD: {}".format(url, req_len, len(req_verify.content), headers))
+            print(" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{}\033[0m | {}b <> {}b | PAYLOAD: {}".format(url, req_len, len(req_hhcn.content), headers))
         else:
             if behavior:
                 print(" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{}\033[0m | {}b <> {}b | PAYLOAD: {}".format(url, req_len, len(req_verify.content), headers))
@@ -231,5 +231,8 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
         HHCN(url, s, authent)
         RefDos(url, s, main_status_code, authent)
         #waf_rules(url, s, main_status_code, authent)
+    except KeyboardInterrupt:
+        print(" ! Canceled by keyboard interrupt (Ctrl-C)")
+        sys.exit() 
     except:
         pass

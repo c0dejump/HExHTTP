@@ -13,7 +13,6 @@ from modules.server_error import get_server_error
 from modules.methods import check_methods
 from modules.CPDoS import check_CPDoS
 from modules.technologies import technology
-from modules.cdn import analyze_cdn
 from modules.cache_poisoning_files import check_cache_files
 from modules.cookie_reflection import check_cookie_reflection
 from modules.http_version import check_http_version
@@ -51,7 +50,8 @@ def get_technos(a_tech, req_main, url, s):
         "envoy": ["envoy"],
         "akamai": ["akamai", "x-akamai", "x-akamai-transformed", "akamaighost"],
         "imperva": ["imperva"],
-        "fastly": ["fastly"]
+        "fastly": ["fastly"],
+        "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"]
     }
 
     for t in technos:
@@ -119,7 +119,6 @@ def main(url, s):
         global base_header
         base_header = []
 
-        a_cdn = analyze_cdn()
         a_tech = technology()
 
         req_main = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
@@ -149,14 +148,12 @@ def main(url, s):
         check_cookie_reflection(url, custom_header, authent)
         range_error_check(url)
 
-        cdn = a_cdn.get_cdn(req_main, url, s)
-        if cdn:
-            cdn_result = getattr(a_cdn, cdn)(url, s)
         techno = get_technos(a_tech, req_main, url, s)
 
         fuzz_x_header(url)
         check_cache_header(url, req_main)
     except KeyboardInterrupt:
+        print(" ! Canceled by keyboard interrupt (Ctrl-C)")
         sys.exit()
     except Exception as e:
         print(f"Error : {e}")

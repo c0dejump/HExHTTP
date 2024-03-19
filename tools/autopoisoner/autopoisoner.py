@@ -15,7 +15,7 @@ from tools.autopoisoner.print_utils import *
 LOCK = threading.Lock()
 TIMEOUT_DELAY = 10
 
-# outputFile = open("output.txt", "w")
+outputFile = open("output.txt", "w")
 
 CANARY = "ndvyepenbvtidpvyzh.com"
 CANARY_2 = "31337"
@@ -277,24 +277,30 @@ def check_cache_poisoning(url, custom_header, behavior_, authent):
     if url:
         try:
             cache_poisoning_check(url, custom_header)
+        except KeyboardInterrupt:
+            print(" ! Canceled by keyboard interrupt (Ctrl-C)")
+            sys.exit()
         except:
             print("\nInvalid URL")
             print("Error on the 270 Lines")
             #traceback.print_exc()
     elif file:
-        if not args.threads or args.threads == 1:
-            sequential_cache_poisoning_check(allURLs)
-        else:
-            workingThreads = []
-            split = splitURLS(args.threads)
-            for subList in split:
-                t = threading.Thread(target=sequential_cache_poisoning_check, args=[subList])
-                workingThreads.append(t)
-            for thread in workingThreads:
-                thread.start()
-            for thread in workingThreads:
-                thread.join()
-    outputFile.close()
+        try:
+            if not args.threads or args.threads == 1:
+                sequential_cache_poisoning_check(allURLs)
+            else:
+                workingThreads = []
+                split = splitURLS(args.threads)
+                for subList in split:
+                    t = threading.Thread(target=sequential_cache_poisoning_check, args=[subList])
+                    workingThreads.append(t)
+                for thread in workingThreads:
+                    thread.start()
+                for thread in workingThreads:
+                    thread.join()
+        except KeyboardInterrupt:
+            print(" ! Canceled by keyboard interrupt (Ctrl-C)")
+            sys.exit()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -50,11 +50,11 @@ def check_other_methods(ml, url, http):
                 cache_status = True
         len_req = len(resp.data.decode('utf-8'))
         if len(ml) > 4:
-            print(f" └── {ml}{'':<3}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
+            print(f" └── {ml}{'':<3}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]")
         elif len(ml) < 4:
-            print(f" └── {ml}{'':<5}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
+            print(f" └── {ml}{'':<5}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]")
         else:
-            print(f" └── {ml}{'':<4}: {rs:<3} [{len_req} bytes]{'':<1}[Cacheable: {cache_status}]")
+            print(f" └── {ml}{'':<4}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]")
         #print(resp.data)
     except requests.packages.urllib3.exceptions.MaxRetryError as e:
         print(f" └── {ml}{'':<4}: Error due to a too many redirects")
@@ -94,7 +94,7 @@ def check_methods(url, custom_header, authent):
             if "cache" in rh.lower():
                 cache_status = True 
                 cache_res = rh
-        print(" └── {type_r:<8}: {rs:<3} [{len_req} bytes] [Cacheable: {cache_status}]".format(type_r=type_r, rs=rs, len_req=len_req, cache_status=cache_status))
+        print(" └── {type_r:<8}: {rs:<3} [{len_req} bytes] [CacheTag: {cache_status}]".format(type_r=type_r, rs=rs, len_req=len_req, cache_status=cache_status))
 
     method_list = ["HELP", "PURGE", "DEBUG", "TRACE", "BAN", "PLOP", "FASTLYPURGE"]
     for ml in method_list:
