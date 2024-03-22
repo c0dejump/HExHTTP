@@ -148,7 +148,7 @@ def port_poisoning_check(url, initialResponse, custom_header):
                 if behavior:
                     behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=custom_head)
 
-        elif abs(len(response.text) - len(initialResponse.text)) > 0.25 * len(initialResponse.text):
+        elif abs(len(response.text) - len(initialResponse.text)) > 0.85 * len(initialResponse.text):
             findingState = 1
             potential_verbose_message("LENGTH", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
@@ -224,7 +224,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
                 if behavior:
                     behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=payload)
 
-        elif abs(len(response.text) - len(initialResponse.text)) > 0.25 * len(initialResponse.text):
+        elif abs(len(response.text) - len(initialResponse.text)) > 0.85 * len(initialResponse.text):
             findingState = 1
             potential_verbose_message("LENGTH", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):

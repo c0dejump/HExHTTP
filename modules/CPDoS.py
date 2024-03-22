@@ -107,5 +107,5 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")
         sys.exit() 
     except:
-        traceback.print_exc()
+        #traceback.print_exc()
         pass

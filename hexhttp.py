@@ -228,6 +228,7 @@ if __name__ == '__main__':
             main(url, s)
         # basic errors
     except KeyboardInterrupt:
+        print("Exiting")
         sys.exit()
     # requests errors
     except requests.ConnectionError:

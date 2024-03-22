@@ -6,6 +6,7 @@ from modules.technos.envoy import envoy
 from modules.technos.akamai import akamai
 from modules.technos.fastly import fastly
 from modules.technos.cloudflare import cloudflare
+from modules.technos.imperva import imperva
 
 class technology:
     """
@@ -48,5 +49,10 @@ class technology:
     def cloudflare(self, url, s):
         print("\033[36m --├ Cloudflare analyse\033[0m")
         cloudflare(url, s)
+
+    def imperva(self, url, s):
+        print("\033[36m --├ Imperva analyse\033[0m")
+        cloudflare(url, s)
+
 
 

@@ -34,6 +34,8 @@ def options(url): req_o = requests.options(url, verify=False, allow_redirects=Fa
 
 def check_other_methods(ml, url, http):
     try:
+        if ml == "DELETE":
+            url = "{}ploppiplop.css".format(url)
         resp = http.request(ml, url) #check response with a bad method
         rs = resp.status
         resp_h = resp.headers
@@ -95,7 +97,11 @@ def check_methods(url, custom_header, authent):
                 cache_status = True 
                 cache_res = rh
         print(" └── {type_r:<8}: {rs:<3} [{len_req} bytes] [CacheTag: {cache_status}]".format(type_r=type_r, rs=rs, len_req=len_req, cache_status=cache_status))
+        if type_r == "OPTIONS":
+            for x in req_head:
+                if x.lower() == "allow":
+                    print("    |-- allow: {}".format(req_head[x]))
 
-    method_list = ["HELP", "PURGE", "DEBUG", "TRACE", "BAN", "PLOP", "FASTLYPURGE"]
+    method_list = ["HELP", "PURGE", "DEBUG", "TRACE", "BAN", "PLOP", "ACL", "FASTLYPURGE"]
     for ml in method_list:
         check_other_methods(ml, url, http)
