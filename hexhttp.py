@@ -251,7 +251,6 @@ if __name__ == '__main__':
                     worker.start()
 
                 enclosure_queue.join()
-                print("toto")
             except KeyboardInterrupt:
                 print("Exiting")
                 sys.exit()
