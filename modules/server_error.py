@@ -5,7 +5,7 @@ import requests
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-def get_server_error(url, base_header, full, authent):
+def get_server_error(url, base_header, full, authent, url_file):
     """
         Check diff btw server error and basic response
     """
@@ -31,8 +31,12 @@ def get_server_error(url, base_header, full, authent):
                     error_header.append("{}: {}".format(re, req_error.headers[re]))
                 for eh in error_header:
                     if eh not in base_header:
-                        error_header = list(map(lambda x: x.replace(eh, "\033[33m{}\033[0m".format(eh)), error_header))
-                
+                        # IDK why but the map or lambda fctn seem bad with threading...
+                        if not url_file:
+                            error_header = list(map(lambda x: x.replace(eh, "\033[33m{}\033[0m".format(eh)), error_header))
+                        else:
+                            pass
+
                 if len(error_header) < len(base_header):
                     while len(error_header) != len(base_header):
                         error_header.append("")

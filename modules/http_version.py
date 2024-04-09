@@ -13,7 +13,7 @@ def check_http_version(url):
     versions = ['HTTP/0.9','HTTP/1.0','HTTP/1.1','HTTP/2']
 
     try:
-        req = requests.get(url, verify=False, allow_redirects=False)
+        req = requests.get(url, verify=False, allow_redirects=False, timeout=10)
     except Exception as e:
         print(f" └── Error {e}")
         return 0

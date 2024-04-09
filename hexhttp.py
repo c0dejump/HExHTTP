@@ -21,6 +21,19 @@ from modules.vhosts import check_vhost
 
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
+try:
+    from Queue import Queue
+except:
+    import queue as Queue
+
+import threading
+from threading import Thread
+
+try:
+    enclosure_queue = Queue()
+except:
+    enclosure_queue = Queue.Queue()
+
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
@@ -35,6 +48,7 @@ def args():
     parser.add_argument("-F", "--full", dest='full', help="Display the full HTTP Header", required=False, action='store_true')
     parser.add_argument("-a", "--auth", dest="auth", help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m", required=False)
     parser.add_argument("-b", "--behavior", dest='behavior', help="Activates a simplified version of verbose, highlighting interesting cache behaviors", required=False, action='store_true') 
+    parser.add_argument("-t", "--threads", dest="threads", help="Threads numbers \033[33mEx: -t 5\033[0m", type=int, default=5, required=False)
 
     return parser.parse_args()
 
@@ -114,54 +128,72 @@ def check_cache_header(url, req_main):
     for r in result:
         print(' └──  {cho:<30}'.format(cho=r))
 
-def main(url, s):
-    try:
-        global base_header
-        base_header = []
+def process_modules(url, s, a_tech):
+    domain =  urlparse(url).netloc
 
-        a_tech = technology()
-
-        req_main = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
+    req_main = s.get(url, verify=False, allow_redirects=False, timeout=6, auth=authent)
         
-        print("\033[34m⟙\033[0m")
-        print(" URL: {}".format(url))
-        print(" URL response: {}".format(req_main.status_code))
-        print(" URL response size: {} bytes".format(len(req_main.content)))
-        print("\033[34m⟘\033[0m")
-        if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
-            choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
-            if choice not in ["y", "Y"]:
-                sys.exit()
-        for k in req_main.headers:
-            base_header.append("{}: {}".format(k, req_main.headers[k]))
+    print("\033[34m⟙\033[0m")
+    print(" URL: {}".format(url))
+    print(" URL response: {}".format(req_main.status_code))
+    print(" URL response size: {} bytes".format(len(req_main.content)))
+    print("\033[34m⟘\033[0m")
+    if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
+        choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
+        if choice not in ["y", "Y"]:
+            sys.exit()
+    for k in req_main.headers:
+        base_header.append("{}: {}".format(k, req_main.headers[k]))
 
-        #print(base_header)
+    get_server_error(url, base_header, full, authent, url_file)
+    check_vhost(domain, url)
+    check_localhost(url, s, domain, authent)
+    check_methods(url, custom_header, authent)
+    check_http_version(url)
+    check_CPDoS(url, s, req_main, domain, custom_header, authent)
+    check_cache_poisoning(url, custom_header, behavior, authent)
+    check_cache_files(url, custom_header, authent)
+    check_cookie_reflection(url, custom_header, authent)
+    range_error_check(url)
+    techno = get_technos(a_tech, req_main, url, s)
+    fuzz_x_header(url)
+    check_cache_header(url, req_main)
 
-        get_server_error(url, base_header, full, authent)
-        check_vhost(domain, url)
-        check_localhost(url, s, domain, authent)
-        check_methods(url, custom_header, authent)
-        check_http_version(url)
-        check_CPDoS(url, s, req_main, domain, custom_header, authent)
-        check_cache_poisoning(url, custom_header, behavior, authent)
-        check_cache_files(url, custom_header, authent)
-        check_cookie_reflection(url, custom_header, authent)
-        range_error_check(url)
 
-        techno = get_technos(a_tech, req_main, url, s)
+def main(urli, s):
+    global base_header
+    base_header = []
 
-        fuzz_x_header(url)
-        check_cache_header(url, req_main)
-    except KeyboardInterrupt:
-        print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-        sys.exit()
-    except Exception as e:
-        print(f"Error : {e}")
+    a_tech = technology()
+
+    if url_file:
+        try:
+            while not urli.empty():
+                q = urli
+
+                url = urli.get()
+                process_modules(url, s, a_tech)
+                q.task_done()
+        except KeyboardInterrupt:
+            print(" ! Canceled by keyboard interrupt (Ctrl-C)")
+            sys.exit()
+        except Exception as e:
+            print(f"Error : {e}")
+    else:
+        try:
+            process_modules(urli, s, a_tech)
+        except KeyboardInterrupt:
+            print(" ! Canceled by keyboard interrupt (Ctrl-C)")
+            sys.exit()
+        except Exception as e:
+            print(f"Error : {e}")
+
 
 if __name__ == '__main__':
 
     # Parse arguments                                 
     results = args()
+
     url = results.url
     url_file = results.url_file
     full = results.full
@@ -169,6 +201,7 @@ if __name__ == '__main__':
     behavior = results.behavior
     auth = results.auth
     user_agent = results.user_agent
+    threads = results.threads
 
     if custom_header:
         try:
@@ -185,7 +218,7 @@ if __name__ == '__main__':
         if auth:
             try:
                 authent = (auth.split(":")[0], auth.split(":")[1])
-                r = requests.get(url, allow_redirects=False, verify=False, auth=authent)
+                r = requests.get(url, allow_redirects=False, verify=False, auth=authent, timeout=10)
                 if r.status_code in [200, 302, 301]:
                     print("\n+ Authentication successfull\n")
                 else:
@@ -210,21 +243,25 @@ if __name__ == '__main__':
         if url_file:
             with open(url_file, "r") as urls:
                 urls = urls.read().splitlines()
+            try:
                 for url in urls:
-                    domain =  urlparse(url).netloc
-                    try:
-                        main(url, s)
-                    except KeyboardInterrupt:
-                        print("Exiting")
-                        sys.exit()
-                    except FileNotFoundError:
-                        print("Input file not found")
-                        sys.exit()
-                    except Exception as e:
-                        print(f"Error : {e}")
-                    print("")
+                    enclosure_queue.put(url)
+                for i in range(threads):
+                    worker = Thread(target=main, args=(enclosure_queue, s))
+                    worker.start()
+
+                enclosure_queue.join()
+                print("toto")
+            except KeyboardInterrupt:
+                print("Exiting")
+                sys.exit()
+            except FileNotFoundError:
+                print("Input file not found")
+                sys.exit()
+            except Exception as e:
+                print(f"Error : {e}")
+            print("")
         else:
-            domain =  urlparse(url).netloc
             main(url, s)
         # basic errors
     except KeyboardInterrupt:

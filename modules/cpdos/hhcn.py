@@ -35,7 +35,7 @@ def HHCN(url, s, authent):
     req_hhcn = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
     req_hhcn_len = len(req_hhcn.content)
 
-    if req_hhcn_len != req_len:
+    if req_hhcn_len not in range(req_len - 50, req_len + 50):
         for rf in req_hhcn.headers:
             if "cache" in rf.lower() or "age" in rf.lower():
                 behavior = "DIFFERENT RESPONSE LENGTH"

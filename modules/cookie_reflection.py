@@ -48,13 +48,13 @@ def check_cookie_reflection(url, custom_header, authent):
 		url = "{}?cb={}".format(url, random.randint(0, 1337)) 
 		for i in range(10):
 			try:
-				req_cookie = requests.get(url, cookies=cookie_obj, verify=False, auth=authent, allow_redirects=False)
+				req_cookie = requests.get(url, cookies=cookie_obj, verify=False, auth=authent, allow_redirects=False, timeout=10)
 				#print(req_cookie.text)
 			except:
 				traceback.print_exc()
 
 	try:
-		req_verif = requests.get(url, verify=False, headers=custom_header, auth=authent, allow_redirects=False)
+		req_verif = requests.get(url, verify=False, headers=custom_header, auth=authent, allow_redirects=False, timeout=10)
 		if matching_forward in req_verif.text:
 				print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | COOKIE HEADER REFLECTION | \033[34m{}\033[0m | PAYLOAD: Cookie: {}".format(url, payload))
 				vuln_found_notify(url, payload)

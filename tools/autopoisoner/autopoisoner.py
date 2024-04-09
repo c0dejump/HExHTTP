@@ -264,7 +264,6 @@ def cache_poisoning_check(url, custom_header):
         #return "ERROR"
 
 def sequential_cache_poisoning_check(urlList):
-
     for url in urlList:
         cache_poisoning_check(url)
 
