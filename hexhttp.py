@@ -48,7 +48,7 @@ def args():
     parser.add_argument("-F", "--full", dest='full', help="Display the full HTTP Header", required=False, action='store_true')
     parser.add_argument("-a", "--auth", dest="auth", help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m", required=False)
     parser.add_argument("-b", "--behavior", dest='behavior', help="Activates a simplified version of verbose, highlighting interesting cache behaviors", required=False, action='store_true') 
-    parser.add_argument("-t", "--threads", dest="threads", help="Threads numbers \033[33mEx: -t 5\033[0m", type=int, default=5, required=False)
+    parser.add_argument("-t", "--threads", dest="threads", help="Threads numbers for multiple URLs. \033[33mEx: -t 5\033[0m", type=int, default=5, required=False)
 
     return parser.parse_args()
 

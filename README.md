@@ -42,6 +42,8 @@ options:
   -F, --full            Display the full HTTP Header
   -a AUTH, --auth AUTH  Add an HTTP authentication. Ex: --auth admin:admin
   -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
+  -t THREADS, --threads THREADS
+                        Threads numbers for multiple URLs. Ex: -t 5
 ```
 
 ### Arguments
