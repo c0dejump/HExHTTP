@@ -37,6 +37,9 @@ except:
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
+#DEBUG completed_tasks = 0
+#DEBUG lock = threading.Lock()
+
 # Arguments
 def args():
     parser = argparse.ArgumentParser(description="HExHTTP is a tool designed to perform tests on HTTP headers.")
@@ -48,9 +51,10 @@ def args():
     parser.add_argument("-F", "--full", dest='full', help="Display the full HTTP Header", required=False, action='store_true')
     parser.add_argument("-a", "--auth", dest="auth", help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m", required=False)
     parser.add_argument("-b", "--behavior", dest='behavior', help="Activates a simplified version of verbose, highlighting interesting cache behaviors", required=False, action='store_true') 
-    parser.add_argument("-t", "--threads", dest="threads", help="Threads numbers for multiple URLs. \033[33mEx: -t 5\033[0m", type=int, default=5, required=False)
+    parser.add_argument("-t", "--threads", dest="threads", help="Threads numbers for multiple URLs. \033[32mDefault: 10\033[0m", type=int, default=10, required=False)
 
     return parser.parse_args()
+
 
 def get_technos(a_tech, req_main, url, s):
     """
@@ -102,8 +106,8 @@ def fuzz_x_header(url):
         req_f = requests.get(url, headers=f_header, timeout=10, verify=False)
         if req_f.status_code == 500:
             print(" └──  Header {} return 500 error".format(f_header))
-    except:
-        pass
+    except Exception as e:
+        print(f"Error : {e}")
 
 def check_cache_header(url, req_main):
     print("\033[36m ├ Header cache\033[0m")
@@ -131,49 +135,67 @@ def check_cache_header(url, req_main):
 def process_modules(url, s, a_tech):
     domain =  urlparse(url).netloc
 
-    req_main = s.get(url, verify=False, allow_redirects=False, timeout=6, auth=authent)
+    try:
+        req_main = s.get(url, verify=False, allow_redirects=False, timeout=6, auth=authent)
         
-    print("\033[34m⟙\033[0m")
-    print(" URL: {}".format(url))
-    print(" URL response: {}".format(req_main.status_code))
-    print(" URL response size: {} bytes".format(len(req_main.content)))
-    print("\033[34m⟘\033[0m")
-    if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
-        choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
-        if choice not in ["y", "Y"]:
-            sys.exit()
-    for k in req_main.headers:
-        base_header.append("{}: {}".format(k, req_main.headers[k]))
+        print("\033[34m⟙\033[0m")
+        print(" URL: {}".format(url))
+        print(" URL response: {}".format(req_main.status_code))
+        print(" URL response size: {} bytes".format(len(req_main.content)))
+        print("\033[34m⟘\033[0m")
+        if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
+            choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
+            if choice not in ["y", "Y"]:
+                sys.exit()
+        for k in req_main.headers:
+            base_header.append("{}: {}".format(k, req_main.headers[k]))
 
-    get_server_error(url, base_header, full, authent, url_file)
-    check_vhost(domain, url)
-    check_localhost(url, s, domain, authent)
-    check_methods(url, custom_header, authent)
-    check_http_version(url)
-    check_CPDoS(url, s, req_main, domain, custom_header, authent)
-    check_cache_poisoning(url, custom_header, behavior, authent)
-    check_cache_files(url, custom_header, authent)
-    check_cookie_reflection(url, custom_header, authent)
-    range_error_check(url)
-    techno = get_technos(a_tech, req_main, url, s)
-    fuzz_x_header(url)
-    check_cache_header(url, req_main)
+        #get_server_error(url, base_header, full, authent, url_file)
+        check_vhost(domain, url)
+        check_localhost(url, s, domain, authent)
+        check_methods(url, custom_header, authent)
+        check_http_version(url)
+        check_CPDoS(url, s, req_main, domain, custom_header, authent)
+        check_cache_poisoning(url, custom_header, behavior, authent)
+        check_cache_files(url, custom_header, authent)
+        check_cookie_reflection(url, custom_header, authent)
+        range_error_check(url)
+        techno = get_technos(a_tech, req_main, url, s)
+        fuzz_x_header(url)
+        check_cache_header(url, req_main)
+    except requests.exceptions.RequestException as e:
+        print(f"Error in processing {url}: {e}")
 
 
 def main(urli, s):
     global base_header
     base_header = []
 
+    #DEBUG global completed_tasks
+
     a_tech = technology()
 
-    if url_file:
+    if url_file and threads != 1337:
         try:
             while not urli.empty():
                 q = urli
 
                 url = urli.get()
                 process_modules(url, s, a_tech)
+                #with lock: #Debug
+                    #completed_tasks += 1
+                    #print(f"Tâches terminées : {completed_tasks}")
                 q.task_done()
+        except KeyboardInterrupt:
+            print(" ! Canceled by keyboard interrupt (Ctrl-C)")
+            q.task_done()
+            sys.exit()
+        except Exception as e:
+            print(f"Error : {e}")
+            q.task_done()
+    elif url_file and threads == 1337:
+        try:
+            process_modules(urli, s, a_tech)
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
             sys.exit()
@@ -240,7 +262,7 @@ if __name__ == '__main__':
             s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
         s.max_redirects = 60
 
-        if url_file:
+        if url_file and threads != 1337:
             with open(url_file, "r") as urls:
                 urls = urls.read().splitlines()
             try:
@@ -249,8 +271,9 @@ if __name__ == '__main__':
                 for i in range(threads):
                     worker = Thread(target=main, args=(enclosure_queue, s))
                     worker.start()
-
                 enclosure_queue.join()
+                for thread in threads:
+                    thread.join()
             except KeyboardInterrupt:
                 print("Exiting")
                 sys.exit()
@@ -259,7 +282,13 @@ if __name__ == '__main__':
                 sys.exit()
             except Exception as e:
                 print(f"Error : {e}")
-            print("")
+            print("Scan finish")
+        elif url_file and threads == 1337:
+            with open(url_file, "r") as urls:
+                urls = urls.read().splitlines()
+                for url in urls:
+                    main(url, s)
+
         else:
             main(url, s)
         # basic errors
@@ -273,4 +302,7 @@ if __name__ == '__main__':
         print("Error, request timeout (10s)")
     except requests.exceptions.MissingSchema: 
         print("Error, missing http:// or https:// schema")
+    except Exception as e:
+        print(f"Error : {e}")
     print("")
+    #print("Scan finish")

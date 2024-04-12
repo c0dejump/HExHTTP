@@ -91,8 +91,8 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
         if behavior:
             print("Request timeout with {} URL with {}".format(url, custom_header))
         return False
-    except:
-        print("Error on the 91 Lines")
+    except Exception as e:
+        print(f"Error 95 line: {e}")
         #traceback.print_exc()
         return False
     if confirmationResponse.status_code == responseCandidate.status_code and confirmationResponse.text == responseCandidate.text:
@@ -113,10 +113,10 @@ def base_request(url, custom_header):
         response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY, headers=custom_header)
         #print(response)
         return response
-    except:
-        print("Error on the 112 Lines")
+    except Exception as e:
+        print(f"Error line 117 : {e}")
         #traceback.print_exc()
-        return False
+        return 1337
 
 
 def port_poisoning_check(url, initialResponse, custom_header):
@@ -250,22 +250,23 @@ def crawl_and_scan(url, initialResponse, custom_header):
 def cache_poisoning_check(url, custom_header):
     initialResponse = base_request(url, custom_header)
 
-    if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 502, 503, 520):
-        resultPort = port_poisoning_check(url, initialResponse, custom_header)
-        resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
-        if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
-            crawl_and_scan(url, initialResponse, custom_header)
-    elif initialResponse and initialResponse.status_code == 429:
-        time.sleep(3)
-    else:
-        print("Error on the 248 Lines")
-        #traceback.print_exc()
-        potential_verbose_message("ERROR", url)
-        #return "ERROR"
+    if initialResponse != 1337:
+        if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 502, 503, 505, 520):
+            resultPort = port_poisoning_check(url, initialResponse, custom_header)
+            resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
+            if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
+                crawl_and_scan(url, initialResponse, custom_header)
+        elif initialResponse and initialResponse.status_code == 429:
+            time.sleep(3)
+        else:
+            print(f"Error 261: {initialResponse}")
+            #traceback.print_exc()
+            potential_verbose_message("ERROR", url)
+            #return "ERROR"
 
-def sequential_cache_poisoning_check(urlList):
+"""def sequential_cache_poisoning_check(urlList):
     for url in urlList:
-        cache_poisoning_check(url)
+        cache_poisoning_check(url)"""
 
 def check_cache_poisoning(url, custom_header, behavior_, authent):
     print("\033[36m ├ Cache poisoning analyse\033[0m")
@@ -279,11 +280,10 @@ def check_cache_poisoning(url, custom_header, behavior_, authent):
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
             sys.exit()
-        except:
-            print("\nInvalid URL")
-            print("Error on the 270 Lines")
+        except Exception as e:
+            print(f"Error 1: {e}")
             #traceback.print_exc()
-    elif file:
+    """elif file:
         try:
             if not args.threads or args.threads == 1:
                 sequential_cache_poisoning_check(allURLs)
@@ -299,9 +299,9 @@ def check_cache_poisoning(url, custom_header, behavior_, authent):
                     thread.join()
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-            sys.exit()
+            sys.exit()"""
 
-if __name__ == '__main__':
+"""if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--file", "-f", type=str, required=False, help="file containing URLs to be tested")
@@ -327,4 +327,4 @@ if __name__ == '__main__':
         except FileNotFoundError:
             print("Error, input file not found")
             sys.exit()
-    check_cache_poisoning(args.url)
+    check_cache_poisoning(args.url)"""

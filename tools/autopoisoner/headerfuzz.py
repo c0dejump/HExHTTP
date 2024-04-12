@@ -27,6 +27,7 @@ headersToFuzz = {
     "x-forwarded-host": CANARY,
     "X-Forwarded-URI": CANARY,
     "x-rewrite-url": CANARY,
+    "Orig-path-info": CANARY,
     "X-Forwarded-Access-Token": CANARY,
     "X-Forwarded-Session-ID": CANARY,
     "X-Forwarded-Client-Cert": CANARY,
@@ -36,6 +37,7 @@ headersToFuzz = {
     "user-agent": CANARY,
     "handle": CANARY,
     "h0st": CANARY,
+    "Unencoded-URL": CANARY,
     "x-original-host": CANARY,
     "x-wp-nonce": CANARY,
     "Transfer-Encoding": CANARY,
@@ -143,5 +145,6 @@ headersToFuzz = {
     "Z-Forwarded-For": CANARY,
     "x-nextjs-cache": CANARY,
     "X-Echo-Set-Header": CANARY,
-    "Cache-Tag": CANARY
+    "Cache-Tag": CANARY,
+    "IIS-wasurlrewritten": CANARY
 }

