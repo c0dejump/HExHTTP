@@ -9,7 +9,7 @@ requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.
 
 
 params = {
-        'cp': '1337',
+        'cb': '1337',
         }
 
 def get_hit(url, matching_forward, custom_header, authent):
@@ -23,7 +23,7 @@ def get_hit(url, matching_forward, custom_header, authent):
         headers = headers.update(custom_header)
         
     res_header = {}
-    #print(" - {}?cp={}".format(url, params["cp"])) #Debug
+    #print(" - {}?cb={}".format(url, params["cb"])) #Debug
 
     word_in_text = False
 
@@ -51,15 +51,15 @@ def get_hit(url, matching_forward, custom_header, authent):
                 else:
                     pass
     if word_in_text:
-        print("\033[33m └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{}?cp=1337\033[0m | PAYLOAD: X-Forwarded-Host".format(url))
+        print("\033[33m └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{}?cb=1337\033[0m | PAYLOAD: X-Forwarded-Host".format(url))
     #print(res_header) #Debug
     return res_header
 
 
 def wcp_import(url, matching_forward, custom_header, req_status, authent):
-    print("\033[36m --├ {}?cp={}\033[0m have HIT Cache-Status".format(url, params["cp"]))
+    print("\033[36m --├ {}?cb={}\033[0m have HIT Cache-Status".format(url, params["cb"]))
 
-    url_param = "{}?cp={}".format(url, params["cp"])
+    url_param = "{}?cb={}".format(url, params["cb"])
 
     req_verify_redirect = requests.get(url, params=params, headers=custom_header, verify=False, auth=authent, timeout=10)
     req_verify_url = requests.get(url_param, headers=custom_header, verify=False, allow_redirects=True, auth=authent, timeout=10)

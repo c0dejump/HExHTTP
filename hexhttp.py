@@ -59,17 +59,19 @@ def args():
 def get_technos(a_tech, req_main, url, s):
     """
     Check what is the reverse proxy/WAF/cached server... and test based on the result.
-    #TODO
+    #TODO Cloudfoundry => https://hackerone.com/reports/728664
     """
     print("\033[36m ├ Techno analyse\033[0m")
     technos = {
-        "apache": ["apache"],
+        "apache": ["apache", "tomcat"],
         "nginx": ["nginx"],
         "envoy": ["envoy"],
         "akamai": ["akamai", "x-akamai", "x-akamai-transformed", "akamaighost"],
         "imperva": ["imperva"],
         "fastly": ["fastly"],
-        "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"]
+        "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"],
+        "vercel": ["vercel"],
+        #"cloudfoundry": ["cf-app"]
     }
 
     for t in technos:
@@ -132,6 +134,7 @@ def check_cache_header(url, req_main):
     for r in result:
         print(' └──  {cho:<30}'.format(cho=r))
 
+
 def process_modules(url, s, a_tech):
     domain =  urlparse(url).netloc
 
@@ -150,7 +153,7 @@ def process_modules(url, s, a_tech):
         for k in req_main.headers:
             base_header.append("{}: {}".format(k, req_main.headers[k]))
 
-        #get_server_error(url, base_header, full, authent, url_file)
+        get_server_error(url, base_header, full, authent, url_file)
         check_vhost(domain, url)
         check_localhost(url, s, domain, authent)
         check_methods(url, custom_header, authent)
@@ -164,7 +167,8 @@ def process_modules(url, s, a_tech):
         fuzz_x_header(url)
         check_cache_header(url, req_main)
     except requests.exceptions.RequestException as e:
-        print(f"Error in processing {url}: {e}")
+        pass
+        #print(f"Error in processing {url}: {e}")
 
 
 def main(urli, s):
@@ -191,7 +195,8 @@ def main(urli, s):
             q.task_done()
             sys.exit()
         except Exception as e:
-            print(f"Error : {e}")
+            pass
+            #print(f"Error : {e}")
             q.task_done()
     elif url_file and threads == 1337:
         try:
@@ -225,15 +230,6 @@ if __name__ == '__main__':
     user_agent = results.user_agent
     threads = results.threads
 
-    if custom_header:
-        try:
-            custom_header = {
-                custom_header.split(":")[0]:custom_header.split(":")[1]
-            }
-        except Exception as e:
-            print("Error, HTTP Header format need to be \"foo:bar\"")
-            sys.exit()
-
     global authent
 
     try: 
@@ -260,6 +256,17 @@ if __name__ == '__main__':
             s.headers.update({'User-agent': user_agent})
         else: 
             s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
+
+        if custom_header:
+            try:
+                custom_header = {
+                    custom_header.split(":")[0]:custom_header.split(":")[1]
+                }
+                s.headers.update(custom_header)
+            except Exception as e:
+                print("Error, HTTP Header format need to be \"foo:bar\"")
+                sys.exit()
+
         s.max_redirects = 60
 
         if url_file and threads != 1337:
@@ -288,7 +295,6 @@ if __name__ == '__main__':
                 urls = urls.read().splitlines()
                 for url in urls:
                     main(url, s)
-
         else:
             main(url, s)
         # basic errors

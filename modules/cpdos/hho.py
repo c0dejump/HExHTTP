@@ -37,6 +37,6 @@ def HHO(url, s, main_status_code, authent):
     if cpdos_win:
         req_hho_verify = s.get(url, auth=authent, allow_redirects=False, timeout=10)
         if req_hho_verify.status_code in [400, 413, 500, 502] and req_hho_verify.status_code != main_status_code:
-            print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HHO DOS: {} | \033[34m{}\033[0m | PAYLOAD: {}".format(url, req_hho_verify.status_code, h))
+            print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HHO DOS: {} | \033[34m{} > {}\033[0m | PAYLOAD: {}".format(url, main_status_code, req_hho_verify.status_code, h))
         else:
-            print("  \033[33m└── INTERESTING BEHAVIOR\033[0m | HHO DOS: {} | \033[34m{}\033[0m | PAYLOAD: {}".format(url, req_hho_verify.status_code, h))
+            print("  \033[33m└── INTERESTING BEHAVIOR\033[0m | HHO DOS: {} | \033[34m{} > {}\033[0m | PAYLOAD: {}".format(url, main_status_code, req_hho_verify.status_code, h))

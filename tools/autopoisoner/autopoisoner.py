@@ -92,7 +92,7 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
             print("Request timeout with {} URL with {}".format(url, custom_header))
         return False
     except Exception as e:
-        print(f"Error 95 line: {e}")
+        #print(f"Error 95 line: {e}")
         #traceback.print_exc()
         return False
     if confirmationResponse.status_code == responseCandidate.status_code and confirmationResponse.text == responseCandidate.text:
@@ -114,7 +114,7 @@ def base_request(url, custom_header):
         #print(response)
         return response
     except Exception as e:
-        print(f"Error line 117 : {e}")
+        #print(f"Error line 117 : {e}")
         #traceback.print_exc()
         return 1337
 

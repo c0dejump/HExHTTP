@@ -6,7 +6,7 @@ import traceback
 import random
 import sys
 from urllib.parse import urlparse
-from modules.cpdos.refererdos import RefDos
+from modules.cpdos.cache_error import get_error
 from modules.cpdos.waf_rules import waf_rules
 from modules.cpdos.hho import HHO
 from modules.cpdos.hmc import HMC
@@ -38,7 +38,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
     main_status_code = req_main.status_code
     
     #print("\033[36m --├ {} [{}] \033[0m".format(url, main_status_code))
-    headers = [{"Host": "{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}, {"X-Forwarded-Host": "XXX"}, {"X-Forwarded-Host": "{}:1234".format(domain)}]
+    headers = [{"Host": "{}:1234".format(domain)}, {"X-Forwarded-Port":"123"}, {"X-Forwarded-Host": "XXX"}, {"X-Forwarded-Host": "{}:1234".format(domain)}, {"zTRANSFER-ENCODING": "fdvdfe"}]
     for h in headers:
         url = "{}{}".format(url, random.randint(1, 10))
         hit_verify = False
@@ -101,7 +101,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
         HMC(url, s, main_status_code, authent)
         HMO(url, s, main_status_code, authent)
         HHCN(url, s, authent)
-        RefDos(url, s, main_status_code, authent)
+        get_error(url, s, main_status_code, authent)
         #waf_rules(url, s, main_status_code, authent)
     except KeyboardInterrupt:
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")

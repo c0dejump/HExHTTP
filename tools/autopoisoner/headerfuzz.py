@@ -44,6 +44,7 @@ headersToFuzz = {
     "x-original-url": CANARY,
     "Location": CANARY,
     "x-forwarded-prefix": CANARY,
+    "x-forwarded-url": CANARY,
     "trailer": CANARY,
     "fastly-ssl": CANARY,
     "fastly-host": CANARY,
@@ -85,6 +86,7 @@ headersToFuzz = {
     "Proxy-Client-Ip": CANARY,
     "Proxy-Host": CANARY,
     "Proxy-Url": CANARY,
+    "Proxy-Authorization": CANARY,
     "Proxy": CANARY,
     "Proxy_authorization": CANARY,
     "Proxy_connection": CANARY,
@@ -146,5 +148,7 @@ headersToFuzz = {
     "x-nextjs-cache": CANARY,
     "X-Echo-Set-Header": CANARY,
     "Cache-Tag": CANARY,
-    "IIS-wasurlrewritten": CANARY
+    "IIS-wasurlrewritten": CANARY,
+    "Authorization": CANARY,
+    "X-CF-APP-INSTANCE": "xxx:1"
 }

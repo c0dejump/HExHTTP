@@ -19,7 +19,7 @@ def waf_rules(url, s, main_status_code, authent):
     list_block_ua = []
     list_cache_block_ua = []
 
-    if main_status_code != 403:
+    if main_status_code not in [403, 401]:
         for bua in bad_ua:
             headers = {
             "user-agent": bua

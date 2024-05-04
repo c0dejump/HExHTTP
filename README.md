@@ -3,7 +3,7 @@
 > HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors.
 
 <div align="center">
-<img src="https://img.shields.io/badge/version-1.4-blue" alt="pip package version">
+<img src="https://img.shields.io/badge/version-1.4.1-blue" alt="pip package version">
 <img alt="Python3.7" src="https://img.shields.io/badge/Python-3.7+-informational">
 </div>
 
@@ -97,9 +97,13 @@ You can test this tool on the Web Security Academy's vulnerable labs, like this 
 
 ## TODO
 
-- [ ] Try with mobile user-agent 
+- [ ] Try with mobile user-agent [IP]
 - [ ] https://youst.in/posts/cache-key-normalization-denial-of-service/ [IP]
-- [ ] Filter False Positive on WAF blocking
+- [ ] HTTP error cache poisoning [IP]
+  - https://infosecwriteups.com/dos-via-cache-poisoning-38f3a87f997c
+  - https://hackerone.com/reports/1219038
+- [ ] Transfert-encoding tests (https://http.dev/transfer-encoding)
+- [ ] Filter False Positive on WAF blocking [IP]
 - [ ] Pypi package
 
 ### Based on

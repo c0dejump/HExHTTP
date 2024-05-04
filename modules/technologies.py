@@ -7,6 +7,7 @@ from modules.technos.akamai import akamai
 from modules.technos.fastly import fastly
 from modules.technos.cloudflare import cloudflare
 from modules.technos.imperva import imperva
+from modules.technos.vercel import vercel
 
 class technology:
     """
@@ -52,7 +53,13 @@ class technology:
 
     def imperva(self, url, s):
         print("\033[36m --├ Imperva analyse\033[0m")
-        cloudflare(url, s)
+        imperva(url, s)
+
+    def vercel(self, url, s):
+        print("\033[36m --├ Imperva analyse\033[0m")
+        vercel(url, s)
+
+
 
 
 
