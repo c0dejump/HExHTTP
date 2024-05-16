@@ -10,6 +10,7 @@ headersToFuzz = {
     "x-forwarded-proto": "31337",
     "X-Forwarded-Proto-orig": "nohttps",
     "X-Forwarded-Proto-Version": "nohttps",
+    "x-wf-forwarded-proto": "foo",
     "X-Forwarded-SSL": "on",
     "X-Forwarded-SSL": "off",
     "X-Url-Scheme": "nohttps",
@@ -150,5 +151,8 @@ headersToFuzz = {
     "Cache-Tag": CANARY,
     "IIS-wasurlrewritten": CANARY,
     "Authorization": CANARY,
-    "X-CF-APP-INSTANCE": "xxx:1"
+    "X-CF-APP-INSTANCE": "xxx:1",
+    "X-Requested-With": CANARY,
+    "X-Content-Type-Options": CANARY,
+    "X-Custom-Header": CANARY,
 }

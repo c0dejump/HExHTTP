@@ -25,7 +25,7 @@ def check_http_version(url):
         HTTPConnection._http_vsn_str = v
         try:
             req_v = requests.get(url, timeout=10, verify=False, allow_redirects=False)
-            print(" └── {:<9}: {:<3} {:<13} [HS: {}b]".format(v, req_v.status_code, "[{} bytes]".format(len(req_v.content)), len(req_v.headers)))
+            print(" └── {:<9}: {:<3} {:<13} [Header Size: {}b]".format(v, req_v.status_code, "[{} bytes]".format(len(req_v.content)), len(req_v.headers)))
         except requests.exceptions.Timeout:
             print(f" └── Timeout Error with {v}")
         except KeyboardInterrupt:

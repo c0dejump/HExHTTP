@@ -75,7 +75,7 @@ def crawl_files(URL, response : requests.Response):
     return selectedFiles
 
 def use_caching(headers):
-    if  headers.get("X-Cache-Hits") or headers.get("X-Nextjs-Cache") or headers.get("x-nextjs-cache") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") \
+    if headers.get("X-Cache-Hits") or headers.get("X-Age") or headers.get("X-Nextjs-Cache") or headers.get("x-nextjs-cache") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") \
     or headers.get("x-drupal-cache") or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") \
     or headers.get("X-Proxy-Cache") or headers.get("X-TZLA-EDGE-Cache-Hit") or headers.get("X-nananana") or headers.get("x-spip-cache") or headers.get("CDN-Cache") \
     or headers.get("x-pangle-cache-from") or headers.get("X-Deploy-Web-Server-Cache-Hit") or headers.get("X-Micro-Cache") or headers.get("X-Deploy-Web-Server-Cache-Hit") \
