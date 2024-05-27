@@ -15,7 +15,7 @@ from tools.autopoisoner.print_utils import *
 LOCK = threading.Lock()
 TIMEOUT_DELAY = 10
 
-outputFile = open("output.txt", "w")
+# outputFile = open("output.txt", "w")
 
 CANARY = "ndvyepenbvtidpvyzh.com"
 CANARY_2 = "31337"

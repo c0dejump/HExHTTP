@@ -3,7 +3,7 @@
 > HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors.
 
 <div align="center">
-<img src="https://img.shields.io/badge/version-1.4.1-blue" alt="pip package version">
+<img src="https://img.shields.io/github/v/release/c0dejump/HExHTTP" alt="release version">
 <img alt="Python3.7" src="https://img.shields.io/badge/Python-3.7+-informational">
 </div>
 

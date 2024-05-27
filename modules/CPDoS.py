@@ -12,11 +12,9 @@ from modules.cpdos.hho import HHO
 from modules.cpdos.hmc import HMC
 from modules.cpdos.hmo import HMO
 from modules.cpdos.hhcn import HHCN
-
-
+from modules.cpdos.hbh import HBH
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
 
 
 def check_CPDoS(url, s, req_main, domain, custom_header, authent):
@@ -101,6 +99,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
         HMC(url, s, main_status_code, authent)
         HMO(url, s, main_status_code, authent)
         HHCN(url, s, authent)
+        HBH(url, s, authent)
         get_error(url, s, main_status_code, authent)
         #waf_rules(url, s, main_status_code, authent)
     except KeyboardInterrupt:

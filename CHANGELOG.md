@@ -1,6 +1,18 @@
 Changelog:
 ----------
 
+- 1.5.1
+---------
+	Updated:
+	- Rename of folder for differents lists 
+	- Fix of readme versioning
+	New :
+	- Hop-By-Hop check for CP-DoS 
+	- New list for testing HTTP Headers
+	Deleted :
+	- broken github workflow for pypi package, need re-verify
+---------
+
 - 1.5
 ---------
 	Updated:

@@ -16,7 +16,7 @@ def uacache(url, s, req_main, ua):
 
 
 def uamobile(url, s):
-    with open("user-agent/mobile-user-agent.lst") as mua:
+    with open("./lists/mobile-user-agent.lst") as mua:
         len_content_modif = 0
         len_header_modif = 0
         for ua in mua.read().splitlines():
