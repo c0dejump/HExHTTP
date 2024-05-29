@@ -1,11 +1,7 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-import traceback
-import random
-import sys
-from urllib.parse import urlparse
+from modules.utils import *
 from modules.cpdos.cache_error import get_error
 from modules.cpdos.waf_rules import waf_rules
 from modules.cpdos.hho import HHO
@@ -13,9 +9,6 @@ from modules.cpdos.hmc import HMC
 from modules.cpdos.hmo import HMO
 from modules.cpdos.hhcn import HHCN
 from modules.cpdos.hbh import HBH
-
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
 
 def check_CPDoS(url, s, req_main, domain, custom_header, authent):
     i = 0

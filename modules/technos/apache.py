@@ -1,7 +1,7 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
+from modules.utils import *
 
 def apache(url, s):
     """
@@ -35,7 +35,7 @@ def apache(url, s):
     except Exception as e:
         pass
         #print(f"Error {url} : {str(e)}")
-    uqe_url = '{}/?"><u>plop123</u>'.format(url)
+    uqe_url = f'{url}/?"><u>plop123</u>'
     uqe_req = s.get(uqe_url, verify=False, timeout=6)
     if uqe_req not in [403, 401, 400, 500]:
         if "plop123" in uqe_req.text:
@@ -47,4 +47,4 @@ def apache(url, s):
         x_req = s.get(url, headers=aph, verify=False, timeout=10)
         print(f"   └── {aph}{'→':^3} {x_req.status_code:>3} [{len(x_req.content)} bytes]")
         if "plop123" in x_req.text:
-            print("plop123 reflected in text with {} payload".format(aph))
+            print(f"plop123 reflected in text with {aph} payload")

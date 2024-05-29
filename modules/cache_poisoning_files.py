@@ -1,16 +1,16 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-import traceback
-from static.vuln_notify import vuln_found_notify
+"""
+Web Cache Poisoning on unkeyed Header
+https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws#using-web-cache-poisoning-to-exploit-unsafe-handling-of-resource-imports
+"""
 
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
+from modules.utils import *
 
 params = {
         'cb': '1337',
-        }
+}
 
 def get_hit(url, matching_forward, custom_header, authent):
     #web cache poisoning to exploit unsafe handling of resource imports
@@ -23,7 +23,7 @@ def get_hit(url, matching_forward, custom_header, authent):
         headers = headers.update(custom_header)
         
     res_header = {}
-    #print(" - {}?cb={}".format(url, params["cb"])) #Debug
+    #print(f" - {url}?cb={params['cb']}") #Debug
 
     word_in_text = False
 
@@ -51,28 +51,28 @@ def get_hit(url, matching_forward, custom_header, authent):
                 else:
                     pass
     if word_in_text:
-        print("\033[33m └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{}?cb=1337\033[0m | PAYLOAD: X-Forwarded-Host".format(url))
+        print(f"\033[33m └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{url}?cb=1337\033[0m | PAYLOAD: X-Forwarded-Host")
     #print(res_header) #Debug
     return res_header
 
 
 def wcp_import(url, matching_forward, custom_header, req_status, authent):
-    print("\033[36m --├ {}?cb={}\033[0m have HIT Cache-Status".format(url, params["cb"]))
+    print(f"\033[36m --├ {url}?cb={params['cb']}\033[0m have HIT Cache-Status")
 
-    url_param = "{}?cb={}".format(url, params["cb"])
+    url_param = f"{url}?cb={params['cb']}"
 
     req_verify_redirect = requests.get(url, params=params, headers=custom_header, verify=False, auth=authent, timeout=10)
     req_verify_url = requests.get(url_param, headers=custom_header, verify=False, allow_redirects=True, auth=authent, timeout=10)
 
     if req_verify_redirect.status_code in [301, 302] or req_verify_url.status_code in [301, 302]:
         if matching_forward in req_verify_redirect.url or matching_forward in req_verify_url.url:
-            print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | DIFFERENT STATUS-CODE | \033[34m{}\033[0m | PAYLOAD: X-Forwarded-Host".format(url_param))
+            print(f"  \033[31m └── VULNERABILITY CONFIRMED\033[0m | DIFFERENT STATUS-CODE | \033[34m{url_param}\033[0m | PAYLOAD: X-Forwarded-Host")
             vuln_found_notify(url_param, "X-Forwarded-Host")
     elif matching_forward in req_verify_redirect.text or matching_forward in req_verify_url.text:
-        print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HEADER REFLECTION | \033[34m{}\033[0m | PAYLOAD: X-Forwarded-Host".format(url_param))
+        print(f"  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HEADER REFLECTION | \033[34m{url_param}\033[0m | PAYLOAD: X-Forwarded-Host")
         vuln_found_notify(url_param, "X-Forwarded-Host")
     elif req_verify_url.status_code != req_status:
-        print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | DIFFERENT STATUS-CODE:\033[36m {} → {}\033[0m | \033[34m{}\033[0m | PAYLOAD: X-Forwarded-Host".format(req_status, req_verify_url.status_code, url_param))
+        print(f"  \033[31m └── VULNERABILITY CONFIRMED\033[0m | DIFFERENT STATUS-CODE:\033[36m {req_status} → {req_verify_url.status_code}\033[0m | \033[34m{url_param}\033[0m | PAYLOAD: X-Forwarded-Host")
         vuln_found_notify(url_param, "X-Forwarded-Host")
     #print(req_verify_redirect.status_code) #Debug
 
@@ -83,7 +83,7 @@ def check_cache_files(uri, custom_header, authent):
     matching_forward = "ndvyepenbvtidpvyzh.com"
 
     for endpoints in ["plopiplop.js", "plopiplop.css"]:
-        url = "{}{}".format(uri, endpoints)
+        url = f"{uri}{endpoints}"
         try:
             req_status = requests.get(url, params=params, verify=False, allow_redirects=False, auth=authent, timeout=10)
             req_status = req_status.status_code
@@ -91,7 +91,7 @@ def check_cache_files(uri, custom_header, authent):
             if valid_hit:
                 wcp_import(url, matching_forward, custom_header, req_status, authent)
         except requests.exceptions.Timeout:
-            print(" └── Timeout Error with {}".format(endpoints))
+            print(f" └── Timeout Error with {endpoints}")
         except:
             #traceback.print_exc()
-            print(" ! Error with {}".format(url))
+            print(f" ! Error with {url}")

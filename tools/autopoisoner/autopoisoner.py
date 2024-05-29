@@ -89,7 +89,7 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
         confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY, headers=custom_header)
     except requests.Timeout:
         if behavior:
-            print("Request timeout with {} URL with {}".format(url, custom_header))
+            print(f"Request timeout with {url} URL with {custom_header}")
         return False
     except Exception as e:
         #print(f"Error 95 line: {e}")
@@ -137,7 +137,7 @@ def port_poisoning_check(url, initialResponse, custom_header):
         explicitCache = str(use_caching(response.headers)).upper()
 
         if response.status_code != initialResponse.status_code and response.status_code != 429:
-            status_codes = "{} → {}".format(initialResponse.status_code, response.status_code)
+            status_codes = f"{initialResponse.status_code} → {response.status_code}"
             findingState = 1
             potential_verbose_message("STATUS_CODE", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
@@ -164,9 +164,9 @@ def port_poisoning_check(url, initialResponse, custom_header):
             return "UNCONFIRMED"
     except requests.Timeout:
         if behavior:
-            print("Request timeout with {} URL with {}".format(uri, custom_head))
+            print(f"Request timeout with {uri} URL with {custom_head}")
     except:
-        print(" └── Error with Host: {}:8888 header".format(host))
+        print(f" └── Error with Host: {host}:8888 header")
         #traceback.print_exc()
         return None
     
@@ -185,19 +185,19 @@ def headers_poisoning_check(url, initialResponse, custom_header):
             pass
         except requests.Timeout:
             if behavior:
-                print("Request timeout with {} URL with {}".format(uri, payload))
+                print(f"Request timeout with {uri} URL with {payload}")
             continue
         except requests.ConnectionError:
             continue
         except:
             if behavior:
                 potential_verbose_message("ERROR", url)
-                print("Request error with {} URL with {}".format(uri, payload))
+                print(f"Request error with {uri} URL with {payload}")
                 print("Error on the 179 Lines")
                 #traceback.print_exc()
             continue
         explicitCache = str(use_caching(response.headers)).upper()
-        sys.stdout.write("\033[34m  {}\033[0m\r".format(header))
+        sys.stdout.write(f"\033[34m  {header}\033[0m\r")
         sys.stdout.write("\033[K")
 
         if canary_in_response(response):
@@ -213,7 +213,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
                     behavior_or_confirmed_message(uri, "BEHAVIOR", "REFLECTION", explicitCache, url, header=payload)
 
         elif response.status_code != initialResponse.status_code and response.status_code != 429:
-            status_codes = "{} → {}".format(initialResponse.status_code, response.status_code)
+            status_codes = f"{initialResponse.status_code} → {response.status_code}"
             findingState = 1
             potential_verbose_message("STATUS_CODE", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):

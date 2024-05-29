@@ -1,12 +1,12 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-import traceback
+"""
+Check support for different HTTP versions
+"""
+
+from modules.utils import *
 from http.client import HTTPConnection
-
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
 
 def check_http_version(url):
     print("\033[36m ├ HTTP Version analyse\033[0m")

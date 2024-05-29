@@ -1,20 +1,17 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-import traceback
+"""
+Attemps to check if localhost can be scanned with Host Header
+"""
 
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
+from modules.utils import *
 
 def check_localhost(url, s, domain, authent):
-    """
-    Check_localhost: Function which try automatically if it's possible scanning with "localhost" host for discovery other files/directories
-    """
     list_test = ["127.0.0.1", "localhost", "192.168.0.1", "127.0.1", "127.1", "::1", "127.0.0.2", "127.0.0.1", "127.0.0.1:22", 
     "0.0.0.0", "0.0.0.0:443", "[::]:80", "127.0.0.1.nip.io", "127.127.127.127"]
 
-    print("\033[36m ├ Host analyse\033[0m")
+    print(f"{Colors.CYAN} ├ Host analyse{Colors.RESET}")
     for lt in list_test:
         headers = {"Host": lt}
         try:

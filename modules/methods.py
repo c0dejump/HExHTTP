@@ -1,14 +1,13 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+Check support for different HTTP methods
+"""
+
 import urllib3
-import requests
-import traceback
-from urllib.parse import urlparse
 from urllib3 import Timeout, PoolManager
-
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
+from modules.utils import *
 
 desc_method = {
     204: "204 No Content",
@@ -35,7 +34,7 @@ def options(url): req_o = requests.options(url, verify=False, allow_redirects=Fa
 def check_other_methods(ml, url, http):
     try:
         if ml == "DELETE":
-            url = "{}plopiplop.css".format(url)
+            url = f"{url}plopiplop.css"
         resp = http.request(ml, url) #check response with a bad method
         rs = resp.status
         resp_h = resp.headers
@@ -64,8 +63,6 @@ def check_other_methods(ml, url, http):
         pass
         #traceback.print_exc()
 
-
-
 def check_methods(url, custom_header, authent):
     """ 
     Try other method 
@@ -80,7 +77,7 @@ def check_methods(url, custom_header, authent):
         try:
             result_list.append(funct(url))
         except:
-            print(" └── Error with {} method".format(funct))
+            print(f" └── Error with {funct} method")
             pass
             #traceback.print_exc()
     for rs, req_head, type_r, len_req, req_content in result_list:
@@ -100,7 +97,7 @@ def check_methods(url, custom_header, authent):
         if type_r == "OPTIONS":
             for x in req_head:
                 if x.lower() == "allow":
-                    print("    |-- allow: {}".format(req_head[x]))
+                    print(f"    |-- allow: {req_head[x]}")
 
     method_list = ["HELP", "PURGE", "DEBUG", "TRACE", "BAN", "PLOP", "ACL", "FASTLYPURGE", "BREW"]
     for ml in method_list:

@@ -20,7 +20,7 @@ def potential_verbose_message(message, url="default"):
 def behavior_or_confirmed_message(uri, behaviorOrConfirmed, behaviorType, explicitCache, url, status_codes="default", header = "default", outputFile = "default", LOCK = "default"):
 
     messageDict = {"REFLECTION": "HEADER REFLECTION",
-                   "STATUS": "DIFFERENT STATUS-CODE: {}".format(status_codes),
+                   f"STATUS": "DIFFERENT STATUS-CODE: {status_codes}",
                    "LENGTH": "DIFFERENT RESPONSE LENGTH",
                    "BEHAVIOR": "\033[33m[INTERESTING BEHAVIOR]\033[0m",
                    "CONFIRMED": "\033[31mVULNERABILITY CONFIRMED\033[0m"

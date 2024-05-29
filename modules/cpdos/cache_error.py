@@ -1,14 +1,12 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-import sys
-import random
-import traceback
-import pprint
+"""
+Attempts to find Cache Poisoning Denial of Service (CpDoS) error based
+https://cpdos.org/
+"""
 
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
+from ..utils import *
 
 def check_cached(url, s, pk, main_status_code, authent):
     behavior = False
@@ -38,10 +36,10 @@ def check_cached(url, s, pk, main_status_code, authent):
                     cache_status = True
 
         if confirmed:
-            print("\033[31m └── VULNERABILITY CONFIRMED\033[0m | CPDoSError {} > {} | CACHE : {} | \033[34m{}\033[0m | PAYLOAD: {}".format(main_status_code, req.status_code, cache_status, url, pk))
+            print(f"\033[31m └── VULNERABILITY CONFIRMED\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
             behavior = False
         elif behavior:
-            print("\033[33m └── INTERESTING BEHAVIOR\033[0m | CPDoSError {} > {} | CACHE : {} | \033[34m{}\033[0m | PAYLOAD: {}".format(main_status_code, req.status_code, cache_status, url, pk))
+            print(f"\033[33m └── INTERESTING BEHAVIOR\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
     except Exception as e:
         pass
         #print(f"Error : {e}")
@@ -61,7 +59,8 @@ def get_error(url, s, main_status_code, authent):
     {"Accept-Encoding": "gzip;q=1.0, identity;q=0.5, *;q=0"},
     {"Expect": "100-continue"},
     #{"If-None-Match": "*"},
-    {"If-None-Match": "*", "If-Match": "toto"},
+    {"If-None-Match": "*", 
+    "If-Match": "toto"},
     {"If-None-Match": "<toto>"},
     {"Max-Forwards": "0"},
     {"Max-Forwards": "foo"},
@@ -118,7 +117,7 @@ if __name__ == '__main__':
     with open(url_file, "r") as urls:
         urls = urls.read().splitlines()
         for url in urls:
-            url = "{}?cb={}".format(url, random.randrange(999))
+            url = f"{url}?cb={random.randrange(999)}"
             try:
                 req_main = requests.get(url, verify=False, timeout=10)
                 main_status_code = req_main.status_code

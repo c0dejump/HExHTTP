@@ -1,18 +1,16 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-import traceback
-import random
-from urllib.parse import urlparse
+"""
+Attempts to find Cache Poisoning with Host Header Case Normalization (HHCN)  
+https://youst.in/posts/cache-key-normalization-denial-of-service/
+"""
 
+from ..utils import *
 
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
+VULN_NAME = "Host Header Case Normalization"
 
 def HHCN(url, s, authent):
-    #Host Header case normalization
-
     behavior = False
 
     # replace min char by maj char in the domain
@@ -45,10 +43,10 @@ def HHCN(url, s, authent):
         req_verify = s.get(url, verify=False, timeout=10, auth=authent)
 
         if len(req_hhcn_bis.content) == len(req_verify.content):
-            print(" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{}\033[0m | {} {}b <> {}b | PAYLOAD: {}".format(url, behavior, req_len, len(req_hhcn_bis.content), headers))
+            print(f" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_len}b <> {len(req_hhcn_bis.content)}b | PAYLOAD: {headers}")
         else:
             if behavior:
-                print(" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{}\033[0m | {} {}b <> {}b | PAYLOAD: {}".format(url, behavior, req_len, req_hhcn_len, headers))
+                print(f" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_len}b <> {req_hhcn_len}b | PAYLOAD: {headers}")
 
     if req_main.status_code != req_hhcn.status_code:
         for rf in req_hhcn.headers:
@@ -60,9 +58,9 @@ def HHCN(url, s, authent):
         req_verify = s.get(url, verify=False, timeout=10, auth=authent)
 
         if req_hhcn_bis.status_code == req_verify.status_code:
-            print(" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{}\033[0m | {} {} <> {} | PAYLOAD: {}".format(url, behavior, req_main.status_code, req_hhcn_bis.status_code, headers))
+            print(f" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_main.status_code} <> {req_hhcn_bis.status_code} | PAYLOAD: {headers}")
         else:
             if behavior:
-                print(" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{}\033[0m | {} {} <> {} | PAYLOAD: {}".format(url, behavior, req_main.status_code, req_hhcn.status_code, headers))
+                print(f" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_main.status_code} <> {req_hhcn.status_code} | PAYLOAD: {headers}")
 
 

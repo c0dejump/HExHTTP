@@ -1,6 +1,16 @@
 Changelog:
 ----------
 
+- 1.5.3
+---------
+	Updated:
+	- all file's imports for code optimization
+	- short description for vulnerabilities and link reference
+	- minors bug fix 
+	New: 
+	- modules/utils.py file for code optimization
+---------
+
 - 1.5.2
 ---------
 	Updated:

@@ -1,13 +1,10 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
 import argparse
-import traceback
-import sys, os, re
-import time
-from urllib.parse import urlparse
+import re
 
+from modules.utils import *
 from modules.check_localhost import check_localhost
 from modules.server_error import get_server_error
 from modules.methods import check_methods
@@ -33,9 +30,6 @@ try:
     enclosure_queue = Queue()
 except:
     enclosure_queue = Queue.Queue()
-
-
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 #DEBUG completed_tasks = 0
 #DEBUG lock = threading.Lock()
@@ -107,7 +101,7 @@ def fuzz_x_header(url):
     try:
         req_f = requests.get(url, headers=f_header, timeout=10, verify=False)
         if req_f.status_code == 500:
-            print(" └──  Header {} return 500 error".format(f_header))
+            print(f" └──  Header {f_header} return 500 error")
     except Exception as e:
         print(f"Error : {e}")
 
@@ -118,21 +112,21 @@ def check_cache_header(url, req_main):
     result = []
     for headi in base_header:
         if "cache" in headi or "Cache" in headi:
-            result.append("{}:{}".format(headi.split(":")[0], headi.split(":")[1]))
+            result.append(f"{headi.split(':')[0]}:{headi.split(':')[1]}")
     for vary in base_header:
         if "Vary" in vary:
-            result.append("{}:{}".format(vary.split(":")[0], vary.split(":")[1]))
+            result.append(f"{vary.split(':')[0]}:{vary.split(':')[1]}")
     for age in base_header:
         if age == "age" or age == "Age":
-            result.append("{}:{}".format(age.split(":")[0], age.split(":")[1]))
+            result.append(f"{age.split(':')[0]}:{age.split(':')[1]}")
     for get_custom_header in base_header:
         if "Access" in get_custom_header:
-            result.append("{}:{}".format(get_custom_header.split(":")[0], get_custom_header.split(":")[1]))
+            result.append(f"{get_custom_header.split(':')[0]}:{get_custom_header.split(':')[1]}")
     for get_custom_host in base_header:
         if "host" in get_custom_header:
-            result.append("{}:{}".format(get_custom_host.split(":")[0], get_custom_host.split(":")[1]))
+            result.append(f"{get_custom_host.split(':')[0]}:{get_custom_host.split(':')[1]}")
     for r in result:
-        print(' └──  {cho:<30}'.format(cho=r))
+        print(f' └──  {r:<30}')
 
 
 def process_modules(url, s, a_tech):
@@ -142,16 +136,16 @@ def process_modules(url, s, a_tech):
         req_main = s.get(url, verify=False, allow_redirects=False, timeout=6, auth=authent)
         
         print("\033[34m⟙\033[0m")
-        print(" URL: {}".format(url))
-        print(" URL response: {}".format(req_main.status_code))
-        print(" URL response size: {} bytes".format(len(req_main.content)))
+        print(f" URL: {url}")
+        print(f" URL response: {req_main.status_code}")
+        print(f" URL response size: {len(req_main.content)} bytes")
         print("\033[34m⟘\033[0m")
         if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
             choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
             if choice not in ["y", "Y"]:
                 sys.exit()
         for k in req_main.headers:
-            base_header.append("{}: {}".format(k, req_main.headers[k]))
+            base_header.append(f"{k}: {req_main.headers[k]}")
 
         get_server_error(url, base_header, full, authent, url_file)
         check_vhost(domain, url)

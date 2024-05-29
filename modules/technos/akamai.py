@@ -1,12 +1,7 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-import sys
-import random
-import traceback
-
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+from modules.utils import *
 
 def akamai(url, s):
     """
@@ -37,8 +32,8 @@ def akamai(url, s):
             req = s.get(url, verify=False, headers=header, timeout=10)
             #print(req.headers)
             if pragma_list[pgl] in req.headers:
-                print("\033[36m   - {} | H:{}\033[0m".format(url, header))
-                print("   └── {}: {}".format(res, req.headers[res]))
+                print(f"\033[36m   - {url} | H:{header}\033[0m")
+                print(f"   └── {res}: {req.headers[res]}")
         except:
             pass
     cpdos_akamai(url, s)
@@ -68,7 +63,7 @@ def req_smuggling(url, s):
 
 def cpdos_akamai(url, s):
     headers = [{'"': "1"}, {"\\":"1"}]
-    url = "{}?aka_loop{}={}".format(url, random.randint(1, 100), random.randint(1, 100))
+    url = f"{url}?aka_loop{random.randint(1, 100)}={random.randint(1, 100)}"
     al_response = False
     for h in headers:
         try:
@@ -77,17 +72,17 @@ def cpdos_akamai(url, s):
                 for al in aka_loop.headers:
                     if "no-cache" not in [aka_loop.headers[r] for r in aka_loop.headers]:
                         if "HIT" in aka_loop.headers[al]:
-                            print("\033[33m └── INTERESTING BEHAVIOR\033[0m | Akamai Redirect Loop | \033[34m{}\033[0m | PAYLOAD: {}".format(url, header))
+                            print(f"\033[33m └── INTERESTING BEHAVIOR\033[0m | Akamai Redirect Loop | \033[34m{url}\033[0m | PAYLOAD: {header}")
                             al_response = True
             if al_response:
                 for x in range(10):
                     requests.get(url, headers=h, verify=False, timeout=10)
                 aka_verif = requests.get(url, verify=False, timeout=10)
                 if aka_verif.status_code == 400:
-                    print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | Akamai Redirect Loop | \033[34m{}\033[0m | PAYLOAD: {}".format(url, h))
+                    print(f"  \033[31m └── VULNERABILITY CONFIRMED\033[0m | Akamai Redirect Loop | \033[34m{url}\033[0m | PAYLOAD: {h}")
                     vuln_found_notify(url, h)
         except:
-            print(" └── Error with this payload please check manually with this header: {}".format(h))
+            print(f" └── Error with this payload please check manually with this header: {h}")
 
 
 if __name__ == '__main__':

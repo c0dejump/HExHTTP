@@ -6,17 +6,9 @@ Attempts to find Hop-By-Hop Header abuse
 https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
+from ..utils import *
+
 VULN_NAME = "Hop-By-Hop"
-
-import random
-import string
-import requests
-
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
-# Function to generate random string
-def generateCacheBuster(length=10):
-    return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
 
 # Function to make requests and compare responses
 def compareRequests(url, s, headers, resp1, params2, authent):
@@ -53,7 +45,7 @@ def HBH(url, s, authent):
         lines = f.read().split('\n')
         for header in lines:
             headers = {'Connection': f'keep-alive, {header}'}
-            params2 = {'cacheBuster': generateCacheBuster()}
+            params2 = {'cacheBuster': generate_cache_buster()}
             try:
                 resp2 = compareRequests(url, s, headers, resp1, params2, authent)
             

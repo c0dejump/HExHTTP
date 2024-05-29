@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
@@ -26,4 +26,4 @@ def cloudflare(url, s):
     if cf_loop in [301, 302, 303]:
         print(cf_loop.headers)
         if "CF-Cache-Status: HIT" in cf_loop.headers:
-            print("\033[32m   └──\033[0m Potential redirect loop exploit possible with \033[32m{}\033[0m payload".format(headers))
+            print(f"\033[32m   └──\033[0m Potential redirect loop exploit possible with \033[32m{headers}\033[0m payload")

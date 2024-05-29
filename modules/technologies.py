@@ -1,5 +1,6 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 from modules.technos.apache import apache
 from modules.technos.nginx import nginx
 from modules.technos.envoy import envoy
@@ -58,8 +59,3 @@ class technology:
     def vercel(self, url, s):
         print("\033[36m --├ Imperva analyse\033[0m")
         vercel(url, s)
-
-
-
-
-
