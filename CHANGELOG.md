@@ -1,6 +1,13 @@
 Changelog:
 ----------
 
+- 1.5.2
+---------
+	Updated:
+	- Add check on Akamai module
+	- fix hbh fp
+---------
+
 - 1.5.1
 ---------
 	Updated:

