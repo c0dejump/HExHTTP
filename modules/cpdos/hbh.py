@@ -36,7 +36,7 @@ def compareRequests(url, s, headers, resp1, params2, authent):
     return None
 
 # Function to test for cache poisoning
-def CachePoisoning(url, params2, resp1, resp2, authent, headers):
+def CachePoisoning(url, s, params2, resp1, resp2, authent, headers):
     try:
         resp3 = s.get(url, params=params2, auth=authent, allow_redirects=False, verify=False, timeout=10)
     except requests.exceptions.ConnectionError as e:
@@ -54,8 +54,10 @@ def HBH(url, s, authent):
         for header in lines:
             headers = {'Connection': f'keep-alive, {header}'}
             params2 = {'cacheBuster': generateCacheBuster()}
+            try:
+                resp2 = compareRequests(url, s, headers, resp1, params2, authent)
             
-            resp2 = compareRequests(url, s, headers, resp1, params2, authent)
-            
-            if resp2:
-                CachePoisoning(url, params2, resp1, resp2, authent, headers)
+                if resp2:
+                    CachePoisoning(url, s, params2, resp1, resp2, authent, headers)
+            except Exception as e:
+                print(f"Error : {e}")
