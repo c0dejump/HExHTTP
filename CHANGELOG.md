@@ -1,6 +1,14 @@
 Changelog:
 ----------
 
+- 1.5.4
+---------
+	Updated:
+	- New endpoints on headerfuzz, HMO, HMC & HMO module
+	- Fix of header argument missing in some functions
+	- Fix on CPDoS module, deleted old tests, reduce FP
+---------
+
 - 1.5.3
 ---------
 	Updated:

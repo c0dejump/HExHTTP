@@ -155,4 +155,6 @@ headersToFuzz = {
     "X-Requested-With": CANARY,
     "X-Content-Type-Options": CANARY,
     "X-Custom-Header": CANARY,
+    "X-Vhm-Root": CANARY,
+    "zTRANSFER-ENCODING": CANARY,
 }
