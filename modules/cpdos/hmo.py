@@ -25,5 +25,5 @@ def HMO(url, s, main_status_code, authent):
                     if req_verify_hmo.status_code == req_hmo.status_code and req_verify_hmo.status_code != main_status_code:
                         print("  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HMO DOS: {} | \033[34m{} > {}\033[0m | PAYLOAD: {}".format(url, main_status_code, req_verify_hmo.status_code, headers))
             except Exception as e:
-                #pass
-                print(f"Error : {e}")
+                pass
+                #print(f"Error : {e}")

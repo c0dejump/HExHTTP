@@ -47,4 +47,4 @@ def apache(url, s):
         x_req = s.get(url, headers=aph, verify=False, timeout=10)
         print(f"   └── {aph}{'→':^3} {x_req.status_code:>3} [{len(x_req.content)} bytes]")
         if "plop123" in x_req.text:
-            print(f"plop123 reflected in text with {aph} payload")
+            print(f"   └── plop123 reflected in text with {aph} payload")

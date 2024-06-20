@@ -109,6 +109,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like this 
 ### Based on
 - [YWH HTTP Header Exploitation](https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
 - [Cache Poisoning at Scale](https://youst.in/posts/cache-poisoning-at-scale/)
+- [abusing http hop-by-hop request headers](https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers)
 - [Web Cache Entanglement: Novel Pathways to Poisoning](https://portswigger.net/research/web-cache-entanglement)
 - [Practical Web Cache Poisoning](https://portswigger.net/research/practical-web-cache-poisoning)
 - [Exploiting cache design flaws](https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws)

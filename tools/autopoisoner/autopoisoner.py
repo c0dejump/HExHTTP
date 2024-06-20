@@ -15,8 +15,6 @@ from tools.autopoisoner.print_utils import *
 LOCK = threading.Lock()
 TIMEOUT_DELAY = 10
 
-# outputFile = open("output.txt", "w")
-
 CANARY = "ndvyepenbvtidpvyzh.com"
 CANARY_2 = "31337"
 
@@ -142,7 +140,7 @@ def port_poisoning_check(url, initialResponse, custom_header):
             potential_verbose_message("STATUS_CODE", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=custom_head, outputFile=outputFile,LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=custom_head, LOCK = LOCK)
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
                 if behavior:
@@ -153,7 +151,7 @@ def port_poisoning_check(url, initialResponse, custom_header):
             potential_verbose_message("LENGTH", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=custom_head, outputFile=outputFile, LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=custom_head, LOCK = LOCK)
 
         else:
             potential_verbose_message("UNSUCCESSFUL",  url)
@@ -205,7 +203,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
             potential_verbose_message("CANARY", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "REFLECTION", explicitCache, url, header=payload, outputFile=outputFile, LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "REFLECTION", explicitCache, url, header=payload, LOCK = LOCK)
 
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
@@ -218,7 +216,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
             potential_verbose_message("STATUS_CODE", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=payload, outputFile=outputFile,LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=payload,LOCK = LOCK)
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
                 if behavior:
@@ -229,7 +227,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
             potential_verbose_message("LENGTH", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=payload, outputFile=outputFile, LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=payload, LOCK = LOCK)
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
                 if behavior:

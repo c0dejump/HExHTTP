@@ -58,7 +58,7 @@ def req_smuggling(url, s):
     response = s.get(url, headers=headers, data=body, verify=False, timeout=10)
 
     if response.status_code > 500 and response.status_code != res_main.status_code:
-        print(f'   └── {url} [{res_main.status_code} > {response.status_code}]\n     └── H {headers}\n     └── B {body}')
+        print(f'  \033[31m └── VULNERABILITY CONFIRMED\033[0m | {url} [{res_main.status_code} > {response.status_code}]\n     └── H {headers}\n     └── B {body}')
 
 
 def cpdos_akamai(url, s):

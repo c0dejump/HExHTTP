@@ -1,6 +1,15 @@
 Changelog:
 ----------
 
+- 1.5.5
+---------
+	Updated:
+	- New endpoints on cache_error.py
+	- Fix display bugs
+	News:
+	- Vercel tests
+---------
+
 - 1.5.4
 ---------
 	Updated:

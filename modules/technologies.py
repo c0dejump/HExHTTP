@@ -57,5 +57,5 @@ class technology:
         imperva(url, s)
 
     def vercel(self, url, s):
-        print("\033[36m --├ Imperva analyse\033[0m")
+        print("\033[36m --├ Vercel analyse\033[0m")
         vercel(url, s)
