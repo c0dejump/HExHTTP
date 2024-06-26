@@ -157,4 +157,8 @@ headersToFuzz = {
     "X-Custom-Header": CANARY,
     "X-Vhm-Root": CANARY,
     "zTRANSFER-ENCODING": CANARY,
+    "Rsc": "1",
+    "Rsc": CANARY,
+    "x-invoke-status": "888",
+    "x-middleware-prefetch": "1",
 }

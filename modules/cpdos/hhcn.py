@@ -43,10 +43,10 @@ def HHCN(url, s, authent):
         req_verify = s.get(url, verify=False, timeout=10, auth=authent)
 
         if len(req_hhcn_bis.content) == len(req_verify.content):
-            print(f" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_len}b <> {len(req_hhcn_bis.content)}b | PAYLOAD: {headers}")
+            print(f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_len}b <> {len(req_hhcn_bis.content)}b | PAYLOAD: {headers}")
         else:
             if behavior:
-                print(f" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_len}b <> {req_hhcn_len}b | PAYLOAD: {headers}")
+                print(f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_len}b <> {req_hhcn_len}b | PAYLOAD: {headers}")
 
     if req_main.status_code != req_hhcn.status_code:
         for rf in req_hhcn.headers:
@@ -58,9 +58,9 @@ def HHCN(url, s, authent):
         req_verify = s.get(url, verify=False, timeout=10, auth=authent)
 
         if req_hhcn_bis.status_code == req_verify.status_code:
-            print(f" \033[31m└── VULNERABILITY CONFIRMED\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_main.status_code} <> {req_hhcn_bis.status_code} | PAYLOAD: {headers}")
+            print(f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_main.status_code} <> {req_hhcn_bis.status_code} | PAYLOAD: {headers}")
         else:
             if behavior:
-                print(f" \033[33m└── INTERESTING BEHAVIOR\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_main.status_code} <> {req_hhcn.status_code} | PAYLOAD: {headers}")
+                print(f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_main.status_code} <> {req_hhcn.status_code} | PAYLOAD: {headers}")
 
 

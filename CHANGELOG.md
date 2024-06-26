@@ -1,6 +1,13 @@
 Changelog:
 ----------
 
+- 1.5.6
+---------
+	Updated:
+	- News endpoints based on https://zhero-web-sec.github.io/research-and-things/nextjs-and-cache-poisoning-a-quest-for-the-black-hole
+	- Updated CPDoS with different response size
+---------
+
 - 1.5.5
 ---------
 	Updated:
