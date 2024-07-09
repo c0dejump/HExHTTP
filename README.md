@@ -1,5 +1,7 @@
 # HExHTTP
 
+![logo](./static/logo-v1.png)
+
 > HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors.
 
 <div align="center">

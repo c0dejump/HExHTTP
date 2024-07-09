@@ -171,6 +171,8 @@ def get_error(url, s, main_status_code, main_len, authent):
     {"Rsc": "xxx"},
     {"x-middleware-prefetch": "1"},
     ]
+
+    blocked = 0
     for pk in payload_keys:
         uri = f"{url}{random.randrange(999)}"
         try:
@@ -180,10 +182,16 @@ def get_error(url, s, main_status_code, main_len, authent):
             if req.status_code == 888:
                 print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError 888 response | CACHE: N/A | \033[34m{url}\033[0m | PAYLOAD: {pk}")
                 check_cached_status(uri, s, pk, main_status_code, authent)
-            elif req.status_code != 200 and main_status_code not in [403, 401] and req.status_code != main_status_code:
+            elif req.status_code == 403 or req.status_code == 429:
+                uri_403 = f"{url}{random.randrange(999)}"
+                req_403_test = requests.get(uri_403, verify=False, auth=authent, timeout=10, allow_redirects=False)
+                if req_403_test.status_code == 403 or req_403_test.status_code == 429:
+                    blocked += 1
+
+            elif blocked < 3 and req.status_code != 200 and main_status_code not in [403, 401] and req.status_code != main_status_code:
                 #print(f"[{main_status_code}>{req.status_code}] [{len(main_status_code.headers)}b>{len(req.headers)}b] [{len(main_status_code.content)}b>{len(req.content)}b] {url} :: {pk}")
                 check_cached_status(uri, s, pk, main_status_code, authent)
-            elif req.status_code == 200:
+            elif blocked < 3 and req.status_code == 200:
                 if len(str(main_len)) <= 5 and main_len not in range(len_req - 1000, len_req + 1000):
                     check_cached_len(uri, s, pk, main_len, authent)
                 elif len(str(main_len)) > 5 and main_len not in range(len_req - 5000, len_req + 5000):
