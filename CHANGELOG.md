@@ -1,6 +1,14 @@
 Changelog:
 ----------
 
+- 1.5.7
+---------
+	Updated:
+	- News endpoints for CPDoS
+	- fixed any bugs
+	- New banner
+---------
+
 - 1.5.6
 ---------
 	Updated:

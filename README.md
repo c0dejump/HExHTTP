@@ -118,6 +118,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like this 
 - [Responsible denial of service with web cache poisoning](https://portswigger.net/research/responsible-denial-of-service-with-web-cache-poisoning)
 - [CPDoS.org](https://cpdos.org/)
 - [Autopoisoner](https://github.com/Th0h0/autopoisoner)
+- [Rachid.A research] (https://zhero-web-sec.github.io/research-and-things/nextjs-and-cache-poisoning-a-quest-for-the-black-hole)
 
 ## Contributing
 

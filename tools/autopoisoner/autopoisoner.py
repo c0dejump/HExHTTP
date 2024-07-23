@@ -52,8 +52,8 @@ def canary_in_response(response : requests.Response):
 
 def crawl_files(URL, response : requests.Response):
     responseText = response.text
-    regexp1 = '(?<=src=")(\/[^\/].+?)(?=")'
-    regexp2 = '(?<=href=")(\/[^\/].+?)(?=")'
+    regexp1 = r'(?<=src=")(\/[^\/].+?)(?=")'
+    regexp2 = r'(?<=href=")(\/[^\/].+?)(?=")'
 
     filesURL = re.findall(regexp1, responseText)
     filesURL += re.findall(regexp2, responseText)
