@@ -13,6 +13,7 @@ VULN_NAME = "HTTP Metachar Character"
 def HMC(url, s, main_status_code, authent):
     chars = [r"\n", r"\a", r"\r", "\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07metahttptest"]
     for c in chars:
+        url = f"{url}{random.randrange(99)}"
         headers = {"X-Metachar-Header": c}
         req_hmc = s.get(url, headers=headers, timeout=10, verify=False, auth=authent, allow_redirects=False)
         if req_hmc.status_code in [400, 413, 500] and req_hmc.status_code != main_status_code:

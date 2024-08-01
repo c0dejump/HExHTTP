@@ -16,6 +16,7 @@ def HMO(url, s, main_status_code, authent):
     heads = ["HTTP-Method-Overrid", "X-HTTP-Method-Override", "X-Method-Override", "Method-Override", "X-HTTP-Method", "HTTP-Method"]
     
     for h in heads:
+        url = f"{url}{random.randrange(999)}"
         for m in methods:
             try:
                 headers = {h: m}

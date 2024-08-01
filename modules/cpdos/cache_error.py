@@ -8,6 +8,7 @@ https://cpdos.org/
 
 from ..utils import *
 
+
 def check_cached_status(url, s, pk, main_status_code, authent):
     behavior = False
     confirmed = False
@@ -18,7 +19,7 @@ def check_cached_status(url, s, pk, main_status_code, authent):
             req = s.get(url, headers=pk, verify=False, allow_redirects=False, auth=authent, timeout=10)
         req_verify = s.get(url, verify=False, allow_redirects=False, auth=authent, timeout=10)
         #print(f"{req.status_code} :: {req_verify.status_code}")
-        if req.status_code == req_verify.status_code and req.status_code not in [429, 200, 304, 303]:
+        if req.status_code == req_verify.status_code and req.status_code not in [429, 200, 304, 303] and req_verify.status_code != main_status_code:
             behavior = True
             for rh in req_verify.headers:
                 if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
@@ -42,8 +43,8 @@ def check_cached_status(url, s, pk, main_status_code, authent):
         elif behavior:
             print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
     except Exception as e:
-        pass
         #print(f"Error : {e}")
+        pass
 
 
 def check_cached_len(url, s, pk, main_len, authent):
@@ -56,7 +57,7 @@ def check_cached_len(url, s, pk, main_len, authent):
             req = s.get(url, headers=pk, verify=False, allow_redirects=False, auth=authent, timeout=10)
         req_verify = s.get(url, verify=False, allow_redirects=False, auth=authent, timeout=10)
         #print(f"{req.status_code} :: {req_verify.status_code}")
-        if len(req.content) == len(req_verify.content):
+        if len(req.content) == len(req_verify.content) and len(req_verify.content) != main_len:
             behavior = True
             for rh in req_verify.headers:
                 if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
@@ -86,6 +87,8 @@ def get_error(url, s, main_status_code, main_len, authent):
     {"xyz": "1"},
     {"(": "1"},
     {"/": "\\:\\"},
+    {'"': "1"}, 
+    {"\\":"1"},
     {"x-timer": "x"*500},
     {"X-Timer": "5000"},
     {"X-Requested-With": "SomeValue"},
@@ -176,7 +179,33 @@ def get_error(url, s, main_status_code, main_len, authent):
     {"Content-Type": "text/html; charset=invalid-charset", "Content-Encoding": "toto"},
     {"Content-Type": "application/json", "Content-Encoding": "gzip"},
     {"Content-Type": "application/octet-stream", "Content-Encoding": "deflate"},
-    {"Content-Encoding": "gzip, deflate"}
+    {"Content-Encoding": "gzip, deflate"},
+    {"Content-Language": "xxxx"},
+    {"Content-Location": "xxxx"},
+    {"Content-MD5 ; xxxx"},
+    {"Content-Security-Policy": "xxxx"},
+    {"Content-Security-Policy": "default-src 'self'; img-src 'self' data:"},
+    {"Content-Features": "foo=xxxx"},
+    {"Content-Base": "xxxx"},
+    {"Content-Transfer-Encoding": "xxxx"},
+    {"Content-Style-Type": "xxxx"},
+    {"Content-Script-Type": "xxxx"},
+    {"Content-Label": "xxxx"},
+    {"Content-Warning": "xxxx"},
+    {"Content-Rate": "xxxx"},
+    {"Content-Digest": "xxxx"},
+    {"xxxx":"缓"},
+    {"缓":"缓"},
+    {"X-Custom-Header-♥": "value"},
+    {"X-Custom-Header-@": "value"},
+    {"X-Custom-Header": "``"},
+    {"Range": "bytes=nobytes"},
+    {"Range": "bytes=-10"},
+    {"Range": "bytes=200-300,100-150"},
+    {"Range": "bytes=0-50,100-150"},
+    {"Range": "Range: bytes=10000000-200000000"},
+    {"Range": "bytes=500-400"},
+    {"Range": "bytes=7000-"},
     ]
 
     blocked = 0

@@ -1,6 +1,16 @@
 Changelog:
 ----------
 
+- 1.5.8
+---------
+	Updated:
+	- News endpoints for CPDoS
+	- fixed any bugs (cookie problems)
+	- Updated Akamai tests
+	Deleted:
+	- range_check.py (directly in cache_error tests)
+---------
+
 - 1.5.7
 ---------
 	Updated:

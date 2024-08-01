@@ -161,4 +161,5 @@ headersToFuzz = {
     "Rsc": CANARY,
     "x-invoke-status": "888",
     "x-middleware-prefetch": "1",
+    "Content-Warning": CANARY,
 }

