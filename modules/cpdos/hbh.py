@@ -39,10 +39,10 @@ def CachePoisoning(url, s, params2, resp1, resp2, authent, headers):
     if resp3.status_code == resp2.status_code and resp3.status_code != resp1.status_code and resp2.status_code != 429:
         print(f"  \033[31m └── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | DIFFERENT STATUS-CODE {resp1.status_code} > {resp3.status_code} | \033[34m{url}?cacheBuster={params2['cacheBuster']}\033[0m | PAYLOAD: Connection {headers['Connection']}")
 
-def HBH(url, s, main_status_code, authent):
+def HBH(url, s, req_main, main_len, main_status_code, authent):
     uri = f"{url}?cacheBuster={random.randint(1, 100)}"
 
-    resp1 = requests.get(uri, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, auth=authent, allow_redirects=False, verify=False, timeout=10)
+    resp1 = req_main
     
     with open("./modules/lists/lowercase-headers.lst", "r") as f:
         lines = f.read().split('\n')

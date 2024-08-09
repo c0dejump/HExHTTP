@@ -206,6 +206,20 @@ def get_error(url, s, main_status_code, main_len, authent):
     {"Range": "Range: bytes=10000000-200000000"},
     {"Range": "bytes=500-400"},
     {"Range": "bytes=7000-"},
+    {'Next-Router-State-Tree': '{"path":"/xxxx","params":{"id":"123"} }'},
+    {'Next-Router-Prefetch': 'maybe'},
+    {'Next-Url': '!@#$%^&*()'},
+    {"CF-Connecting-IP": "999.999.999.999"},
+    {"Fastly-FF": "enable_inexistent_feature"},
+    {"X-Accel-Redirect": "/invalid/path/to/resource"},
+    {"X-Akamai-Edge-Cache": "wrong-value"},
+    {"CF-Visitor": '{"scheme":http}'},
+    {"Surrogate-Control": "invalid-directive"},
+    {"X-Real-IP": "abc.def.ghi.jkl"},
+    {"X-Akamai-Request-ID": "some-invalid-id"},
+    {"CF-IPCountry": "XYZ"},
+    {"Fastly-Client-IP": "1234.567.89.0"},
+    {"X-Accel-Expires": "invalid-time"},
     ]
 
     blocked = 0
@@ -247,13 +261,14 @@ def get_error(url, s, main_status_code, main_len, authent):
 if __name__ == '__main__':
     url_file = sys.argv[1]
     s = requests.Session()
+    s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
     #get_error(url_file, s)
     with open(url_file, "r") as urls:
         urls = urls.read().splitlines()
         for url in urls:
             url = f"{url}?cb="
             try:
-                req_main = requests.get(url, verify=False, timeout=10, allow_redirects=False)
+                req_main = s.get(url, verify=False, timeout=10, allow_redirects=False)
                 main_len = len(req_main.content)
                 main_status_code = req_main.status_code
                 authent = False

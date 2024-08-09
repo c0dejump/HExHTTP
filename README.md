@@ -91,7 +91,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like this 
 - Vhosts checking
 - Methods response analysis
 - HTTP version analysis **[Experimental]**
-- CPDoS technique
+- CPDoS techniques
 - Web cache poisoning
 - Range poisoning/error (416 response error) **[Experimental]**
 - Cookie Reflection
@@ -100,10 +100,6 @@ You can test this tool on the Web Security Academy's vulnerable labs, like this 
 ## TODO
 
 - [ ] Try with mobile user-agent [IP]
-- [ ] https://youst.in/posts/cache-key-normalization-denial-of-service/ [IP]
-- [ ] HTTP error cache poisoning [IP]
-  - https://infosecwriteups.com/dos-via-cache-poisoning-38f3a87f997c
-  - https://hackerone.com/reports/1219038
 - [ ] Transfert-encoding tests (https://http.dev/transfer-encoding)
 - [ ] Filter False Positive on WAF blocking [IP]
 - [ ] Pypi package

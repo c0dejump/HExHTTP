@@ -133,7 +133,7 @@ def process_modules(url, s, a_tech):
     domain =  urlparse(url).netloc
 
     try:
-        req_main = s.get(url, verify=False, allow_redirects=False, timeout=6, auth=authent)
+        req_main = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
         
         print("\033[34m⟙\033[0m")
         print(f" URL: {url}")
@@ -160,6 +160,7 @@ def process_modules(url, s, a_tech):
         fuzz_x_header(url)
         check_cache_header(url, req_main)
     except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
         pass
         #print(f"Error in processing {url}: {e}")
 

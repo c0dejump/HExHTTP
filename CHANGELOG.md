@@ -1,6 +1,14 @@
 Changelog:
 ----------
 
+- 1.5.9
+---------
+	Updated:
+	- Fix hho & hmo modules
+	- update README screenshot
+	- Reduct FP
+---------
+
 - 1.5.8
 ---------
 	Updated:
