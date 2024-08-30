@@ -1,6 +1,15 @@
 Changelog:
 ----------
 
+- 1.6
+---------
+	Updated:
+	- New file "payloads_errors.py" which lets you directly add payloads for CPDoS, and currently offers more than 200 payloads with various technologies
+	- Check js/css url during the CPDoS check
+	- Reduct FP
+---------
+
+
 - 1.5.9
 ---------
 	Updated:

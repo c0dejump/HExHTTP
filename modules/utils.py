@@ -8,6 +8,7 @@ import sys
 import os
 import traceback
 import pprint
+import re
 from urllib.parse import urlparse
 from typing import Optional
 # Local imports

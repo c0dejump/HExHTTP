@@ -7,6 +7,7 @@ https://cpdos.org/
 """
 
 from ..utils import *
+from ..lists.payloads_errors import payloads_keys
 
 
 def check_cached_status(url, s, pk, main_status_code, authent):
@@ -19,7 +20,7 @@ def check_cached_status(url, s, pk, main_status_code, authent):
             req = s.get(url, headers=pk, verify=False, allow_redirects=False, auth=authent, timeout=10)
         req_verify = s.get(url, verify=False, allow_redirects=False, auth=authent, timeout=10)
         #print(f"{req.status_code} :: {req_verify.status_code}")
-        if req.status_code == req_verify.status_code and req.status_code not in [429, 200, 304, 303] and req_verify.status_code != main_status_code:
+        if req.status_code == req_verify.status_code and req.status_code not in [429, 200, 304, 303] or req_verify.status_code not in [429, 200, 304, 303] and req_verify.status_code != main_status_code:
             behavior = True
             for rh in req_verify.headers:
                 if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
@@ -28,7 +29,7 @@ def check_cached_status(url, s, pk, main_status_code, authent):
         elif req.status_code != req_verify.status_code and req.status_code == 304:
             for rh in req_verify.headers:
                 if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
-                    confirmed = True
+                    behavior = True
                     cache_status = True
         elif req.status_code != req_verify.status_code and req.status_code not in [429, 304]:
             for rh in req_verify.headers:
@@ -83,147 +84,8 @@ def check_cached_len(url, s, pk, main_len, authent):
 
 def get_error(url, s, main_status_code, main_len, authent):
 
-    payload_keys = [
-    {"xyz": "1"},
-    {"(": "1"},
-    {"/": "\\:\\"},
-    {'"': "1"}, 
-    {"\\":"1"},
-    {"x-timer": "x"*500},
-    {"X-Timer": "5000"},
-    {"X-Requested-With": "SomeValue"},
-    {"Authorization": "Bearer InvalidToken"},
-    {"Accept": "toto"},
-    {"Accept-Encoding": "toto"},
-    {"Accept-Encoding": "gzip;q=1.0, identity;q=0.5, *;q=0"},
-    {"Expect": "100-continue"},
-    {"If-None-Match": "etag123"},
-    {"If-None-Match": "*", "If-Match": "toto"},
-    {"If-None-Match": "<toto>"},
-    {"If-Match": "etag-value"},
-    {"Max-Forwards": "0"},
-    {"Max-Forwards": "foo"},
-    {"TE": "toto"},
-    {"Connection": "toto"},
-    {"Content-Encoding": "deflate"},
-    {"Upgrade": "toto"},
-    {"Proxy-Authorization": "Basic dXNlcjpwYXNzd29yZA=="},
-    {"Proxy-Authenticate": "Basic realm=xxxx"},
-    {"Via": "1.1 proxy.example.com"},
-    {"DNT": "1"},
-    {"Content-Disposition": "invalid_value"},
-    {"Warning": "199 - Invalid Warning"},
-    {"Trailer": "invalid_header"},
-    {"Referer": "xy"},
-    {"Referer": "xy", "Referer": "x"},
-    {"Content-Length":"394616521189"},
-    {"Content-Length": "-1"},
-    {"Transfer-Encoding": "chunked"},
-    {"Transfer-Encoding": "compress"},
-    {"Transfer-Encoding": "gzip, chunked"},
-    {"Content-Type": "application/invalid-type"},
-    {"Retry-After":"-1"},
-    {"Retry-After":"foo"},
-    {"Retry-After":"1200"},
-    {"X-RateLimit-Limit": "1000"},
-    {"X-RateLimit-Remaining": "500"},
-    {"X-RateLimit-Reset": "1581382800"},
-    {"X-Requested-With": "foo"},
-    {"X-Content-Type-Options": "foo"},
-    {"TE": "teapot"},
-    {"TE": "foo"},
-    {"X-CF-APP-INSTANCE": "xxx:1"},
-    {"X-CF-APP-INSTANCE":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1"},
-    {"X_FORWARDED_PROTO", "nohhtps"},
-    {"Cache-Control": "no-cache"},
-    {"If-Modified-Since": "Wed, 21 Oct 2015 07:28:00 GMT"},
-    {"Accept-Language": "xx"},
-    {"Origin": "https://unauthorized-origin.com"},
-    {"From": "user@example.com"},
-    {"Pragme": "toto"},
-    {"Accept-Charset": "Accept-Charset: utf-8, iso-8859-1;q=0.5"},
-    {"DPR": "2.0"},
-    {"Save-Data": "on"},
-    {"Sec-Fetch-Mode": "toto"},
-    {"Sec-Fetch-Site": "toto"},
-    {"Sec-Fetch-User": "toto"},
-    {"Timing-Allow-Origin": "*"},
-    {"Content-DPR": "1.0"},
-    {"Early-Data": "1"},
-    {"NEL": "toto"},
-    {"Reporting-Endpoints": "toto"},
-    {"Feature-Policy", "camera 'none'; microphone 'none'"},
-    {"Clear-Site-Dat": "cache"},
-    {"Expect-CT": "max-age=604800, enforce"},
-    {"Access-Control-Request-Method": "POST"},
-    {"Access-Control-Request-Headers": "X-Custom-Header"},
-    {"Upgrade-Insecure-Requests": "1"},
-    {"Front-End-Https": "toto"},
-    {"Surrogate-Control": "no-store"},
-    {"X-Robots-Tag": "noindex"},
-    {"Service-Worker-Allowed": "/"},
-    {"Cross-Origin-Embedder-Policy": "require-corp"},
-    {"Cross-Origin-Opener-Policy": "same-origin"},
-    {"Cross-Origin-Resource-Policy": "same-origin"},
-    {"Server-Timing": "miss, db;dur=53, app;dur=47.2"},
-    {"x-invoke-status": "888"},
-    {"x-invoke-status": "404"},
-    {"x-invoke-status": "xxx"},
-    {"Rsc": "1"},
-    {"Rsc": "xxx"},
-    {"x-middleware-prefetch": "1"},
-    {"Content-Encoding": "toto"},
-    {"Content-Type": "text/html; charset=utf-16"},
-    {"Content-Type": "text/html; charset=utf-32"},
-    {"Content-Type": "text/html; charset=invalid-charset"},
-    {"Content-Type": "text/html; charset=invalid-charset", "Content-Encoding": "toto"},
-    {"Content-Type": "application/json", "Content-Encoding": "gzip"},
-    {"Content-Type": "application/octet-stream", "Content-Encoding": "deflate"},
-    {"Content-Encoding": "gzip, deflate"},
-    {"Content-Language": "xxxx"},
-    {"Content-Location": "xxxx"},
-    {"Content-MD5 ; xxxx"},
-    {"Content-Security-Policy": "xxxx"},
-    {"Content-Security-Policy": "default-src 'self'; img-src 'self' data:"},
-    {"Content-Features": "foo=xxxx"},
-    {"Content-Base": "xxxx"},
-    {"Content-Transfer-Encoding": "xxxx"},
-    {"Content-Style-Type": "xxxx"},
-    {"Content-Script-Type": "xxxx"},
-    {"Content-Label": "xxxx"},
-    {"Content-Warning": "xxxx"},
-    {"Content-Rate": "xxxx"},
-    {"Content-Digest": "xxxx"},
-    {"xxxx":"缓"},
-    {"缓":"缓"},
-    {"X-Custom-Header-♥": "value"},
-    {"X-Custom-Header-@": "value"},
-    {"X-Custom-Header": "``"},
-    {"Range": "bytes=nobytes"},
-    {"Range": "bytes=-10"},
-    {"Range": "bytes=200-300,100-150"},
-    {"Range": "bytes=0-50,100-150"},
-    {"Range": "Range: bytes=10000000-200000000"},
-    {"Range": "bytes=500-400"},
-    {"Range": "bytes=7000-"},
-    {'Next-Router-State-Tree': '{"path":"/xxxx","params":{"id":"123"} }'},
-    {'Next-Router-Prefetch': 'maybe'},
-    {'Next-Url': '!@#$%^&*()'},
-    {"CF-Connecting-IP": "999.999.999.999"},
-    {"Fastly-FF": "enable_inexistent_feature"},
-    {"X-Accel-Redirect": "/invalid/path/to/resource"},
-    {"X-Akamai-Edge-Cache": "wrong-value"},
-    {"CF-Visitor": '{"scheme":http}'},
-    {"Surrogate-Control": "invalid-directive"},
-    {"X-Real-IP": "abc.def.ghi.jkl"},
-    {"X-Akamai-Request-ID": "some-invalid-id"},
-    {"CF-IPCountry": "XYZ"},
-    {"Fastly-Client-IP": "1234.567.89.0"},
-    {"X-Accel-Expires": "invalid-time"},
-    ]
-
     blocked = 0
-    for pk in payload_keys:
+    for pk in payloads_keys:
         uri = f"{url}{random.randrange(999)}"
         try:
             req = s.get(uri, headers=pk, verify=False, auth=authent, timeout=10, allow_redirects=False)

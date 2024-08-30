@@ -162,4 +162,8 @@ headersToFuzz = {
     "x-invoke-status": "888",
     "x-middleware-prefetch": "1",
     "Content-Warning": CANARY,
+    "x-amz-notification-configuration": CANARY,
+    "Access-Control-Request-Method": CANARY,
+    "Content-Location": CANARY,
+    "CF-Device-Type": CANARY,
 }

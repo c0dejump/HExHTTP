@@ -71,8 +71,6 @@ options:
 
 ### Exemple 1
 ![example 1](./static/example_1.png)
-
-### Exemple 2 
 ![example 2](./static/example_2.png)
 
 ### Exemple with a confirmed Cache Poisoning vulnerabity

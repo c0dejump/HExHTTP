@@ -39,6 +39,9 @@ def HHCN(url, s, authent):
                 behavior = "DIFFERENT RESPONSE LENGTH"
                 for x in range(0, 10):
                     req_hhcn_bis = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
+                    #print(req_hhcn_bis)
+            else:
+                req_hhcn_bis = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
 
         req_verify = s.get(url, verify=False, timeout=10, auth=authent)
 
@@ -54,6 +57,8 @@ def HHCN(url, s, authent):
                 behavior = "DIFFERENT STATUS-CODE"
                 for x in range(0, 10):
                     req_hhcn_bis = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
+            else:
+                req_hhcn_bis = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
 
         req_verify = s.get(url, verify=False, timeout=10, auth=authent)
 
