@@ -24,7 +24,7 @@ def crawl_files(url, s, req_main, domain, custom_header, authent):
         for fu in filesURL:
             if "<" not in fu[0]:
                 if len(url.split("/")) > 4:
-                    url = f"{"/".join(url.split("/")[:3])}/"
+                    url = f"{'/'.join(url.split('/')[:3])}/"
                 uri = f"{url}{fu[0]}"
                 if uri.startswith('https://'):
                     uri = f"https://{uri[8:].replace('//', '/')}"
