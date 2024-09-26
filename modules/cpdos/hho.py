@@ -26,9 +26,9 @@ def HHO(url, s, main_status_code, authent):
             #print(req_hho.status_code)
             #print(h)
             if req_hho.status_code in [400, 413, 500, 502] and req_hho.status_code != main_status_code:
-                print(h)
-                print(url)
-                print(req_hho.status_code)
+                #print(h)
+                #print(url)
+                #print(req_hho.status_code)
                 #print(req_hho.headers)
                 i = 50
                 cpdos_win = True

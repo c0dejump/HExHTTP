@@ -1,6 +1,12 @@
 Changelog:
 ----------
 
+- 1.6.1
+---------
+	Updated:
+	- News payload error endpoints (+400)
+---------
+
 - 1.6
 ---------
 	Updated:
