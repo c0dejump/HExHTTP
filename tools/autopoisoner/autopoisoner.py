@@ -211,16 +211,32 @@ def headers_poisoning_check(url, initialResponse, custom_header):
                     behavior_or_confirmed_message(uri, "BEHAVIOR", "REFLECTION", explicitCache, url, header=payload)
 
         elif response.status_code != initialResponse.status_code and response.status_code != 429:
-            status_codes = f"{initialResponse.status_code} → {response.status_code}"
-            findingState = 1
-            potential_verbose_message("STATUS_CODE", url)
-            if vulnerability_confirmed(response, url, randNum, buster, custom_header):
-                findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=payload,LOCK = LOCK)
-            else:
-                potential_verbose_message("UNSUCCESSFUL", url)
-                if behavior:
-                    behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=payload)
+            if response.status_code == 403:
+                req = requests.get(url, allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY, headers=custom_header)
+                if req.status_code != 403:
+                    status_codes = f"{initialResponse.status_code} → {response.status_code}"
+                    findingState = 1
+                    potential_verbose_message("STATUS_CODE", url)
+                    if vulnerability_confirmed(response, url, randNum, buster, custom_header):
+                        findingState = 2
+                        behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=payload,LOCK = LOCK)
+                    else:
+                        potential_verbose_message("UNSUCCESSFUL", url)
+                        if behavior:
+                            behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=payload)
+                else:
+                    pass
+            else:        
+                status_codes = f"{initialResponse.status_code} → {response.status_code}"
+                findingState = 1
+                potential_verbose_message("STATUS_CODE", url)
+                if vulnerability_confirmed(response, url, randNum, buster, custom_header):
+                    findingState = 2
+                    behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=payload,LOCK = LOCK)
+                else:
+                    potential_verbose_message("UNSUCCESSFUL", url)
+                    if behavior:
+                        behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=payload)
 
         elif abs(len(response.text) - len(initialResponse.text)) > 0.85 * len(initialResponse.text):
             findingState = 1

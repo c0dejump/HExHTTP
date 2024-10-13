@@ -108,6 +108,9 @@ def get_error(url, s, main_status_code, main_len, authent):
                     check_cached_len(uri, s, pk, main_len, authent)
                 elif len(str(main_len)) > 5 and main_len not in range(len_req - 10000, len_req + 10000):
                     check_cached_len(uri, s, pk, main_len, authent)
+            if len(list(pk.values())[0]) < 50:
+                sys.stdout.write(f"\033[34m {pk}\033[0m\r")
+                sys.stdout.write("\033[K")
         except requests.Timeout:
             #print(f"request timeout {url} {p}")
             pass

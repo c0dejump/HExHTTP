@@ -1,6 +1,14 @@
 Changelog:
 ----------
 
+- 1.6.2
+---------
+	Updated:
+	- News payload error endpoints (+500)
+	- CPDoS live tracking
+	- Fixed and reducted FP
+---------
+
 - 1.6.1
 ---------
 	Updated:

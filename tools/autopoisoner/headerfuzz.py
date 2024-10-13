@@ -189,4 +189,7 @@ headersToFuzz = {
     "X-Wix-Shard-ID": CANARY,
     "X-TYPO3-Domain": CANARY,
     "X-TYPO3-Sitename": CANARY,
+    "X-Tengine-Forwarded-For": CANARY,
+    "X-Tengine-Request-ID": CANARY,
+    "Etag": CANARY,
 }

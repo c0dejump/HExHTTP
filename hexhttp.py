@@ -35,7 +35,7 @@ except:
 
 # Arguments
 def args():
-    parser = argparse.ArgumentParser(description="HExHTTP is a tool designed to perform tests on HTTP headers.\n v1.6.1 ")
+    parser = argparse.ArgumentParser(description="HExHTTP is a tool designed to perform tests on HTTP headers.\n v1.6.2 ")
 
     parser.add_argument("-u", "--url", dest='url', help="URL to test \033[31m[required]\033[0m")
     parser.add_argument("-f", "--file", dest='url_file', help="File of URLs", required=False)
