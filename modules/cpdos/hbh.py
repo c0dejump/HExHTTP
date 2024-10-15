@@ -28,10 +28,10 @@ def CachePoisoning(url, s, params2, resp1, resp2, authent, headers):
         pass
         #print(f"Error : {e}")
     
-    if resp3.status_code == resp2.status_code and resp3.status_code != resp1.status_code and resp2.status_code != 429:
+    if resp3.status_code == resp2.status_code and resp3.status_code != resp1.status_code and resp3.status_code != 429:
         print(f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | \033[34m{url}?cacheBuster={params2['cacheBuster']}\033[0m | DIFFERENT STATUS-CODE {resp1.status_code} > {resp3.status_code} | PAYLOAD: Connection: {headers['Connection']}")
-    if len(resp3.content) == len(resp2.content) and len(resp3.content) != len(resp1.content):
-        print(f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | \033[34m{url}?cacheBuster={params2['cacheBuster']}\033[0m | DIFFERENT RESPONSE LENGTH {resp1.status_code} > {resp3.status_code} | PAYLOAD: Connection: {headers['Connection']}")
+    if len(resp3.content) == len(resp2.content) and len(resp3.content) != len(resp1.content) and resp3.status_code != 429:
+        print(f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | \033[34m{url}?cacheBuster={params2['cacheBuster']}\033[0m | DIFFERENT RESPONSE LENGTH {len(resp1.content)}b > {len(resp3.content)}b | PAYLOAD: Connection: {headers['Connection']}")
 
 
 def HBH(url, s, req_main, main_len, main_status_code, authent):
