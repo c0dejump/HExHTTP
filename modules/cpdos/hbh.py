@@ -1,4 +1,4 @@
-#!/usr/bin/python3 
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 """
@@ -6,76 +6,151 @@ Attempts to find Hop-By-Hop Header abuse
 https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
-from ..utils import *
+from modules.utils import logging, requests, generate_cache_buster
+
+logger = logging.getLogger(__name__)
 
 VULN_NAME = "Hop-By-Hop"
 
-# Function to make requests and compare responses
-def compareRequests(url, s, headers, resp1, params2, authent):
+CONTENT_DELTA_RANGE = 1000
+MAX_SAMPLE_STATUS = 3
+MAX_SAMPLE_CONTENT = 3
+
+
+def cache_poisoning(
+    url, s, parameters, response_1, response_2, authentication, headers
+):
+    """Function to test for cache poisoning"""
+
     try:
-        resp2 = s.get(url, headers=headers, params=params2, auth=authent, allow_redirects=False, verify=False, timeout=10)
-        return resp2
+        response_3 = s.get(
+            url,
+            params=parameters,
+            auth=authentication,
+            allow_redirects=False,
+            verify=False,
+            timeout=10,
+        )
     except requests.exceptions.ConnectionError as e:
-        #print(f"Error : {e}")
-        return None
+        logger.exception(e)
+
+    reason = ""
+    if (
+        response_3.status_code == response_2.status_code
+        and response_3.status_code != response_1.status_code
+        and response_3.status_code != 429
+    ):
+        reason = (
+            f"DIFFERENT STATUS-CODE {response_1.status_code} > {response_3.status_code}"
+        )
+    if (
+        response_3
+        and response_3.content
+        and len(response_3.content) == len(response_2.content)
+        and len(response_3.content) != len(response_1.content)
+        and response_3.status_code != 429
+    ):
+        reason = f"DIFFERENT RESPONSE LENGTH {len(response_1.content)}b > {len(response_3.content)}b"
+
+    if reason:
+        payload = f"Connection: {headers['Connection']}"
+        print(
+            f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {reason} | PAYLOAD: {payload}"
+        )
 
 
-# Function to test for cache poisoning
-def CachePoisoning(url, s, params2, resp1, resp2, authent, headers):
-    try:
-        resp3 = s.get(url, params=params2, auth=authent, allow_redirects=False, verify=False, timeout=10)
-    except requests.exceptions.ConnectionError as e:
-        pass
-        #print(f"Error : {e}")
-    
-    if resp3.status_code == resp2.status_code and resp3.status_code != resp1.status_code and resp2.status_code != 429:
-        print(f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | \033[34m{url}?cacheBuster={params2['cacheBuster']}\033[0m | DIFFERENT STATUS-CODE {resp1.status_code} > {resp3.status_code} | PAYLOAD: Connection: {headers['Connection']}")
-    if len(resp3.content) == len(resp2.content) and len(resp3.content) != len(resp1.content):
-        print(f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | \033[34m{url}?cacheBuster={params2['cacheBuster']}\033[0m | DIFFERENT RESPONSE LENGTH {resp1.status_code} > {resp3.status_code} | PAYLOAD: Connection: {headers['Connection']}")
+def hop_by_hop(
+    url,
+    s,
+    initial_response,
+    authent,
+    content_delta_range=CONTENT_DELTA_RANGE,
+    max_sample_status=MAX_SAMPLE_STATUS,
+    max_sample_content=MAX_SAMPLE_CONTENT,
+):
+    """Function to test for Hop by Hop vulnerabilities"""
 
+    response_1 = initial_response
 
-def HBH(url, s, req_main, main_len, main_status_code, authent):
-    uri = f"{url}?cacheBuster={random.randint(1, 100)}"
+    response_2_previous_status = 0
+    response_2_count_status_code = 0
 
-    resp1 = req_main
-    resp2_stat = 0
-    resp2_count_code = 0
+    response_2_previous_size = 0
+    response_2_count_size = 0
 
-    resp2_size = 0
-    resp2_count_size = 0
-    
-    with open("./modules/lists/lowercase-headers.lst", "r") as f:
-        lines = f.read().split('\n')
+    with open("./modules/lists/lowercase-headers.lst", "r", encoding="utf-8") as f:
+        lines = f.read().split("\n")
         for header in lines:
-            headers = {'Connection': f'keep-alive, {header}'}
-            params2 = {'cacheBuster': generate_cache_buster()}
+            headers = {"Connection": f"keep-alive, {header}"}
+            parameters = {"cacheBuster": generate_cache_buster()}
             try:
-                resp2 = compareRequests(url, s, headers, resp1, params2, authent)
-                #print(f"return: {resp2}") #DEBUG
-                #print(resp2_stat) #DEBUG
+                response_2 = s.get(
+                    url,
+                    headers=headers,
+                    params=parameters,
+                    auth=authent,
+                    allow_redirects=False,
+                    verify=False,
+                    timeout=10,
+                )
+                # print(f"return: {response_2}") #DEBUG
+                # print(response_2_stat) #DEBUG
 
-                if resp2.status_code != resp2_stat and resp2.status_code != resp1.status_code:
-                    resp2_stat = resp2.status_code
-                    resp2_count_code = 0
+                if response_2.status_code not in (
+                    response_2_previous_status,
+                    response_1.status_code,
+                ):
+                    response_2_previous_status = response_2.status_code
+                    response_2_count_status_code = 0
                 else:
-                    resp2_count_code += 1
+                    response_2_count_status_code += 1
 
-                if len(resp2.content) != resp2_size and len(resp2.content) != 0:
-                    resp2_size = len(resp2.content)
-                    resp2_count_size = 0
+                # print(response_2_count_status_code)
+
+                if (
+                    len(response_2.content) != response_2_previous_size
+                    and len(response_2.content) != 0
+                ):
+                    response_2_previous_size = len(response_2.content)
+                    response_2_count_size = 0
                 else:
-                    resp2_count_size += 1
+                    response_2_count_size += 1
 
-                if resp1.status_code != resp2.status_code and resp2.status_code not in [429, 403] and resp1.status_code not in [301, 302, 429, 403] and resp2_count_code < 3:
-                    behavior = "DIFFERENT STATUS-CODE"
-                    print(f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | {VULN_NAME} | \033[34m{url}?cacheBuster={params2['cacheBuster']}\033[0m | {behavior} {resp1.status_code} > {resp2.status_code} | PAYLOAD: Connection: {headers['Connection']}")
-                    CachePoisoning(url, s, params2, resp1, resp2, authent, headers)
-                if len(resp1.content) not in range(len(resp2.content) - 1000, len(resp2.content) + 1000) and resp2.status_code not in [429, 403] and resp1.status_code not in [301, 302, 429, 403] and resp2_count_size < 3:
-                    behavior = "DIFFERENT RESPONSE LENGTH"
-                    print(f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | {VULN_NAME} | \033[34m{url}?cacheBuster={params2['cacheBuster']}\033[0m | {behavior} {len(resp1.content)}b > {len(resp2.content)}b | PAYLOAD: Connection: {headers['Connection']}")
-                    CachePoisoning(url, s, params2, resp1, resp2, authent, headers)
+                behavior = ""
+                if (
+                    response_1.status_code != response_2.status_code
+                    and response_2.status_code not in [429, 403]
+                    and response_1.status_code not in [301, 302, 429, 403]
+                    and response_2_count_status_code < max_sample_status
+                ):
+                    behavior = f"DIFFERENT STATUS-CODE  {response_1.status_code} > {response_2.status_code}"
+
+                if (
+                    len(response_1.content)
+                    not in range(
+                        len(response_2.content) - content_delta_range,
+                        len(response_2.content) + content_delta_range,
+                    )
+                    and response_2.status_code not in [429, 403]
+                    and response_1.status_code not in [301, 302, 429, 403]
+                    and response_2_count_size < max_sample_content
+                ):
+                    behavior = f"DIFFERENT RESPONSE LENGTH  {len(response_1.content)}b > {len(response_2.content)}b"
+
+                if behavior:
+                    payload = f"Connection: {headers['Connection']}"
+                    print(
+                        f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {payload}"
+                    )
+                    cache_poisoning(
+                        url, s, parameters, response_1, response_2, authent, headers
+                    )
+
+            except requests.exceptions.ConnectionError as e:
+                logger.exception(e)
+
             except Exception as e:
-                pass
-                #print(f"Error : {e}")
-            sys.stdout.write(f"\033[34m {headers}\033[0m\r")
-            sys.stdout.write("\033[K")
+                logger.exception(e)
+
+            print(f" \033[34m {headers}\033[0m\r", end="")
+            print("\033[K", end="")
