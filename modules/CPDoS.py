@@ -8,7 +8,7 @@ from modules.cpdos.hho import HHO
 from modules.cpdos.hmc import HMC
 from modules.cpdos.hmo import HMO
 from modules.cpdos.hhcn import HHCN
-from modules.cpdos.hbh import HBH
+from modules.cpdos.hbh import hop_by_hop
 
 def crawl_files(url, s, req_main, domain, custom_header, authent):
     try:
@@ -53,7 +53,7 @@ def run_cpdos_modules(url, s, req_main, domain, custom_header, authent):
         HMC(uri, s, main_status_code, authent)
         HMO(uri, s, main_len, main_status_code, authent)
         HHCN(uri, s, authent)
-        HBH(url, s, req_main, main_len, main_status_code, authent)
+        hop_by_hop(url, s, req_main, authent)
         get_error(uri, s, main_status_code, main_len, authent)
         #waf_rules(url, s, main_status_code, authent)
     except KeyboardInterrupt:
