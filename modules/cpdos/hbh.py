@@ -68,7 +68,7 @@ def hop_by_hop(
     max_sample_status=MAX_SAMPLE_STATUS,
     max_sample_content=MAX_SAMPLE_CONTENT,
 ):
-    """Function to test for cache poisoning"""
+    """Function to test for Hop by Hop vulnerabilities"""
 
     response_1 = initial_response
 
