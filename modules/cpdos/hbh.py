@@ -59,7 +59,7 @@ def cache_poisoning(
         )
 
 
-def hop_by_hop(
+def HBH(
     url,
     s,
     initial_response,
