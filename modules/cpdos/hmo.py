@@ -6,38 +6,85 @@ Attempts to find Cache Poisoning with HTTP Method Override (HMO)
 https://cpdos.org/#HMO
 """
 
-from ..utils import * 
+from modules.utils import requests, random, logging
+
+logger = logging.getLogger(__name__)
 
 VULN_NAME = "HTTP Method Override"
 
-def HMO(url, s, main_len, main_status_code, authent):
-    #HTTP Method Overcide
+CONTENT_DELTA_RANGE = 1000
+
+
+def HMO(url, s, initial_response, authent):
+    """Function to test for HTTP Method Override vulnerabilities"""
+
     methods = ["POST", "PUT", "HELP", "DELETE"]
-    heads = ["HTTP-Method-Overrid", "X-HTTP-Method-Override", "X-Method-Override", "Method-Override", "X-HTTP-Method", "HTTP-Method"]
-    
-    for h in heads:
-        for m in methods:
-            uri = f"{url}{random.randrange(999)}"
-            try:
-                headers = {h: m}
-                req_hmo = s.get(uri, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
-                if req_hmo.status_code != main_status_code:
-                    #print(f"{main_status_code} : {req_hmo.status_code}")
-                    for x in range(15):
-                        req_hmo = s.get(uri, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
-                    req_verify_hmo = s.get(uri, verify=False, timeout=10, auth=authent)
+    hmo_headers = [
+        "HTTP-Method-Overrid",
+        "X-HTTP-Method-Override",
+        "X-Method-Override",
+        "Method-Override",
+        "X-HTTP-Method",
+        "HTTP-Method",
+    ]
 
-                    if req_verify_hmo.status_code == req_hmo.status_code and req_verify_hmo.status_code != main_status_code and req_verify_hmo.status_code != 429:
-                        print("  \033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMO DOS: {} | \033[34m{} > {}\033[0m | PAYLOAD: {}".format(uri, main_status_code, req_hmo.status_code, headers))
-                elif len(req_hmo.content) not in range(main_len - 1000, main_len + 1000):
-                    #print(f"{len(req_hmo.content)} : {main_len} ")
-                    for x in range(15):
-                        req_hmo = s.get(uri, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
-                    req_verify_hmo = s.get(uri, verify=False, timeout=10, auth=authent)
+    main_status_code = initial_response.status_code
+    main_len = len(initial_response.content)
 
-                    if len(req_hmo.content) == len(req_verify_hmo.content):
-                        print("  \033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMO DOS: {} | \033[34m{}b > {}b\033[0m | PAYLOAD: {}".format(uri, main_len, len(req_hmo.content), headers))
-            except Exception as e:
-                #print(f"Error : {e}")
-                pass
-            uri = url
+    for header, method in (
+        (header, method) for header in hmo_headers for method in methods
+    ):
+        uri = f"{url}{random.randrange(999)}"
+        try:
+            probe_headers = {header: method}
+            probe = s.get(
+                uri,
+                headers=probe_headers,
+                verify=False,
+                timeout=10,
+                auth=authent,
+                allow_redirects=False,
+            )
+
+            if probe.status_code == main_status_code and len(probe.content) in range(
+                main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE
+            ):
+                continue
+
+            for _ in range(15):
+                probe = s.get(
+                    uri,
+                    headers=probe_headers,
+                    verify=False,
+                    timeout=10,
+                    auth=authent,
+                    allow_redirects=False,
+                )
+            control = s.get(uri, verify=False, timeout=10, auth=authent)
+
+            reason = ""
+            if control.status_code == probe.status_code and control.status_code != [
+                main_status_code,
+                429,
+            ]:
+                reason = (
+                    f"DIFFERENT STATUS-CODE {main_status_code} > {control.status_code}"
+                )
+
+            if len(control.content) == len(probe.content):
+                reason = (
+                    f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(control.content)}b"
+                )
+
+            if reason:
+                print(
+                    f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMO DOS: {uri} | \033[34m{reason}\033[0m | PAYLOAD: {probe_headers}"
+                )
+
+            print(f" \033[34m {VULN_NAME} : {probe_headers}\033[0m\r", end="")
+            print("\033[K", end="")
+
+        except requests.exceptions.ConnectionError as e:
+            logger.exception(e)
+        except Exception as e:
+            logger.exception(e)
