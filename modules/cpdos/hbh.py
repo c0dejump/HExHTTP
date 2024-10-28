@@ -32,7 +32,8 @@ def cache_poisoning(
             timeout=10,
         )
     except requests.exceptions.ConnectionError as e:
-        logger.exception(e)
+        pass
+        #nlogger.exception(e)
 
     reason = ""
     if (
@@ -147,10 +148,12 @@ def HBH(
                     )
 
             except requests.exceptions.ConnectionError as e:
-                logger.exception(e)
+                pass
+                #logger.exception(e)
 
             except Exception as e:
-                logger.exception(e)
+                pass
+                #logger.exception(e)
 
             print(f" \033[34m {headers}\033[0m\r", end="")
             print("\033[K", end="")

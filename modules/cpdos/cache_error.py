@@ -44,7 +44,7 @@ def check_cached_status(url, s, pk, main_status_code, authent):
         elif behavior:
             print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
     except Exception as e:
-        #print(f"Error : {e}")
+        #print(f"Error 2 {pk}: {e}")
         pass
 
 
@@ -79,13 +79,14 @@ def check_cached_len(url, s, pk, main_len, authent):
         elif behavior:
             print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
     except Exception as e:
-        #print(f"Error : {e}")
+        #print(f"Error 3{pk} : {e}")
         pass
 
 def get_error(url, s, main_status_code, main_len, authent):
 
     blocked = 0
     for pk in payloads_keys:
+        #pk = pk.encode(encoding='UTF-8')
         uri = f"{url}{random.randrange(999)}"
         try:
             req = s.get(uri, headers=pk, verify=False, auth=authent, timeout=10, allow_redirects=False)
@@ -118,7 +119,7 @@ def get_error(url, s, main_status_code, main_len, authent):
             print("Exiting")
             sys.exit()
         except Exception as e:
-            #print(f"Error : {e}")
+            #print(f"Error 1 {pk}: {e}")
             pass
         uri = url
 

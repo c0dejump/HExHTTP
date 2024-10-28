@@ -1,6 +1,14 @@
 Changelog:
 ----------
 
+- 1.6.3
+---------
+	Updated:
+	- News payload error endpoints (+600)
+	- Fixed errors and FP
+	- big start of refacto/lint from @Kharaone 
+---------
+
 - 1.6.2
 ---------
 	Updated:

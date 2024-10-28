@@ -24,6 +24,7 @@ headersToFuzz = {
     "X-Forwarded-Port": "31337",
     "X-Forwarded-Timeout": "120",
     "X-Frame-Options": "DENY",
+    "Cookie": CANARY,
     "X-Forwarded-User": CANARY,
     "x-forwarded-host": CANARY,
     "X-Forwarded-URI": CANARY,
