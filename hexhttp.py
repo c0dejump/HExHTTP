@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+import sys
 import argparse
 import re
-import requests
 
 from modules.utils import *
 from modules.check_localhost import check_localhost
@@ -15,12 +14,12 @@ from modules.cache_poisoning_files import check_cache_files
 from modules.cookie_reflection import check_cookie_reflection
 from modules.http_version import check_http_version
 from modules.vhosts import check_vhost
-from modules.transfer_encodings import check_response 
+
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
-try:
+if sys.version_info[0] < 3:
     from Queue import Queue
-except:
+else:
     import queue as Queue
 
 import threading
@@ -34,19 +33,68 @@ except:
 # DEBUG completed_tasks = 0
 # DEBUG lock = threading.Lock()
 
+
 # Arguments
 def args():
-    parser = argparse.ArgumentParser(description="HExHTTP is a tool designed to perform tests on HTTP headers.\n v1.6.2 ")
+    parser = argparse.ArgumentParser(
+        description="HExHTTP is a tool designed to perform tests on HTTP headers.\n v1.6.2 "
+    )
 
-    parser.add_argument("-u", "--url", dest='url', help="URL to test \033[31m[required]\033[0m")
-    parser.add_argument("-f", "--file", dest='url_file', help="File of URLs", required=False)
-    parser.add_argument("-H", "--header", dest='custom_header', help="Add a custom HTTP Header", required=False)
-    parser.add_argument("-A", "--user-agent", dest='user_agent', help="Add a custom User Agent", required=False)
-    parser.add_argument("-F", "--full", dest='full', help="Display the full HTTP Header", required=False, action='store_true')
-    parser.add_argument("-a", "--auth", dest="auth", help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m", required=False)
-    parser.add_argument("-b", "--behavior", dest='behavior', help="Activates a simplified version of verbose, highlighting interesting cache behaviors", required=False, action='store_true') 
-    parser.add_argument("-t", "--threads", dest="threads", help="Threads numbers for multiple URLs. \033[32mDefault: 10\033[0m", type=int, default=10, required=False)
-    parser.add_argument( "-te", "--transfer-encoding", nargs="*", help="Run transfer encoding checks")
+    parser.add_argument(
+        "-u", "--url", dest="url", help="URL to test \033[31m[required]\033[0m"
+    )
+    parser.add_argument(
+        "-f", "--file", dest="url_file", help="File of URLs", required=False
+    )
+    parser.add_argument(
+        "-H",
+        "--header",
+        dest="custom_header",
+        help="Add a custom HTTP Header",
+        required=False,
+    )
+    parser.add_argument(
+        "-A",
+        "--user-agent",
+        dest="user_agent",
+        help="Add a custom User Agent",
+        required=False,
+    )
+    parser.add_argument(
+        "-F",
+        "--full",
+        dest="full",
+        help="Display the full HTTP Header",
+        required=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-a",
+        "--auth",
+        dest="auth",
+        help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m",
+        required=False,
+    )
+    parser.add_argument(
+        "-b",
+        "--behavior",
+        dest="behavior",
+        help="Activates a simplified version of verbose, highlighting interesting cache behaviors",
+        required=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-t",
+        "--threads",
+        dest="threads",
+        help="Threads numbers for multiple URLs. \033[32mDefault: 10\033[0m",
+        type=int,
+        default=10,
+        required=False,
+    )
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
     return parser.parse_args()
 
@@ -66,7 +114,7 @@ def get_technos(a_tech, req_main, url, s):
         "fastly": ["fastly"],
         "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"],
         "vercel": ["vercel"],
-        #"cloudfoundry": ["cf-app"]
+        # "cloudfoundry": ["cf-app"]
     }
 
     for t in technos:
@@ -74,7 +122,11 @@ def get_technos(a_tech, req_main, url, s):
         for v in technos[t]:
             for rt in req_main.headers:
                 # case-insensitive comparison
-                if v.lower() in req_main.text.lower() or v.lower() in req_main.headers[rt].lower() or v.lower() in rt.lower():
+                if (
+                    v.lower() in req_main.text.lower()
+                    or v.lower() in req_main.headers[rt].lower()
+                    or v.lower() in rt.lower()
+                ):
                     tech_hit = t
         if tech_hit:
             techno_result = getattr(a_tech, tech_hit)(url, s)
@@ -89,9 +141,10 @@ def bf_hidden_header(url):
     """
     print("")
 
+
 def fuzz_x_header(url):
     """
-    When fuzzing for custom X-Headers on a target, a setup example as below can be combined with a dictionary/bruteforce attack. This makes it possible to extract hidden headers that the target uses. 
+    When fuzzing for custom X-Headers on a target, a setup example as below can be combined with a dictionary/bruteforce attack. This makes it possible to extract hidden headers that the target uses.
         X-Forwarded-{FUZZ}
         X-Original-{FUZZ}
         X-{COMPANY_NAME}-{FUZZ}
@@ -99,7 +152,9 @@ def fuzz_x_header(url):
     #TODO
     """
     print("\033[36m ├ X-FUZZ analyse\033[0m")
-    f_header = {"Forwarded":"for=example.com;host=example.com;proto=https, for=example.com"}
+    f_header = {
+        "Forwarded": "for=example.com;host=example.com;proto=https, for=example.com"
+    }
     try:
         req_f = requests.get(url, headers=f_header, timeout=10, verify=False)
         if req_f.status_code == 500:
@@ -107,9 +162,10 @@ def fuzz_x_header(url):
     except Exception as e:
         print(f"Error : {e}")
 
+
 def check_cache_header(url, req_main):
     print("\033[36m ├ Header cache\033[0m")
-    #basic_header = ["Content-Type", "Content-Length", "Date", "Content-Security-Policy", "Alt-Svc", "Etag", "Referrer-Policy", "X-Dns-Prefetch-Control", "X-Permitted-Cross-Domain-Policies"]
+    # basic_header = ["Content-Type", "Content-Length", "Date", "Content-Security-Policy", "Alt-Svc", "Etag", "Referrer-Policy", "X-Dns-Prefetch-Control", "X-Permitted-Cross-Domain-Policies"]
 
     result = []
     for headi in base_header:
@@ -123,27 +179,35 @@ def check_cache_header(url, req_main):
             result.append(f"{age.split(':')[0]}:{age.split(':')[1]}")
     for get_custom_header in base_header:
         if "Access" in get_custom_header:
-            result.append(f"{get_custom_header.split(':')[0]}:{get_custom_header.split(':')[1]}")
+            result.append(
+                f"{get_custom_header.split(':')[0]}:{get_custom_header.split(':')[1]}"
+            )
     for get_custom_host in base_header:
         if "host" in get_custom_header:
-            result.append(f"{get_custom_host.split(':')[0]}:{get_custom_host.split(':')[1]}")
+            result.append(
+                f"{get_custom_host.split(':')[0]}:{get_custom_host.split(':')[1]}"
+            )
     for r in result:
-        print(f' └──  {r:<30}')
+        print(f" └──  {r:<30}")
 
 
 def process_modules(url, s, a_tech):
-    domain =  urlparse(url).netloc
+    domain = urlparse(url).netloc
 
     try:
-        req_main = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
-        
+        req_main = s.get(
+            url, verify=False, allow_redirects=False, timeout=10, auth=authent
+        )
+
         print("\033[34m⟙\033[0m")
         print(f" URL: {url}")
         print(f" URL response: {req_main.status_code}")
         print(f" URL response size: {len(req_main.content)} bytes")
         print("\033[34m⟘\033[0m")
         if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
-            choice = input(" \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]")
+            choice = input(
+                " \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]"
+            )
             if choice not in ["y", "Y"]:
                 sys.exit()
         for k in req_main.headers:
@@ -161,15 +225,11 @@ def process_modules(url, s, a_tech):
         techno = get_technos(a_tech, req_main, url, s)
         fuzz_x_header(url)
         check_cache_header(url, req_main)
-
-
-        if results.transfer_encoding:
-            check_response(url,s,req_main)
-            
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
         pass
-        #print(f"Error in processing {url}: {e}")
+        # print(f"Error in processing {url}: {e}")
+
 
 def main(urli, s):
     global base_header
@@ -216,7 +276,7 @@ def main(urli, s):
             print(f"Error : {e}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # Parse arguments
     results = args()
@@ -232,59 +292,52 @@ if __name__ == '__main__':
 
     global authent
 
-    try: 
+    try:
         if auth:
             try:
                 authent = (auth.split(":")[0], auth.split(":")[1])
-                r = requests.get(url, allow_redirects=False, verify=False, auth=authent, timeout=10)
+                r = requests.get(
+                    url, allow_redirects=False, verify=False, auth=authent, timeout=10
+                )
                 if r.status_code in [200, 302, 301]:
                     print("\n+ Authentication successfull\n")
                 else:
                     print("\nAuthentication error")
-                    continue_error = input("The authentication seems bad, continue ? [y/N]")
+                    continue_error = input(
+                        "The authentication seems bad, continue ? [y/N]"
+                    )
                     if continue_error not in ["y", "Y"]:
                         print("Exiting")
                         sys.exit()
             except Exception as e:
-                print("Error, the authentication format need to be \"user:pass\"")
+                print('Error, the authentication format need to be "user:pass"')
                 sys.exit()
         else:
             authent = False
 
         s = requests.Session()
         if user_agent:
-            s.headers.update({'User-agent': user_agent})
-        else: 
-            s.headers.update({'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'})
+            s.headers.update({"User-agent": user_agent})
+        else:
+            s.headers.update(
+                {
+                    "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
+                }
+            )
 
         if custom_header:
             try:
-                custom_header = custom_header.replace(" ","")
+                custom_header = custom_header.replace(" ", "")
                 custom_header = {
-                    custom_header.split(":")[0]:custom_header.split(":")[1]
+                    custom_header.split(":")[0]: custom_header.split(":")[1]
                 }
                 s.headers.update(custom_header)
             except Exception as e:
                 print(e)
-                print("Error, HTTP Header format need to be \"foo:bar\"")
+                print('Error, HTTP Header format need to be "foo:bar"')
                 sys.exit()
 
         s.max_redirects = 60
-        # for transfer encoding
-        if hasattr(results, 'transfer_encoding') and results.transfer_encoding:
-           print(f"Transfer Encoding specified: {results.transfer_encoding}")
-           headers = {"Transfer-Encoding": ", ".join(results.transfer_encoding)}
-
-        try:
-            response = requests.get(results.url, headers=headers)
-            response.raise_for_status()
-            print(f"URL: {results.url}")
-            print(f"URL response: {response.status_code}")
-            print(f"Response headers: {response.headers}") 
-
-        except requests.exceptions.RequestException as e:
-            print(f"Request failed: {e}")
-
 
         if url_file and threads != 1337:
             with open(url_file, "r") as urls:
@@ -323,7 +376,7 @@ if __name__ == '__main__':
         print("Error, cannot connect to target")
     except requests.Timeout:
         print("Error, request timeout (10s)")
-    except requests.exceptions.MissingSchema: 
+    except requests.exceptions.MissingSchema:
         print("Error, missing http:// or https:// schema")
     except Exception as e:
         print(f"Error : {e}")
