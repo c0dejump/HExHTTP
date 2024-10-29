@@ -3,6 +3,7 @@
 
 import argparse
 import re
+import requests
 
 from modules.utils import *
 from modules.check_localhost import check_localhost
@@ -14,7 +15,7 @@ from modules.cache_poisoning_files import check_cache_files
 from modules.cookie_reflection import check_cookie_reflection
 from modules.http_version import check_http_version
 from modules.vhosts import check_vhost
-
+from modules.transfer_encodings import check_response 
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
 try:
@@ -30,8 +31,8 @@ try:
 except:
     enclosure_queue = Queue.Queue()
 
-#DEBUG completed_tasks = 0
-#DEBUG lock = threading.Lock()
+# DEBUG completed_tasks = 0
+# DEBUG lock = threading.Lock()
 
 # Arguments
 def args():
@@ -45,6 +46,7 @@ def args():
     parser.add_argument("-a", "--auth", dest="auth", help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m", required=False)
     parser.add_argument("-b", "--behavior", dest='behavior', help="Activates a simplified version of verbose, highlighting interesting cache behaviors", required=False, action='store_true') 
     parser.add_argument("-t", "--threads", dest="threads", help="Threads numbers for multiple URLs. \033[32mDefault: 10\033[0m", type=int, default=10, required=False)
+    parser.add_argument( "-te", "--transfer-encoding", nargs="*", help="Run transfer encoding checks")
 
     return parser.parse_args()
 
@@ -159,17 +161,21 @@ def process_modules(url, s, a_tech):
         techno = get_technos(a_tech, req_main, url, s)
         fuzz_x_header(url)
         check_cache_header(url, req_main)
+
+
+        if results.transfer_encoding:
+            check_response(url,s,req_main)
+            
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
         pass
         #print(f"Error in processing {url}: {e}")
 
-
 def main(urli, s):
     global base_header
     base_header = []
 
-    #DEBUG global completed_tasks
+    # DEBUG global completed_tasks
 
     a_tech = technology()
 
@@ -180,9 +186,9 @@ def main(urli, s):
 
                 url = urli.get()
                 process_modules(url, s, a_tech)
-                #with lock: #Debug
-                    #completed_tasks += 1
-                    #print(f"Tâches terminées : {completed_tasks}")
+                # with lock: #Debug
+                # completed_tasks += 1
+                # print(f"Tâches terminées : {completed_tasks}")
                 q.task_done()
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
@@ -190,7 +196,7 @@ def main(urli, s):
             sys.exit()
         except Exception as e:
             pass
-            #print(f"Error : {e}")
+            # print(f"Error : {e}")
             q.task_done()
     elif url_file and threads == 1337:
         try:
@@ -212,7 +218,7 @@ def main(urli, s):
 
 if __name__ == '__main__':
 
-    # Parse arguments                                 
+    # Parse arguments
     results = args()
 
     url = results.url
@@ -264,6 +270,21 @@ if __name__ == '__main__':
                 sys.exit()
 
         s.max_redirects = 60
+        # for transfer encoding
+        if hasattr(results, 'transfer_encoding') and results.transfer_encoding:
+           print(f"Transfer Encoding specified: {results.transfer_encoding}")
+           headers = {"Transfer-Encoding": ", ".join(results.transfer_encoding)}
+
+        try:
+            response = requests.get(results.url, headers=headers)
+            response.raise_for_status()
+            print(f"URL: {results.url}")
+            print(f"URL response: {response.status_code}")
+            print(f"Response headers: {response.headers}") 
+
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+
 
         if url_file and threads != 1337:
             with open(url_file, "r") as urls:
@@ -307,4 +328,4 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Error : {e}")
     print("")
-    #print("Scan finish")
+    # print("Scan finish")
