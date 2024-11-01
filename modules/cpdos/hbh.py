@@ -6,9 +6,9 @@ Attempts to find Hop-By-Hop Header abuse
 https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
-from modules.utils import logging, requests, generate_cache_buster
+from modules.utils import requests, generate_cache_buster, configure_logger
 
-logger = logging.getLogger(__name__)
+logger = configure_logger(__name__)
 
 VULN_NAME = "Hop-By-Hop"
 
@@ -22,18 +22,14 @@ def cache_poisoning(
 ):
     """Function to test for cache poisoning"""
 
-    try:
-        response_3 = s.get(
-            url,
-            params=parameters,
-            auth=authentication,
-            allow_redirects=False,
-            verify=False,
-            timeout=10,
-        )
-    except requests.exceptions.ConnectionError as e:
-        pass
-        #nlogger.exception(e)
+    response_3 = s.get(
+        url,
+        params=parameters,
+        auth=authentication,
+        allow_redirects=False,
+        verify=False,
+        timeout=10,
+    )
 
     reason = ""
     if (
@@ -94,8 +90,8 @@ def HBH(
                     verify=False,
                     timeout=10,
                 )
-                # print(f"return: {response_2}") #DEBUG
-                # print(response_2_stat) #DEBUG
+                logger.debug("return: %s", response_2) #DEBUG
+                logger.debug(response_2_previous_status) #DEBUG
 
                 if response_2.status_code not in (
                     response_2_previous_status,
@@ -106,7 +102,7 @@ def HBH(
                 else:
                     response_2_count_status_code += 1
 
-                # print(response_2_count_status_code)
+                logger.debug(response_2_count_status_code)
 
                 if (
                     len(response_2.content) != response_2_previous_size
@@ -148,12 +144,7 @@ def HBH(
                     )
 
             except requests.exceptions.ConnectionError as e:
-                pass
-                #logger.exception(e)
-
-            except Exception as e:
-                pass
-                #logger.exception(e)
+                logger.exception(e)
 
             print(f" \033[34m {headers}\033[0m\r", end="")
             print("\033[K", end="")

