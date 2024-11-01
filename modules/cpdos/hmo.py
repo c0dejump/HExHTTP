@@ -6,9 +6,9 @@ Attempts to find Cache Poisoning with HTTP Method Override (HMO)
 https://cpdos.org/#HMO
 """
 
-from modules.utils import requests, random, logging
+from modules.utils import requests, random, configure_logger
 
-logger = logging.getLogger(__name__)
+logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Method Override"
 
@@ -85,8 +85,4 @@ def HMO(url, s, initial_response, authent):
             print("\033[K", end="")
 
         except requests.exceptions.ConnectionError as e:
-            #logger.exception(e)
-            pass
-        except Exception as e:
-            #logger.exception(e)
-            pass
+            logger.exception(e)
