@@ -37,7 +37,7 @@ except:
 # Arguments
 def args():
     parser = argparse.ArgumentParser(
-        description="HExHTTP is a tool designed to perform tests on HTTP headers.\n v1.6.2 "
+        description="HExHTTP is a tool designed to perform tests on HTTP headers.\n v1.6.3 "
     )
 
     parser.add_argument(
@@ -133,15 +133,6 @@ def get_technos(a_tech, req_main, url, s):
             tech_hit = False
 
 
-def bf_hidden_header(url):
-    """
-    Check if hidden header used by website
-    (https://webtechsurvey.com/common-response-headers)
-    #TODO
-    """
-    print("")
-
-
 def fuzz_x_header(url):
     """
     When fuzzing for custom X-Headers on a target, a setup example as below can be combined with a dictionary/bruteforce attack. This makes it possible to extract hidden headers that the target uses.
@@ -151,16 +142,6 @@ def fuzz_x_header(url):
     (https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
     #TODO
     """
-    print("\033[36m ├ X-FUZZ analyse\033[0m")
-    f_header = {
-        "Forwarded": "for=example.com;host=example.com;proto=https, for=example.com"
-    }
-    try:
-        req_f = requests.get(url, headers=f_header, timeout=10, verify=False)
-        if req_f.status_code == 500:
-            print(f" └──  Header {f_header} return 500 error")
-    except Exception as e:
-        print(f"Error : {e}")
 
 
 def check_cache_header(url, req_main):
@@ -223,7 +204,7 @@ def process_modules(url, s, a_tech):
         check_cache_files(url, custom_header, authent)
         check_cookie_reflection(url, custom_header, authent)
         techno = get_technos(a_tech, req_main, url, s)
-        fuzz_x_header(url)
+        #fuzz_x_header(url) #TODO
         check_cache_header(url, req_main)
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
