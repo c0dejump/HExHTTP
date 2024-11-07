@@ -5,6 +5,7 @@ import argparse
 import re
 
 from modules.utils import *
+from modules.logging_config import valid_log_level, configure_logging
 from modules.check_localhost import check_localhost
 from modules.server_error import get_server_error
 from modules.methods import check_methods
@@ -37,15 +38,20 @@ except:
 def args():
     parser = argparse.ArgumentParser(description="HExHTTP is a tool designed to perform tests on HTTP headers.\n v1.6.2 ")
 
-    parser.add_argument("-u", "--url", dest='url', help="URL to test \033[31m[required]\033[0m")
-    parser.add_argument("-f", "--file", dest='url_file', help="File of URLs", required=False)
-    parser.add_argument("-H", "--header", dest='custom_header', help="Add a custom HTTP Header", required=False)
-    parser.add_argument("-A", "--user-agent", dest='user_agent', help="Add a custom User Agent", required=False)
-    parser.add_argument("-F", "--full", dest='full', help="Display the full HTTP Header", required=False, action='store_true')
-    parser.add_argument("-a", "--auth", dest="auth", help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m", required=False)
-    parser.add_argument("-b", "--behavior", dest='behavior', help="Activates a simplified version of verbose, highlighting interesting cache behaviors", required=False, action='store_true') 
-    parser.add_argument("-t", "--threads", dest="threads", help="Threads numbers for multiple URLs. \033[32mDefault: 10\033[0m", type=int, default=10, required=False)
-
+    parser.add_argument(
+        "-l",
+        "--log",
+        type=valid_log_level,
+        default="WARNING",
+        help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase verbosity (can be used multiple times)",
+    )
     return parser.parse_args()
 
 
@@ -223,6 +229,13 @@ if __name__ == '__main__':
     auth = results.auth
     user_agent = results.user_agent
     threads = results.threads
+
+    if results.verbose:
+        log_level = max(logging.DEBUG, logging.WARNING - results.verbose * 10)
+    else:
+        log_level = results.log
+
+    configure_logging(log_level)
 
     global authent
 

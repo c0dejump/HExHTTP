@@ -6,12 +6,16 @@ Attempts to find Cache Poisoning with Host Header Case Normalization (HHCN)
 https://youst.in/posts/cache-key-normalization-denial-of-service/
 """
 
-from ..utils import *
+from modules.utils import logging, random, urlparse
+
+logger = logging.getLogger(__name__)
 
 VULN_NAME = "Host Header Case Normalization"
 
 def HHCN(url, s, authent):
     behavior = False
+
+    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
 
     # replace min char by maj char in the domain
     domain = urlparse(url).netloc

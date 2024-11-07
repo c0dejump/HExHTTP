@@ -8,12 +8,14 @@ https://cpdos.org/#HMC
 
 from modules.utils import logging, random
 
-VULN_NAME = "HTTP Meta Character"
-
 logger = logging.getLogger(__name__)
+
+VULN_NAME = "HTTP Meta Character"
 
 def check_meta_character(url, s, main_status_code, authent, meta_character):
     """Probe and Verify the server for a meta character vulnerability"""
+
+    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
 
     url = f"{url}{random.randrange(99)}"
     headers = {"X-Metachar-Header": meta_character}

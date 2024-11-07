@@ -6,11 +6,16 @@ Attempts to find Cache Poisoning with HTTP Header Oversize (HHO)
 https://cpdos.org/#HHO
 """
 
-from ..utils import * 
+from modules.utils import logging
+
+logger = logging.getLogger(__name__)
 
 VULN_NAME = "HTTP Header Oversize"
 
 def HHO(url, s, main_status_code, authent):
+
+    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
+
     cpdos_win = False
     max_i = 50
     i = 0

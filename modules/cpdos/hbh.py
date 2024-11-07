@@ -32,8 +32,7 @@ def cache_poisoning(
             timeout=10,
         )
     except requests.exceptions.ConnectionError as e:
-        pass
-        #nlogger.exception(e)
+        logger.exception(e)
 
     reason = ""
     if (
@@ -70,6 +69,8 @@ def HBH(
     max_sample_content=MAX_SAMPLE_CONTENT,
 ):
     """Function to test for Hop by Hop vulnerabilities"""
+
+    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
 
     response_1 = initial_response
 
@@ -148,12 +149,8 @@ def HBH(
                     )
 
             except requests.exceptions.ConnectionError as e:
-                pass
-                #logger.exception(e)
+                logger.exception(e)
 
-            except Exception as e:
-                pass
-                #logger.exception(e)
 
             print(f" \033[34m {headers}\033[0m\r", end="")
             print("\033[K", end="")
