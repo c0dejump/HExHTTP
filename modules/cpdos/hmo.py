@@ -18,7 +18,20 @@ CONTENT_DELTA_RANGE = 1000
 def HMO(url, s, initial_response, authent):
     """Function to test for HTTP Method Override vulnerabilities"""
 
-    methods = ["POST", "PUT", "HELP", "DELETE"]
+    methods = [
+        "GET"
+        "POST",
+        "PATCH",
+        "PUT",
+        "DELETE",
+        "HEAD",
+        "TRACE",
+        "HELP",
+        "OPTIONS",
+        "CONNECT",
+        "NONSENSE",
+    ]
+
     hmo_headers = [
         "HTTP-Method-Overrid",
         "X-HTTP-Method-Override",
