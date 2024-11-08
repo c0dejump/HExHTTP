@@ -24,6 +24,7 @@ else:
 
 import threading
 from threading import Thread
+from static.banner import print_banner
 
 try:
     enclosure_queue = Queue()
@@ -37,7 +38,7 @@ except:
 # Arguments
 def args():
     parser = argparse.ArgumentParser(
-        description="HExHTTP is a tool designed to perform tests on HTTP headers.\n v1.6.3 "
+        description=print_banner()
     )
 
     parser.add_argument(
@@ -92,6 +93,7 @@ def args():
         default=10,
         required=False,
     )
+
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
