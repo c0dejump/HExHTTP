@@ -101,6 +101,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like this 
 - [ ] Filter False Positive on WAF blocking [WIP]
 - [ ] Code Linting & Optimization [WIP]
 - [ ] Pypi package
+- [ ] Human scan (slower scan + random timeout)
 
 ### Based on
 - [YWH HTTP Header Exploitation](https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)

@@ -12,14 +12,14 @@ logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Method Override"
 
-CONTENT_DELTA_RANGE = 1000
+CONTENT_DELTA_RANGE = 500
 
 
 def HMO(url, s, initial_response, authent):
     """Function to test for HTTP Method Override vulnerabilities"""
 
     methods = [
-        "GET"
+        "GET",
         "POST",
         "PATCH",
         "PUT",
@@ -76,7 +76,7 @@ def HMO(url, s, initial_response, authent):
             control = s.get(uri, verify=False, timeout=10, auth=authent)
 
             reason = ""
-            if control.status_code == probe.status_code and control.status_code != [
+            if control.status_code == probe.status_code and control.status_code not in [
                 main_status_code,
                 429,
             ]:
@@ -84,7 +84,7 @@ def HMO(url, s, initial_response, authent):
                     f"DIFFERENT STATUS-CODE {main_status_code} > {control.status_code}"
                 )
 
-            if len(control.content) == len(probe.content):
+            if len(control.content) == len(probe.content) and len(probe.content) not in range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE):
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(control.content)}b"
                 )
