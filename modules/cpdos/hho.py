@@ -23,24 +23,33 @@ def HHO(url, s, main_status_code, authent):
     while i < max_i:
         big_value = big_value + "0" * 50
         h = {f"X-Oversized-Header-{i}": f"{big_value}"}
-        logger.debug(h)
+
         try:
             req_hho = s.get(
                 url, headers=h, auth=authent, allow_redirects=False, timeout=10
             )
-            logger.debug(req_hho.status_code)
-            logger.debug(h)
+            logger.debug(
+                "STATUS (%s)\nHeaders :(%s)",
+                req_hho.status_code,
+                h,
+            )
             if (
                 req_hho.status_code in [400, 413, 500, 502]
                 and req_hho.status_code != main_status_code
             ):
-                logger.debug(h)
-                logger.debug(url)
-                logger.debug(req_hho.status_code)
-                logger.debug(req_hho.headers)
+                logger.debug(
+                    "CPDOS : URL (%s) STATUS (%s)\nHeaders :(%s)",
+                    url,
+                    req_hho.status_code,
+                    req_hho.headers,
+                )
                 i = 50
                 cpdos_win = True
             i += 1
+
+            print(f" \033[34m {VULN_NAME} : X-Oversized-Header-{i}\033[0m\r", end="")
+            print("\033[K", end="")
+
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)
 
