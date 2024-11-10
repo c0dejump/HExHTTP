@@ -97,10 +97,11 @@ You can test this tool on the Web Security Academy's vulnerable labs, like this 
 
 ## TODO
 
-- [ ] Try with mobile user-agent [IP]
-- [ ] Transfert-encoding tests (https://http.dev/transfer-encoding)
-- [ ] Filter False Positive on WAF blocking [IP]
+- [ ] Try with mobile user-agent [WIP]
+- [ ] Filter False Positive on WAF blocking [WIP]
+- [ ] Code Linting & Optimization [WIP]
 - [ ] Pypi package
+- [ ] Human scan (slower scan + random timeout)
 
 ### Based on
 - [YWH HTTP Header Exploitation](https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)

@@ -5,8 +5,10 @@
 Checks if web page content is different between IP address and Host 
 """
 
-from modules.utils import *
 import socket
+from modules.utils import requests, configure_logger
+
+logger = configure_logger(__name__)
 
 def check_vhost(domain, url):
     print("\033[36m ├ Vhosts misconfiguration \033[0m")
@@ -23,9 +25,7 @@ def check_vhost(domain, url):
                 if req_ip.status_code not in [404, 403, 425, 503, 500, 400] and len(req_ip.content) not in range(len_index - 50, len_index + 50):
                     retrieve_ip = True
                     print(f" └── \033[32m\u251c\033[0m {url} [{len_index}b] <> {ip} [{len(req_ip.content)}b] ")
-            except:
-                #print(f" \033[33m\u251c\033[0m The host IP have a problem, check it manualy please: {ip} ")
-                pass
-    except:
-        #traceback.print_exc()
-        pass
+            except (requests.RequestException, socket.gaierror) as e:
+                logger.exception("The host IP has a problem, check it manually please: %s. Exception: %s", ip, e)
+    except (requests.RequestException, socket.gaierror) as e:
+        logger.exception("Exception occurred: %s", e)

@@ -6,9 +6,9 @@ Attempts to find Cache Poisoning with HTTP Metachar Character (HMC)
 https://cpdos.org/#HMC
 """
 
-from modules.utils import logging, random
+from modules.utils import random, requests, configure_logger
 
-logger = logging.getLogger(__name__)
+logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Meta Character"
 
@@ -29,10 +29,7 @@ def check_meta_character(url, s, main_status_code, authent, meta_character):
     )
 
     reason = ""
-    if (
-        probe.status_code in [400, 413, 500]
-        and probe.status_code != main_status_code
-    ):
+    if probe.status_code in [400, 413, 500] and probe.status_code != main_status_code:
         control = s.get(url, verify=False, timeout=10, auth=authent)
         if (
             control.status_code == probe.status_code
@@ -62,7 +59,14 @@ def HMC(url, s, main_status_code, authent):
         "\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07metahttptest",
     ]
     for meta_character in meta_characters:
-        check_meta_character(url, s, main_status_code, authent, meta_character)
+        try:
+            check_meta_character(url, s, main_status_code, authent, meta_character)
 
-        print(f" \033[34m {VULN_NAME} : {meta_character.encode(encoding='UTF-8')}\033[0m\r", end="")
+        except requests.exceptions.ConnectionError as e:
+            logger.exception(e)
+
+        print(
+            f" \033[34m {VULN_NAME} : {meta_character.encode(encoding='UTF-8')}\033[0m\r",
+            end="",
+        )
         print("\033[K", end="")
