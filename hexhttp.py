@@ -35,7 +35,6 @@ except:
 # DEBUG completed_tasks = 0
 # DEBUG lock = threading.Lock()
 
-
 def args():
     """
     Parses command-line arguments and returns them.
@@ -141,6 +140,7 @@ def args():
         default=0,
         help="Increase verbosity (can be used multiple times)",
     )
+
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -192,6 +192,7 @@ def fuzz_x_header(url):
     #TODO
     """
     pass
+
 
 
 def check_cache_header(url, req_main):

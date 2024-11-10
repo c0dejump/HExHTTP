@@ -43,6 +43,7 @@ def check_meta_character(url, s, main_status_code, authent, meta_character):
             f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMC | {url} | {reason} | {payload}"
         )
 
+
 def HMC(url, s, main_status_code, authent):
     """Prepare the list of meta characters to check for"""
 

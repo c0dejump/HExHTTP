@@ -12,6 +12,7 @@ logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Header Oversize"
 
+
 def HHO(url, s, main_status_code, authent):
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
@@ -30,11 +31,13 @@ def HHO(url, s, main_status_code, authent):
             req_hho = s.get(
                 url, headers=h, auth=authent, allow_redirects=False, timeout=10
             )
+
             logger.debug(
                 "STATUS (%s) Headers :(%s)",
                 req_hho.status_code,
                 h,
             )
+
             if (
                 req_hho.status_code in [400, 413, 500, 502]
                 and req_hho.status_code != main_status_code
