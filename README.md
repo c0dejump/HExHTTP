@@ -1,6 +1,6 @@
 # HExHTTP
 
-![logo](./static/logo-v1.png)
+![logo](./docs/_media/logo-v1.png)
 
 > HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors.
 
@@ -16,6 +16,8 @@
 ```bash
 pip install -r requirements.txt
 ./hexhttp.py -u 'https://target.tld/'
+# OR
+python3 hexhttp.py -u 'https://target.tld/'
 ```
 
 ### Docker
@@ -28,7 +30,7 @@ docker run --rm -it --net=host -v "$PWD:/hexhttp/" hexhttp:latest -u 'https://ta
 ## Usage
 
 ```bash
-usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-F] [-a AUTH] [-b]
+Usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-F] [-a AUTH] [-b]
 
 HExHTTP is a tool designed to perform tests on HTTP headers.
 
@@ -69,18 +71,13 @@ options:
 
 ## Examples
 
-### Exemple 1
-![example 1](./static/example_1.png)
-![example 2](./static/example_2.png)
+### Example on a public target
+![example 1](./docs/_media/example_01.png)
 
-### Exemple with a confirmed Cache Poisoning vulnerabity
-![example poisoner](./static/poisoner.png)
+### Example with a confirmed Cache Poisoning vulnerability
+You can test this tool on the Web Security Academy's vulnerable labs, like [Web cache poisoning with an unkeyed header](https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws/lab-web-cache-poisoning-with-an-unkeyed-header). The expected result should be the same as below.
 
-### Excepted results
-
-You can test this tool on the Web Security Academy's vulnerable labs, like this one. The expected result should be the same as above.
-
-- [Web cache poisoning with an unkeyed header](https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws/lab-web-cache-poisoning-with-an-unkeyed-header)
+![example poisoner](./docs/_media/example_02.png)
 
 ## Features
 
@@ -88,20 +85,22 @@ You can test this tool on the Web Security Academy's vulnerable labs, like this 
 - Localhost header response analysis
 - Vhosts checking
 - Methods response analysis
-- HTTP version analysis **[Experimental]**
-- CPDoS techniques
+- HTTP Version analysis **[Experimental]**
+- Cache Poisoning DoS (CPDoS) techniques
 - Web cache poisoning
 - Range poisoning/error (416 response error) **[Experimental]**
 - Cookie Reflection
-- CND/proxies Analysis (Envoy/Apache/Akamai/Nginx) **[IP]**
+- CDN/proxies Analysis (Envoy/Apache/Akamai/Nginx) **[IP]**
 
 ## TODO
 
 - [ ] Try with mobile user-agent [WIP]
 - [ ] Filter False Positive on WAF blocking [WIP]
 - [ ] Code Linting & Optimization [WIP]
-- [ ] Pypi package
-- [ ] Human scan (slower scan + random timeout)
+- [ ] Tests Bed for regression testing
+- [ ] Pypi package (src/ layout + tests/ + tox)
+- [ ] Human scan (rate limiting + timeout randomization )
+- [ ] Different Output formats (eg, JSON, JSONL, TXT)
 
 ### Based on
 - [YWH HTTP Header Exploitation](https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
@@ -113,7 +112,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like this 
 - [Responsible denial of service with web cache poisoning](https://portswigger.net/research/responsible-denial-of-service-with-web-cache-poisoning)
 - [CPDoS.org](https://cpdos.org/)
 - [Autopoisoner](https://github.com/Th0h0/autopoisoner)
-- [Rachid.A research] (https://zhero-web-sec.github.io/research-and-things/nextjs-and-cache-poisoning-a-quest-for-the-black-hole)
+- [Rachid.A research](https://zhero-web-sec.github.io/research-and-things/nextjs-and-cache-poisoning-a-quest-for-the-black-hole)
 
 ## Contributing
 
