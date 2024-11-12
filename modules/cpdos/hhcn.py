@@ -114,5 +114,5 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
     except requests.exceptions.ConnectionError as e:
         logger.exception(e)
 
-    print(f" \033[34m {headers}\033[0m\r", end="")
+    print(f" \033[34m {VULN_NAME} : {headers}\033[0m\r", end="")
     print("\033[K", end="")
