@@ -80,7 +80,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
             else f'{url}{req_main.headers["location"]}'
         )
 
-    print("\033[36m ├ CPDoS analyse\033[0m")
+    print("\033[36m ├ CPDoS analysis\033[0m")
 
     run_cpdos_modules(url, s, req_main, domain, custom_header, authent)
     crawl_files(url, s, req_main, domain, custom_header, authent)

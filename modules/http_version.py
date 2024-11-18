@@ -9,7 +9,7 @@ from modules.utils import *
 from http.client import HTTPConnection
 
 def check_http_version(url):
-    print("\033[36m ├ HTTP Version analyse\033[0m")
+    print("\033[36m ├ HTTP Version analysis\033[0m")
     versions = ['HTTP/0.9','HTTP/1.0','HTTP/1.1','HTTP/2']
 
     try:

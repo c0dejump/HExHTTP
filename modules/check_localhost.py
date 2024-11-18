@@ -11,7 +11,7 @@ def check_localhost(url, s, domain, authent):
     list_test = ["127.0.0.1", "localhost", "192.168.0.1", "127.0.1", "127.1", "::1", "127.0.0.2", "127.0.0.1", "127.0.0.1:22", 
     "0.0.0.0", "0.0.0.0:443", "[::]:80", "127.0.0.1.nip.io", "127.127.127.127"]
 
-    print(f"{Colors.CYAN} ├ Host analyse{Colors.RESET}")
+    print(f"{Colors.CYAN} ├ Host analysis{Colors.RESET}")
     for lt in list_test:
         headers = {"Host": lt}
         try:

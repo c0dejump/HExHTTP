@@ -283,7 +283,7 @@ def cache_poisoning_check(url, custom_header):
         cache_poisoning_check(url)"""
 
 def check_cache_poisoning(url, custom_header, behavior_, authent):
-    print("\033[36m ├ Cache poisoning analyse\033[0m")
+    print("\033[36m ├ Cache poisoning analysis\033[0m")
 
     global behavior
     behavior = behavior_
