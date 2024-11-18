@@ -9,7 +9,7 @@ https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws
 from modules.utils import *
 
 def check_cookie_reflection(url, custom_header, authent):
-	print("\033[36m ├ Cookies Cache poisoning analyse\033[0m")
+	print("\033[36m ├ Cookies Cache poisoning analysis\033[0m")
 
 	matching_forward = "ndvyepenbvtidpvyzh.com"
 

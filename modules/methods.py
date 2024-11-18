@@ -71,7 +71,7 @@ def check_methods(url, custom_header, authent):
     htimeout = Timeout(connect=7.0, read=7.0)
     http = PoolManager(timeout=htimeout)
 
-    print("\033[36m ├ Methods analyse\033[0m")
+    print("\033[36m ├ Methods analysis\033[0m")
     result_list = []
     for funct in [get, post, put, patch, options]:
         try:
