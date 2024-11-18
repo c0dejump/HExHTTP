@@ -58,7 +58,7 @@ def run_cpdos_modules(url, s, req_main, domain, custom_header, authent):
         main_len = len(req_main.content)
         main_status_code = req_main.status_code
 
-        HHO(uri, s, main_status_code, authent)
+        HHO(uri, s, req_main, authent)
         HMC(uri, s, main_status_code, authent)
         HMO(uri, s, req_main, authent)
         HHCN(uri, s, req_main, authent)
