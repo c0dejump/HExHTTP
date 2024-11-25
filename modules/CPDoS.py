@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.utils import random, re, sys, configure_logger
 from modules.cpdos.cache_error import get_error
-from modules.cpdos.waf_rules import waf_rules
 from modules.cpdos.hho import HHO
 from modules.cpdos.hmc import HMC
 from modules.cpdos.hmo import HMO
 from modules.cpdos.hhcn import HHCN
 from modules.cpdos.hbh import HBH
+from modules.cpdos.waf_rules import waf_rules
+
+from modules.utils import random, re, sys, configure_logger
 
 logger = configure_logger(__name__)
-
 
 def crawl_files(url, s, req_main, domain, custom_header, authent):
     try:
