@@ -14,6 +14,9 @@ VULN_NAME = "HTTP Header Oversize"
 
 
 def HHO(url, s, main_status_code, authent):
+
+    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
+
     cpdos_win = False
     max_i = 50
     i = 0
@@ -28,17 +31,19 @@ def HHO(url, s, main_status_code, authent):
             req_hho = s.get(
                 url, headers=h, auth=authent, allow_redirects=False, timeout=10
             )
+
             logger.debug(
-                "STATUS (%s)\nHeaders :(%s)",
+                "STATUS (%s) Headers :(%s)",
                 req_hho.status_code,
                 h,
             )
+
             if (
                 req_hho.status_code in [400, 413, 500, 502]
                 and req_hho.status_code != main_status_code
             ):
                 logger.debug(
-                    "CPDOS : URL (%s) STATUS (%s)\nHeaders :(%s)",
+                    "CPDOS : URL (%s) STATUS (%s) Headers :(%s)",
                     url,
                     req_hho.status_code,
                     req_hho.headers,

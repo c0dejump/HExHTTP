@@ -67,6 +67,8 @@ def HBH(
 ):
     """Function to test for Hop by Hop vulnerabilities"""
 
+    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
+
     response_1 = initial_response
 
     response_2_previous_status = 0
@@ -90,8 +92,6 @@ def HBH(
                     verify=False,
                     timeout=10,
                 )
-                logger.debug("return: %s", response_2) #DEBUG
-                logger.debug(response_2_previous_status) #DEBUG
 
                 if response_2.status_code not in (
                     response_2_previous_status,
@@ -102,7 +102,12 @@ def HBH(
                 else:
                     response_2_count_status_code += 1
 
-                logger.debug(response_2_count_status_code)
+                logger.debug(
+                    "Response 2: %s, Previous status : %s, count : %s",
+                    response_2,
+                    response_2_previous_status,
+                    response_2_count_status_code,
+                )
 
                 if (
                     len(response_2.content) != response_2_previous_size

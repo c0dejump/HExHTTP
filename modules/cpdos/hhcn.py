@@ -6,7 +6,7 @@ Attempts to find Cache Poisoning with Host Header Case Normalization (HHCN)
 https://youst.in/posts/cache-key-normalization-denial-of-service/
 """
 
-from modules.utils import random, requests, urlparse, configure_logger
+from modules.utils import random, requests, get_domain_from_url, configure_logger
 
 logger = configure_logger(__name__)
 
@@ -14,10 +14,9 @@ VULN_NAME = "Host Header Case Normalization"
 
 CONTENT_DELTA_RANGE = 500
 
-
 def random_domain_capitalization(url):
     """Randomly capitalize characters from the url domain"""
-    domain = urlparse(url).netloc
+    domain = get_domain_from_url(url)
 
     index = random.randint(0, len(domain) - 3)
     letter = domain[index]
@@ -32,6 +31,8 @@ def random_domain_capitalization(url):
 
 def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE):
     """Attempts to find Cache Poisoning with Host Header Case Normalization"""
+
+    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
 
     headers = {"Host": random_domain_capitalization(url)}
     payload = f"PAYLOAD: {headers}"
