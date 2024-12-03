@@ -10,7 +10,7 @@ from modules.utils import requests, configure_logger
 logger = configure_logger(__name__)
 
 def get_server_error(url, base_header, full, authent, url_file):
-    print("\n\033[36m ├ Server error analyse\033[0m")
+    print("\n\033[36m ├ Server error analysis\033[0m")
     error_header = []
     valid_error = False
     error_length = 0

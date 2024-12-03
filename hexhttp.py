@@ -153,7 +153,7 @@ def get_technos(a_tech, req_main, url, s):
     Check what is the reverse proxy/WAF/cached server... and test based on the result.
     #TODO Cloudfoundry => https://hackerone.com/reports/728664
     """
-    print("\033[36m ├ Techno analyse\033[0m")
+    print("\033[36m ├ Techno analysis\033[0m")
     technos = {
         "apache": ["apache", "tomcat"],
         "nginx": ["nginx"],

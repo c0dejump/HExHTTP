@@ -12,6 +12,7 @@ logger = configure_logger(__name__)
 
 
 def check_http_version(url):
+  
     print("\033[36m ├ HTTP Version analyse\033[0m")
     versions = ["HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2"]
 
