@@ -68,6 +68,8 @@ def HBH(
 ):
     """Function to test for Hop by Hop vulnerabilities"""
 
+    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
+
     response_1 = initial_response
 
     response_2_previous_status = 0

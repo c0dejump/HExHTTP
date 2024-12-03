@@ -5,6 +5,7 @@ import argparse
 import re
 
 from modules.utils import *
+from modules.logging_config import valid_log_level, configure_logging
 from modules.check_localhost import check_localhost
 from modules.server_error import get_server_error
 from modules.methods import check_methods
@@ -34,12 +35,36 @@ except:
 # DEBUG completed_tasks = 0
 # DEBUG lock = threading.Lock()
 
-
-# Arguments
 def args():
-    parser = argparse.ArgumentParser(
-        description=print_banner()
-    )
+    """
+    Parses command-line arguments and returns them.
+
+    This function uses argparse to define and parse command-line arguments for the script.
+    It includes options for specifying a URL, a file of URLs, custom HTTP headers, user agents,
+    authentication, verbosity, logging, and threading.
+
+    Returns:
+        argparse.Namespace: Parsed command-line arguments.
+
+    Arguments:
+        -u, --url (str): URL to test [required].
+        -f, --file (str): File of URLs.
+        -H, --header (str): Add a custom HTTP Header.
+        -A, --user-agent (str): Add a custom User Agent.
+        -F, --full (bool): Display the full HTTP Header.
+        -a, --auth (str): Add an HTTP authentication. Ex: --auth admin:admin.
+        -b, --behavior (bool): Activates a simplified version of verbose, 
+            highlighting interesting cache behaviors.
+        -t, --threads (int): Threads numbers for multiple URLs. Default: 10.
+        -l, --log (str): Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+            Default: WARNING.
+        -L, --log-file (str): The file path pattern for the log file. 
+            Default: ./logs/%Y%m%d_%H%M.log.
+        -v, --verbose (int): Increase verbosity (can be used multiple times).
+
+    If no argument is provided, the function will print the help message and exit.
+    """
+    parser = argparse.ArgumentParser(description=print_banner())
 
     parser.add_argument(
         "-u", "--url", dest="url", help="URL to test \033[31m[required]\033[0m"
@@ -93,6 +118,28 @@ def args():
         default=10,
         required=False,
     )
+    parser.add_argument(
+        "-l",
+        "--log",
+        type=valid_log_level,
+        default="WARNING",
+        help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+    )
+    parser.add_argument(
+        "-L",
+        "--log-file",
+        dest="log_file",
+        default="./logs/%Y%m%d_%H%M.log",
+        help="The file path pattern for the log file.",
+        required=False,
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase verbosity (can be used multiple times)",
+    )
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -106,7 +153,7 @@ def get_technos(a_tech, req_main, url, s):
     Check what is the reverse proxy/WAF/cached server... and test based on the result.
     #TODO Cloudfoundry => https://hackerone.com/reports/728664
     """
-    print("\033[36m ├ Techno analyse\033[0m")
+    print("\033[36m ├ Techno analysis\033[0m")
     technos = {
         "apache": ["apache", "tomcat"],
         "nginx": ["nginx"],
@@ -144,6 +191,8 @@ def fuzz_x_header(url):
     (https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
     #TODO
     """
+    pass
+
 
 
 def check_cache_header(url, req_main):
@@ -175,7 +224,7 @@ def check_cache_header(url, req_main):
 
 
 def process_modules(url, s, a_tech):
-    domain = urlparse(url).netloc
+    domain = get_domain_from_url(url)
 
     try:
         req_main = s.get(
@@ -206,7 +255,7 @@ def process_modules(url, s, a_tech):
         check_cache_files(url, custom_header, authent)
         check_cookie_reflection(url, custom_header, authent)
         techno = get_technos(a_tech, req_main, url, s)
-        #fuzz_x_header(url) #TODO
+        # fuzz_x_header(url) #TODO
         check_cache_header(url, req_main)
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
@@ -260,7 +309,6 @@ def main(urli, s):
 
 
 if __name__ == "__main__":
-
     # Parse arguments
     results = args()
 
@@ -272,6 +320,8 @@ if __name__ == "__main__":
     auth = results.auth
     user_agent = results.user_agent
     threads = results.threads
+
+    configure_logging(results.verbose, results.log, results.log_file)
 
     global authent
 

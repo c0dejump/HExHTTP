@@ -14,9 +14,10 @@ VULN_NAME = "HTTP Method Override"
 
 CONTENT_DELTA_RANGE = 500
 
-
 def HMO(url, s, initial_response, authent):
     """Function to test for HTTP Method Override vulnerabilities"""
+
+    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
 
     methods = [
         "GET",
@@ -91,7 +92,7 @@ def HMO(url, s, initial_response, authent):
 
             if reason:
                 print(
-                    f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMO DOS: {uri} | \033[34m{reason}\033[0m | PAYLOAD: {probe_headers}"
+                    f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMO DOS | \033[34m{uri}\033[0m | {reason} | PAYLOAD: {probe_headers}"
                 )
 
             print(f" \033[34m {VULN_NAME} : {probe_headers}\033[0m\r", end="")

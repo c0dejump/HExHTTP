@@ -3,6 +3,8 @@
 
 from typing import Optional
 from urllib.parse import urlparse
+from modules.logging_config import configure_logger
+
 import string
 import logging
 import random
@@ -19,14 +21,22 @@ import requests
 # Local imports
 from static.vuln_notify import vuln_found_notify
 
-# """configuring overal how the loggin is done"""
-# logging.basicConfig(
-#     filename=strftime("./logs/%Y%m%d_%H%M.log"),
-#     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-# )
-
-# To remove HTTPS warnings
+# Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+def get_domain_from_url(url: str) -> str:
+    """
+    Extracts the domain from a given URL.
+
+    Args:
+        url (str): The URL from which to extract the domain.
+
+    Returns:
+        str: The domain extracted from the URL.
+    """
+    domain = urlparse(url).netloc
+    return domain
 
 
 def generate_cache_buster(length: Optional[int] = 12) -> str:
@@ -35,17 +45,6 @@ def generate_cache_buster(length: Optional[int] = 12) -> str:
     if not isinstance(length, int) or length <= 0:
         raise ValueError("[!] Lenght of cacheBuster be a positive integer")
     return "".join(random.choice(string.ascii_lowercase) for i in range(length))
-
-
-def configure_logger(
-    module_name: str, handler: logging.Handler = logging.NullHandler()
-) -> logging.Logger:
-    """Provides a logger instance set to the module provided with a default handler"""
-
-    logger = logging.getLogger(module_name)
-    logger.addHandler(handler)
-    logger.propagate = False
-    return logger
 
 
 class Colors:

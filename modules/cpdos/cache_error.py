@@ -36,6 +36,7 @@ def check_cached_status(url, s, pk, main_status_code, authent):
                     behavior = True
                     cache_status = True
 
+        cache_status = f"\033[31m{cache_status}\033[0m" if cache_status == False else f"\033[32m{cache_status}\033[0m"
         if confirmed:
             print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
             behavior = False
@@ -72,6 +73,7 @@ def check_cached_len(url, s, pk, main_len, authent):
                     behavior = True
                     cache_status = False
 
+        cache_status = f"\033[31m {cache_status} \033[0m" if cache_status == False else f"\033[32m {cache_status} \033[0m"
         if confirmed:
             print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}")
             behavior = False

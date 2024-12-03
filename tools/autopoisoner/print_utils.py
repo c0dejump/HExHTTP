@@ -19,6 +19,8 @@ def potential_verbose_message(message, url="default"):
 
 def behavior_or_confirmed_message(uri, behaviorOrConfirmed, behaviorType, explicitCache, url, status_codes="default", header = "default", outputFile = "default", LOCK = "default"):
 
+    explicitCache = f"\033[31m{explicitCache}\033[0m" if explicitCache == "FALSE" else f"\033[32m{explicitCache}\033[0m"
+
     messageDict = {"REFLECTION": "HEADER REFLECTION",
                    "STATUS": f"DIFFERENT STATUS-CODE: {status_codes}",
                    "LENGTH": "DIFFERENT RESPONSE LENGTH",

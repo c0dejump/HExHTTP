@@ -5,10 +5,12 @@
 Check difference between server error and basic response
 """
 
-from modules.utils import *
+from modules.utils import requests, configure_logger
+
+logger = configure_logger(__name__)
 
 def get_server_error(url, base_header, full, authent, url_file):
-    print("\n\033[36m ├ Server error analyse\033[0m")
+    print("\n\033[36m ├ Server error analysis\033[0m")
     error_header = []
     valid_error = False
     error_length = 0
@@ -32,7 +34,7 @@ def get_server_error(url, base_header, full, authent, url_file):
                     if eh not in base_header:
                         # IDK why but the map or lambda fctn seem bad with threading...
                         if not url_file:
-                            error_header = list(map(lambda x: x.replace(eh, f"\033[33m{eh}\033[0m"), error_header))
+                            error_header = list(map(lambda x, eh=eh: x.replace(eh, f"\033[33m{eh}\033[0m"), error_header))
                         else:
                             pass
 
@@ -49,17 +51,19 @@ def get_server_error(url, base_header, full, authent, url_file):
                 print("")
             else:
                 pass
-        except:
+        except requests.RequestException as e:
             print(f" ! Error with {p} payload")
+            logger.exception(e)
     header_cache_error(url, authent)
 
 
 def header_cache_error(url, authent):
-        headers = {"\\":"1"}
-        try:
-            hce_req = requests.get(url, headers=headers, verify=False, timeout=10, auth=authent)
-            if hce_req.status_code == 400:
-                print(f" i - 400 error code with {headers} payload header [{len(hce_req.content)} bytes]")
-                #print(hce_req.headers)
-        except:
-            print(f" i - Error code with {headers} payload header ")
+    headers = {"\\":"1"}
+    try:
+        hce_req = requests.get(url, headers=headers, verify=False, timeout=10, auth=authent)
+        if hce_req.status_code == 400:
+            print(f" i - 400 error code with {headers} payload header [{len(hce_req.content)} bytes]")
+            #print(hce_req.headers)
+    except requests.RequestException as e:
+        print(f" i - Error code with {headers} payload header ")
+        logger.exception(e)
