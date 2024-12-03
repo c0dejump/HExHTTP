@@ -12,7 +12,7 @@ logger = configure_logger(__name__)
 
 VULN_NAME = "Host Header Case Normalization"
 
-CONTENT_DELTA_RANGE = 50
+CONTENT_DELTA_RANGE = 500
 
 
 def random_domain_capitalization(url):
@@ -99,13 +99,13 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
 
             control = s.get(url, verify=False, timeout=10, auth=authent)
 
-            if behavior and len(req_hhcn_bis.content) == len(control.content):
+            if behavior and len(req_hhcn_bis.content) == len(control.content) and len(control.content) != main_response_size:
                 behavior = f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {len(control.content)}b"
                 print(
                     f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
                 )
 
-            if behavior and req_hhcn_bis.status_code == control.status_code:
+            if behavior and req_hhcn_bis.status_code == control.status_code and control.status_code != main_response.status_code:
                 behavior = f"DIFFERENT STATUS-CODE | {main_response.status_code} > {control.status_code}"
                 print(
                     f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
