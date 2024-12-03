@@ -3,4 +3,4 @@ __pycache__
 *.txt
 todo.md
 dev/
-logs/*
+logs/*.log
