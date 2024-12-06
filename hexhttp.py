@@ -130,7 +130,7 @@ def args():
         "--log-file",
         dest="log_file",
         default="./logs/%Y%m%d_%H%M.log",
-        help="The file path pattern for the log file.",
+        help="The file path pattern for the log file. \033[32mDefault: logs/\033[0m",
         required=False,
     )
     parser.add_argument(
@@ -280,7 +280,7 @@ def main(urli, s):
                 process_modules(url, s, a_tech)
                 # with lock: #Debug
                 # completed_tasks += 1
-                # print(f"Tâches terminées : {completed_tasks}")
+                # print(f"completed tasks : {completed_tasks}")
                 q.task_done()
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")

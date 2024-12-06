@@ -1,6 +1,20 @@
 Changelog:
 ----------
 
+- 1.7
+---------
+	News:
+	- Logging management
+	- Error logs management
+	Updated:
+	- ANSI banner at startup
+	- Fixed bugs
+	- Cache tag color
+	- Big linting and refactoring
+	- News payloads
+
+---------
+
 - 1.6.3
 ---------
 	Updated:
