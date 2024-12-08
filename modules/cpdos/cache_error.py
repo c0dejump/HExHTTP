@@ -6,9 +6,8 @@ Attempts to find Cache Poisoning Denial of Service (CpDoS) error based
 https://cpdos.org/
 """
 
-from ..utils import *
-from ..lists.payloads_errors import payloads_keys
-
+from modules.utils import random, sys, requests
+from modules.lists import payloads_keys
 
 def check_cached_status(url, s, pk, main_status_code, authent):
     behavior = False
