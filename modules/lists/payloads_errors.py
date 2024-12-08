@@ -1,6 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+This module defines a list of payloads with various HTTP headers and their corresponding values.
+The payloads are intended to test invalid, malformed, or unusual header values.
+
+List of payloads:
+- `payloads_keys`: A list of HTTP header and its value.
+
+Examples of payloads:
+- Headers with invalid characters or formats.
+- Headers with extremely large values.
+- Headers with conflicting values.
+- Headers with non-standard or custom values.
+- Headers with invalid date formats.
+- Headers with invalid IP addresses.
+- Headers with invalid JSON structures.
+- Headers with invalid encryption keys.
+- Headers with invalid cache control directives.
+- Headers with invalid content types and encodings.
+- Headers with invalid security policies.
+
+This list is used for testing various edge cases and invalid inputs.
+"""
+
 payloads_keys = [
     {"xyz": "1"},
     {"(": "1"},
