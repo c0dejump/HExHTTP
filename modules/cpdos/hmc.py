@@ -44,8 +44,9 @@ def check_meta_character(url, s, main_status_code, authent, meta_character):
         )
 
 
-def HMC(url, s, main_status_code, authent):
+def HMC(url, s, req_main, authent): # pylint: disable=invalid-name
     """Prepare the list of meta characters to check for"""
+    main_status_code = req_main.status_code
 
     meta_characters = [
         r"\n",
