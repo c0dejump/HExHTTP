@@ -1,4 +1,4 @@
-from static.vuln_notify import vuln_found_notify
+#from static.vuln_notify import vuln_found_notify
 
 
 def potential_verbose_message(message, url="default"):
@@ -31,10 +31,10 @@ def behavior_or_confirmed_message(uri, behaviorOrConfirmed, behaviorType, explic
     if header != "default":
         message = f" └── {messageDict[behaviorOrConfirmed]} | {messageDict[behaviorType]} | CACHE : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
         print(message)
-        if behaviorOrConfirmed != "BEHAVIOR":
-            vuln_found_notify(uri, header)
+        #if behaviorOrConfirmed != "BEHAVIOR":
+            #vuln_found_notify(uri, header)
     else:
         message = f" └── {messageDict[behaviorOrConfirmed]} | PORT {messageDict[behaviorType]} | CACHE : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
         print(message)
-        if behaviorOrConfirmed != "BEHAVIOR":
-            vuln_found_notify(uri, header)
+        #if behaviorOrConfirmed != "BEHAVIOR":
+            #vuln_found_notify(uri, header)

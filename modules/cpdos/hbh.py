@@ -7,6 +7,7 @@ https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
 from modules.utils import requests, generate_cache_buster, configure_logger
+from modules.lists import header_list
 
 logger = configure_logger(__name__)
 
@@ -77,79 +78,74 @@ def HBH(
     response_2_previous_size = 0
     response_2_count_size = 0
 
-    with open("./modules/lists/lowercase-headers.lst", "r", encoding="utf-8") as f:
-        lines = f.read().split("\n")
-        for header in lines:
-            headers = {"Connection": f"keep-alive, {header}"}
-            parameters = {"cacheBuster": generate_cache_buster()}
-            try:
-                response_2 = s.get(
-                    url,
-                    headers=headers,
-                    params=parameters,
-                    auth=authent,
-                    allow_redirects=False,
-                    verify=False,
-                    timeout=10,
+    for header in header_list:
+        headers = {"Connection": f"keep-alive, {header}"}
+        parameters = {"cacheBuster": generate_cache_buster()}
+        try:
+            response_2 = s.get(
+                url,
+                headers=headers,
+                params=parameters,
+                auth=authent,
+                allow_redirects=False,
+                verify=False,
+                timeout=10,
+            )
+            logger.debug("return: %s", response_2)  # DEBUG
+            logger.debug(response_2_previous_status)  # DEBUG
+
+            if response_2.status_code not in (
+                response_2_previous_status,
+                response_1.status_code,
+            ):
+                response_2_previous_status = response_2.status_code
+                response_2_count_status_code = 0
+            else:
+                response_2_count_status_code += 1
+
+            logger.debug(response_2_count_status_code)
+
+            if (
+                len(response_2.content) != response_2_previous_size
+                and len(response_2.content) != 0
+            ):
+                response_2_previous_size = len(response_2.content)
+                response_2_count_size = 0
+            else:
+                response_2_count_size += 1
+
+            behavior = ""
+            if (
+                response_1.status_code != response_2.status_code
+                and response_2.status_code not in [429, 403]
+                and response_1.status_code not in [301, 302, 429, 403]
+                and response_2_count_status_code < max_sample_status
+            ):
+                behavior = f"DIFFERENT STATUS-CODE  {response_1.status_code} > {response_2.status_code}"
+
+            if (
+                len(response_1.content)
+                not in range(
+                    len(response_2.content) - content_delta_range,
+                    len(response_2.content) + content_delta_range,
+                )
+                and response_2.status_code not in [429, 403]
+                and response_1.status_code not in [301, 302, 429, 403]
+                and response_2_count_size < max_sample_content
+            ):
+                behavior = f"DIFFERENT RESPONSE LENGTH  {len(response_1.content)}b > {len(response_2.content)}b"
+
+            if behavior:
+                payload = f"Connection: {headers['Connection']}"
+                print(
+                    f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {payload}"
+                )
+                cache_poisoning(
+                    url, s, parameters, response_1, response_2, authent, headers
                 )
 
-                if response_2.status_code not in (
-                    response_2_previous_status,
-                    response_1.status_code,
-                ):
-                    response_2_previous_status = response_2.status_code
-                    response_2_count_status_code = 0
-                else:
-                    response_2_count_status_code += 1
+        except requests.exceptions.ConnectionError as e:
+            logger.exception(e)
 
-                logger.debug(
-                    "Response 2: %s, Previous status : %s, count : %s",
-                    response_2,
-                    response_2_previous_status,
-                    response_2_count_status_code,
-                )
-
-                if (
-                    len(response_2.content) != response_2_previous_size
-                    and len(response_2.content) != 0
-                ):
-                    response_2_previous_size = len(response_2.content)
-                    response_2_count_size = 0
-                else:
-                    response_2_count_size += 1
-
-                behavior = ""
-                if (
-                    response_1.status_code != response_2.status_code
-                    and response_2.status_code not in [429, 403]
-                    and response_1.status_code not in [301, 302, 429, 403]
-                    and response_2_count_status_code < max_sample_status
-                ):
-                    behavior = f"DIFFERENT STATUS-CODE  {response_1.status_code} > {response_2.status_code}"
-
-                if (
-                    len(response_1.content)
-                    not in range(
-                        len(response_2.content) - content_delta_range,
-                        len(response_2.content) + content_delta_range,
-                    )
-                    and response_2.status_code not in [429, 403]
-                    and response_1.status_code not in [301, 302, 429, 403]
-                    and response_2_count_size < max_sample_content
-                ):
-                    behavior = f"DIFFERENT RESPONSE LENGTH  {len(response_1.content)}b > {len(response_2.content)}b"
-
-                if behavior:
-                    payload = f"Connection: {headers['Connection']}"
-                    print(
-                        f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {payload}"
-                    )
-                    cache_poisoning(
-                        url, s, parameters, response_1, response_2, authent, headers
-                    )
-
-            except requests.exceptions.ConnectionError as e:
-                logger.exception(e)
-
-            print(f" \033[34m {VULN_NAME} : {headers}\033[0m\r", end="")
-            print("\033[K", end="")
+        print(f" \033[34m {VULN_NAME} : {headers}\033[0m\r", end="")
+        print("\033[K", end="")

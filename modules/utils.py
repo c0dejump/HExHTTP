@@ -19,7 +19,7 @@ import re
 import requests
 
 # Local imports
-from static.vuln_notify import vuln_found_notify
+#from static.vuln_notify import vuln_found_notify
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

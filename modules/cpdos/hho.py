@@ -80,12 +80,12 @@ def HHO(url, s, main_response, authent):
                 verify.status_code in [400, 413, 500, 502]
                 and verify.status_code != main_status_code
             ):
-                reason = f"\033[34m{main_status_code} > {verify.status_code}\033[0m"
+                reason = f"DIFFERENT STATUS-CODE {main_status_code} > {verify.status_code}"
                 status = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
             else:
-                reason = f"\033[34m{main_status_code} > {probe.status_code}\033[0m"
+                reason = f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code}"
                 status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
-            print(f" {status} | HHO DOS | {url} | {reason} | PAYLOAD: Big-Value-0*{len(big_value) - len('Big-Value-0')}")
+            print(f" {status} | HHO DOS | \033[34m{url}\033[0m | {reason} | PAYLOAD: Big-Value-0*{len(big_value) - len('Big-Value-0')}")
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)

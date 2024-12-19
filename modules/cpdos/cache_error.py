@@ -6,7 +6,7 @@ Attempts to find Cache Poisoning Denial of Service (CpDoS) error based
 https://cpdos.org/
 """
 
-from modules.lists.payloads_errors import payloads_keys
+from modules.lists import payloads_keys
 from modules.utils import requests, random, sys, configure_logger
 
 logger = configure_logger(__name__)
@@ -168,7 +168,7 @@ def get_error(url, s, initial_response, authent):
             ):
                 # print(f"[{main_status_code}>{req.status_code}] [{len(main_status_code.headers)}b>{len(req.headers)}b] [{len(main_status_code.content)}b>{len(req.content)}b] {url} :: {pk}")
                 check_cached_status(uri, s, pk, main_status_code, authent)
-            elif blocked < 3 and req.status_code == 200:
+            elif blocked < 3 and req.status_code == main_status_code:
                 if len(str(main_len)) <= 5 and main_len not in range(
                     len_req - 1000, len_req + 1000
                 ):

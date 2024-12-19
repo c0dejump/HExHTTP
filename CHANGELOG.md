@@ -1,6 +1,19 @@
 Changelog:
 ----------
 
+- 1.7.1
+---------
+	News:
+	- New module for multiple headers cache error based on @0xrth observations (mutliple_headers.py)
+	- New file __init__.py in lists directory to add functionality to load payloads from files
+	Updated:
+	- commenting on the notification (notify-py)
+	- News payloads
+	- Linting
+	- Fixed bugs
+---------
+
+
 - 1.7
 ---------
 	News:

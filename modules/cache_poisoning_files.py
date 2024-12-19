@@ -67,13 +67,13 @@ def wcp_import(url, matching_forward, custom_header, req_status, authent):
     if req_verify_redirect.status_code in [301, 302] or req_verify_url.status_code in [301, 302]:
         if matching_forward in req_verify_redirect.url or matching_forward in req_verify_url.url:
             print(f"  \033[31m └── VULNERABILITY CONFIRMED\033[0m | DIFFERENT STATUS-CODE | \033[34m{url_param}\033[0m | PAYLOAD: X-Forwarded-Host")
-            vuln_found_notify(url_param, "X-Forwarded-Host")
+            #vuln_found_notify(url_param, "X-Forwarded-Host")
     elif matching_forward in req_verify_redirect.text or matching_forward in req_verify_url.text:
         print(f"  \033[31m └── VULNERABILITY CONFIRMED\033[0m | HEADER REFLECTION | \033[34m{url_param}\033[0m | PAYLOAD: X-Forwarded-Host")
-        vuln_found_notify(url_param, "X-Forwarded-Host")
+        #vuln_found_notify(url_param, "X-Forwarded-Host")
     elif req_verify_url.status_code != req_status:
         print(f"  \033[31m └── VULNERABILITY CONFIRMED\033[0m | DIFFERENT STATUS-CODE:\033[36m {req_status} → {req_verify_url.status_code}\033[0m | \033[34m{url_param}\033[0m | PAYLOAD: X-Forwarded-Host")
-        vuln_found_notify(url_param, "X-Forwarded-Host")
+        #vuln_found_notify(url_param, "X-Forwarded-Host")
     #print(req_verify_redirect.status_code) #Debug
 
 

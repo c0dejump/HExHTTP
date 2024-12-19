@@ -9,6 +9,9 @@ from modules.cpdos.hmc import HMC
 from modules.cpdos.hmo import HMO
 from modules.cpdos.hhcn import HHCN
 from modules.cpdos.hbh import HBH
+from modules.cpdos.multiple_headers import MHC
+
+from modules.utils import random, re, sys, configure_logger
 
 logger = configure_logger(__name__)
 
@@ -60,6 +63,7 @@ def run_cpdos_modules(url, s, req_main, domain, custom_header, authent):
         HMO(uri, s, req_main, authent)
         HHCN(uri, s, req_main, authent)
         HBH(url, s, req_main, authent)
+        MHC(url, req_main, authent)
         get_error(uri, s, req_main, authent)
         # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:
