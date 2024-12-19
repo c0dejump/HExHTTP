@@ -55,16 +55,13 @@ def run_cpdos_modules(url, s, req_main, domain, custom_header, authent):
         )
         logger.debug(req_main.content)
 
-        main_len = len(req_main.content)
-        main_status_code = req_main.status_code
-
         HHO(uri, s, req_main, authent)
-        HMC(uri, s, main_status_code, authent)
+        HMC(uri, s, req_main, authent)
         HMO(uri, s, req_main, authent)
         HHCN(uri, s, req_main, authent)
         HBH(url, s, req_main, authent)
-        get_error(uri, s, main_status_code, main_len, authent)
-        # waf_rules(url, s, main_status_code, authent)
+        get_error(uri, s, req_main, authent)
+        # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")
         sys.exit()

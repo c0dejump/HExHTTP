@@ -48,6 +48,10 @@ options:
   -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
   -t THREADS, --threads THREADS
                         Threads numbers for multiple URLs. Default: 10
+  -l LOG, --log LOG     Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  -L LOG_FILE, --log-file LOG_FILE
+                        The file path pattern for the log file.
+  -v, --verbose         Increase verbosity (can be used multiple times)
 ```
 
 ### Arguments

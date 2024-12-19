@@ -85,7 +85,7 @@ def HHO(url, s, main_response, authent):
             else:
                 reason = f"\033[34m{main_status_code} > {probe.status_code}\033[0m"
                 status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
-            print(f" {status} | HHO DOS | {url} | {reason} | PAYLOAD: {h}")
+            print(f" {status} | HHO DOS | {url} | {reason} | PAYLOAD: Big-Value-0*{len(big_value) - len('Big-Value-0')}")
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)
