@@ -35,6 +35,7 @@ except:
 # DEBUG completed_tasks = 0
 # DEBUG lock = threading.Lock()
 
+
 def args():
     """
     Parses command-line arguments and returns them.
@@ -53,12 +54,12 @@ def args():
         -A, --user-agent (str): Add a custom User Agent.
         -F, --full (bool): Display the full HTTP Header.
         -a, --auth (str): Add an HTTP authentication. Ex: --auth admin:admin.
-        -b, --behavior (bool): Activates a simplified version of verbose, 
+        -b, --behavior (bool): Activates a simplified version of verbose,
             highlighting interesting cache behaviors.
         -t, --threads (int): Threads numbers for multiple URLs. Default: 10.
         -l, --log (str): Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
             Default: WARNING.
-        -L, --log-file (str): The file path pattern for the log file. 
+        -L, --log-file (str): The file path pattern for the log file.
             Default: ./logs/%Y%m%d_%H%M.log.
         -v, --verbose (int): Increase verbosity (can be used multiple times).
 
@@ -192,7 +193,6 @@ def fuzz_x_header(url):
     #TODO
     """
     pass
-
 
 
 def check_cache_header(url, req_main):
