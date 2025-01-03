@@ -6,7 +6,7 @@ Attempts to find Cache Poisoning with HTTP Method Override (HMO)
 https://cpdos.org/#HMO
 """
 
-from modules.utils import requests, random, configure_logger
+from modules.utils import requests, random, configure_logger, human_time
 
 logger = configure_logger(__name__)
 
@@ -14,7 +14,7 @@ VULN_NAME = "HTTP Method Override"
 
 CONTENT_DELTA_RANGE = 500
 
-def HMO(url, s, initial_response, authent):
+def HMO(url, s, initial_response, authent, human):
     """Function to test for HTTP Method Override vulnerabilities"""
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
@@ -74,6 +74,7 @@ def HMO(url, s, initial_response, authent):
                     auth=authent,
                     allow_redirects=False,
                 )
+                human_time(human)
             control = s.get(uri, verify=False, timeout=10, auth=authent)
 
             reason = ""

@@ -46,12 +46,15 @@ options:
   -F, --full            Display the full HTTP Header
   -a AUTH, --auth AUTH  Add an HTTP authentication. Ex: --auth admin:admin
   -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
+  -hu HUMANS, --humans HUMANS
+                        Performs a timesleep to reproduce human behavior (Default: 0s)
   -t THREADS, --threads THREADS
                         Threads numbers for multiple URLs. Default: 10
   -l LOG, --log LOG     Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   -L LOG_FILE, --log-file LOG_FILE
-                        The file path pattern for the log file.
+                        The file path pattern for the log file. Default: logs/
   -v, --verbose         Increase verbosity (can be used multiple times)
+
 ```
 
 ### Arguments
@@ -101,9 +104,9 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 - [ ] Try with mobile user-agent [WIP]
 - [ ] Filter False Positive on WAF blocking [WIP]
 - [ ] Code Linting & Optimization [WIP]
+- [ ] Human scan (rate limiting + timeout randomization ) [WIP] -- works but cleaning, linting etc...
 - [ ] Tests Bed for regression testing
 - [ ] Pypi package (src/ layout + tests/ + tox)
-- [ ] Human scan (rate limiting + timeout randomization )
 - [ ] Different Output formats (eg, JSON, JSONL, TXT)
 
 ### Based on

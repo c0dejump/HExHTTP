@@ -7,7 +7,7 @@ https://cpdos.org/
 """
 
 from modules.lists import payloads_keys
-from modules.utils import requests, random, sys, configure_logger
+from modules.utils import requests, random, sys, configure_logger, human_time
 
 logger = configure_logger(__name__)
 
@@ -68,7 +68,7 @@ def check_cached_status(url, s, pk, main_status_code, authent):
         confirmed = False
     elif behavior:
         print(
-            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
         )
 
 
@@ -120,11 +120,11 @@ def check_cached_len(url, s, pk, main_len, authent):
         behavior = False
     elif behavior:
         print(
-            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
         )
 
 
-def get_error(url, s, initial_response, authent):
+def cpdos_main(url, s, initial_response, authent, human):
     main_status_code = initial_response.status_code
     main_len = len(initial_response.content)
 
@@ -177,6 +177,8 @@ def get_error(url, s, initial_response, authent):
                     len_req - 10000, len_req + 10000
                 ):
                     check_cached_len(uri, s, pk, main_len, authent)
+            human_time(human)
+
             if len(list(pk.values())[0]) < 50:
                 sys.stdout.write(f"\033[34m {pk}\033[0m\r")
                 sys.stdout.write("\033[K")

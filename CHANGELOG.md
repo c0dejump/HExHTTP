@@ -1,6 +1,17 @@
 Changelog:
 ----------
 
+
+- 1.7.2
+---------
+	News:
+	- New module for "human" scan, personal timesleep or random (0-5s) to each requests
+	Updated:
+	- News payloads
+	- Rename module modules/cpdos/cache_error.py -> modules/cpdos/basic_cpdos.py 
+
+---------
+
 - 1.7.1
 ---------
 	News:

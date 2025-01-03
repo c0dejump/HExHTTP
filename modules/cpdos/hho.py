@@ -6,13 +6,13 @@ Attempts to find Cache Poisoning with HTTP Header Oversize (HHO)
 https://cpdos.org/#HHO
 """
 
-from modules.utils import requests, configure_logger
+from modules.utils import requests, configure_logger, human_time
 
 logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Header Oversize"
 
-def HHO(url, s, main_response, authent):
+def HHO(url, s, main_response, authent, human):
     """
     Perform a Header Oversize Denial of Service (HHO DOS) attack on the given URL.
 
@@ -63,6 +63,7 @@ def HHO(url, s, main_response, authent):
                 )
                 error_detected = True
             iteration += 1
+            human_time(human)
 
             print(
                 f" \033[34m {VULN_NAME} : X-Oversized-Header-{iteration}\033[0m\r",
@@ -85,7 +86,7 @@ def HHO(url, s, main_response, authent):
             else:
                 reason = f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code}"
                 status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
-            print(f" {status} | HHO DOS | \033[34m{url}\033[0m | {reason} | PAYLOAD: Big-Value-0*{len(big_value) - len('Big-Value-0')}")
+            print(f" {status} | HHO DOS | \033[34m{url}\033[0m | {reason} | PAYLOAD: X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}")
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)

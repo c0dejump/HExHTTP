@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from modules.utils import random, re, sys, configure_logger
-from modules.cpdos.cache_error import get_error
+from modules.cpdos.basic_cpdos import cpdos_main
 from modules.cpdos.waf_rules import waf_rules
 from modules.cpdos.hho import HHO
 from modules.cpdos.hmc import HMC
@@ -16,7 +16,7 @@ from modules.utils import random, re, sys, configure_logger
 logger = configure_logger(__name__)
 
 
-def crawl_files(url, s, req_main, domain, custom_header, authent):
+def crawl_files(url, s, req_main, domain, custom_header, authent, human):
     try:
         regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css))(?=")'
         regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css))(?=")'
@@ -37,12 +37,12 @@ def crawl_files(url, s, req_main, domain, custom_header, authent):
                     uri = f"https://{uri[7:].replace('//', '/')}"
 
                 # print(uri)
-                run_cpdos_modules(uri, s, req_main, domain, custom_header, authent)
+                run_cpdos_modules(uri, s, req_main, domain, custom_header, authent, human)
     except Exception as e:
         logger.exception(e)
 
 
-def run_cpdos_modules(url, s, req_main, domain, custom_header, authent):
+def run_cpdos_modules(url, s, req_main, domain, custom_header, authent, human):
     uri = f"{url}?CPDoS={random.randint(1, 100)}"
     headers = {
         "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
@@ -58,22 +58,23 @@ def run_cpdos_modules(url, s, req_main, domain, custom_header, authent):
         )
         logger.debug(req_main.content)
 
-        HHO(uri, s, req_main, authent)
-        HMC(uri, s, req_main, authent)
-        HMO(uri, s, req_main, authent)
+        HHO(uri, s, req_main, authent, human)
+        HMC(uri, s, req_main, authent, human)
+        HMO(uri, s, req_main, authent, human)
         HHCN(uri, s, req_main, authent)
-        HBH(url, s, req_main, authent)
-        MHC(url, req_main, authent)
-        get_error(uri, s, req_main, authent)
+        HBH(url, s, req_main, authent, human)
+        MHC(url, req_main, authent, human)
+        cpdos_main(uri, s, req_main, authent, human)
         # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")
         sys.exit()
     except Exception as e:
+        print(e)
         logger.exception(e)
 
 
-def check_CPDoS(url, s, req_main, domain, custom_header, authent):
+def check_CPDoS(url, s, req_main, domain, custom_header, authent, human):
     if req_main.status_code in [301, 302]:
         url = (
             req_main.headers["location"]
@@ -83,5 +84,5 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent):
 
     print("\033[36m ├ CPDoS analysis\033[0m")
 
-    run_cpdos_modules(url, s, req_main, domain, custom_header, authent)
-    crawl_files(url, s, req_main, domain, custom_header, authent)
+    run_cpdos_modules(url, s, req_main, domain, custom_header, authent, human)
+    crawl_files(url, s, req_main, domain, custom_header, authent, human)

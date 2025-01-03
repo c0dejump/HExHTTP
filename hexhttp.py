@@ -111,6 +111,14 @@ def args():
         action="store_true",
     )
     parser.add_argument(
+        "-hu",
+        "--humans",
+        dest="humans",
+        help="Performs a timesleep to reproduce human behavior (Default: 0s)",
+        default="0",
+        required=False,
+    )
+    parser.add_argument(
         "-t",
         "--threads",
         dest="threads",
@@ -250,9 +258,9 @@ def process_modules(url, s, a_tech):
         check_localhost(url, s, domain, authent)
         check_methods(url, custom_header, authent)
         check_http_version(url)
-        check_CPDoS(url, s, req_main, domain, custom_header, authent)
-        check_cache_poisoning(url, custom_header, behavior, authent)
-        check_cache_files(url, custom_header, authent)
+        check_CPDoS(url, s, req_main, domain, custom_header, authent, human)
+        check_cache_poisoning(url, custom_header, behavior, authent, human)
+        check_cache_files(url, custom_header, authent) #TOREDO
         check_cookie_reflection(url, custom_header, authent)
         techno = get_technos(a_tech, req_main, url, s)
         # fuzz_x_header(url) #TODO
@@ -320,10 +328,14 @@ if __name__ == "__main__":
     auth = results.auth
     user_agent = results.user_agent
     threads = results.threads
+    humans = results.humans
 
     configure_logging(results.verbose, results.log, results.log_file)
 
     global authent
+    global human
+
+    human = humans
 
     try:
         if auth:

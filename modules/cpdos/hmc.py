@@ -6,13 +6,13 @@ Attempts to find Cache Poisoning with HTTP Metachar Character (HMC)
 https://cpdos.org/#HMC
 """
 
-from modules.utils import random, requests, configure_logger
+from modules.utils import random, requests, configure_logger, human_time
 
 logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Meta Character"
 
-def check_meta_character(url, s, main_status_code, authent, meta_character):
+def check_meta_character(url, s, main_status_code, authent, meta_character, human):
     """Probe and Verify the server for a meta character vulnerability"""
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
@@ -42,9 +42,10 @@ def check_meta_character(url, s, main_status_code, authent, meta_character):
         print(
             f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMC | {url} | {reason} | {payload}"
         )
+    human_time(human)
 
 
-def HMC(url, s, req_main, authent): # pylint: disable=invalid-name
+def HMC(url, s, req_main, authent, human): # pylint: disable=invalid-name
     """Prepare the list of meta characters to check for"""
     main_status_code = req_main.status_code
 
@@ -62,7 +63,7 @@ def HMC(url, s, req_main, authent): # pylint: disable=invalid-name
     ]
     for meta_character in meta_characters:
         try:
-            check_meta_character(url, s, main_status_code, authent, meta_character)
+            check_meta_character(url, s, main_status_code, authent, meta_character, human)
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)

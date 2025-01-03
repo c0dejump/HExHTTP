@@ -15,6 +15,7 @@ import urllib3
 import traceback
 import pprint
 import re
+import time
 
 import requests
 
@@ -46,6 +47,15 @@ def generate_cache_buster(length: Optional[int] = 12) -> str:
         raise ValueError("[!] Lenght of cacheBuster be a positive integer")
     return "".join(random.choice(string.ascii_lowercase) for i in range(length))
 
+
+def human_time(human):
+    #print(human)
+    if human.isdigit():
+        time.sleep(int(human))
+    elif human == "r" or human == "random" or human == "R":
+            time.sleep(random.randrange(6))
+    else:
+        pass
 
 class Colors:
     """Colors constants for the output messages"""

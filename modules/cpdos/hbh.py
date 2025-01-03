@@ -6,7 +6,7 @@ Attempts to find Hop-By-Hop Header abuse
 https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
-from modules.utils import requests, generate_cache_buster, configure_logger
+from modules.utils import requests, generate_cache_buster, configure_logger, human_time
 from modules.lists import header_list
 
 logger = configure_logger(__name__)
@@ -62,6 +62,7 @@ def HBH(
     s,
     initial_response,
     authent,
+    human,
     content_delta_range=CONTENT_DELTA_RANGE,
     max_sample_status=MAX_SAMPLE_STATUS,
     max_sample_content=MAX_SAMPLE_CONTENT,
@@ -143,6 +144,7 @@ def HBH(
                 cache_poisoning(
                     url, s, parameters, response_1, response_2, authent, headers
                 )
+            human_time(human)
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)

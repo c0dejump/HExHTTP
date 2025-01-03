@@ -6,6 +6,7 @@ import time
 import threading
 import traceback
 from tools.autopoisoner.headerfuzz import headersToFuzz
+from modules.utils import human_time
 
 currentPath = os.path.dirname(__file__)
 
@@ -282,7 +283,7 @@ def cache_poisoning_check(url, custom_header):
     for url in urlList:
         cache_poisoning_check(url)"""
 
-def check_cache_poisoning(url, custom_header, behavior_, authent):
+def check_cache_poisoning(url, custom_header, behavior_, authent, human):
     print("\033[36m ├ Cache poisoning analysis\033[0m")
 
     global behavior
@@ -291,6 +292,7 @@ def check_cache_poisoning(url, custom_header, behavior_, authent):
     if url:
         try:
             cache_poisoning_check(url, custom_header)
+            human_time(human)
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
             sys.exit()

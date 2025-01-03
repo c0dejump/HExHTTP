@@ -1,6 +1,6 @@
 import http.client
 from urllib.parse import urlparse
-from modules.utils import requests, configure_logger, random
+from modules.utils import requests, configure_logger, random, human_time
 from modules.lists import header_list
 
 VULN_NAME = "Multiple Headers"
@@ -121,7 +121,7 @@ def host_duplicate_headers(conn, host, url, main_status_code, authent):
         
 
 
-def MHC(url, req_main, authent):
+def MHC(url, req_main, authent, human):
     main_status_code = req_main.status_code
     try:
         parsed_url = urlparse(url)
@@ -168,6 +168,7 @@ def MHC(url, req_main, authent):
                     )
                 conn.close()
                 verify_cache_poisoning(mh, conn, url, payload, main_status_code, authent, host)
+            human_time(human)
             print(f" \033[34m {url} : {mh}\033[0m\r", end="")
             print("\033[K", end="")
 
