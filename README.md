@@ -11,14 +11,27 @@
 
 ## Installation
 
-### Python
+Follow these steps to install **HExHTTP**:
 
-```bash
-pip install -r requirements.txt
-./hexhttp.py -u 'https://target.tld/'
-# OR
-python3 hexhttp.py -u 'https://target.tld/'
-```
+1. **Clone the repository** to your local machine:
+   ```bash
+   git clone https://github.com/c0dejump/HExHTTP.git
+   ```
+2. **Change Directory**   
+   ```bash
+   cd HExHTTP
+   ```
+3. **Install** the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. **Ensure HExHTTP** is running correctly:
+   ```bash
+   ./hexhttp.py -u 'https://target.tld/'
+      # OR
+   python3 hexhttp.py -u 'https://target.tld/'
+   ```
+For More Advanced use, Check [Usage](#usage) section below.
 
 ### Docker
 
