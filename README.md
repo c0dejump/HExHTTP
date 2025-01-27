@@ -47,7 +47,7 @@ options:
   -a AUTH, --auth AUTH  Add an HTTP authentication. Ex: --auth admin:admin
   -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
   -hu HUMANS, --humans HUMANS
-                        Performs a timesleep to reproduce human behavior (Default: 0s)
+                        Performs a timesleep to reproduce human behavior (Default: 0s) value: "r" or "random"
   -t THREADS, --threads THREADS
                         Threads numbers for multiple URLs. Default: 10
   -l LOG, --log LOG     Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)

@@ -18,34 +18,33 @@ def check_http_version(url):
 
     try:
         req = requests.get(url, verify=False, allow_redirects=False, timeout=10)
+        req_base_version = req.raw.version
+        logger.debug("HTTP Version : %s", req_base_version)
+
+        for v in versions:
+            HTTPConnection._http_vsn_str = v
+            try:
+                req_v = requests.get(url, timeout=10, verify=False, allow_redirects=False)
+                print(
+                    f" └── {v:<9}: {req_v.status_code:<3} [{len(req_v.content)} bytes] [Header Size: {len(req_v.headers)}b]"
+                )
+            except requests.exceptions.Timeout:
+                print(f" └── Timeout Error with {v}")
+            except KeyboardInterrupt as exc:
+                raise KeyboardInterrupt from exc
+            except Exception as e:
+                print(f" └── Error with {v} : {e}")
+                logger.exception(e)
+
+        if req_base_version == 10:
+            HTTPConnection._http_vsn_str = "HTTP/1.0"
+        elif req_base_version == 11:
+            HTTPConnection._http_vsn_str = "HTTP/1.1"
+        elif req_base_version == 20:
+            HTTPConnection._http_vsn_str = "HTTP/2"
     except Exception as e:
         print(f" └── Error {e}")
         logger.exception(e)
-
-    req_base_version = req.raw.version
-    logger.debug("HTTP Version : %s", req_base_version)
-
-    for v in versions:
-        HTTPConnection._http_vsn_str = v
-        try:
-            req_v = requests.get(url, timeout=10, verify=False, allow_redirects=False)
-            print(
-                f" └── {v:<9}: {req_v.status_code:<3} [{len(req_v.content)} bytes] [Header Size: {len(req_v.headers)}b]"
-            )
-        except requests.exceptions.Timeout:
-            print(f" └── Timeout Error with {v}")
-        except KeyboardInterrupt as exc:
-            raise KeyboardInterrupt from exc
-        except Exception as e:
-            print(f" └── Error with {v} : {e}")
-            logger.exception(e)
-
-    if req_base_version == 10:
-        HTTPConnection._http_vsn_str = "HTTP/1.0"
-    elif req_base_version == 11:
-        HTTPConnection._http_vsn_str = "HTTP/1.1"
-    elif req_base_version == 20:
-        HTTPConnection._http_vsn_str = "HTTP/2"
 
 
 if __name__ == "__main__":

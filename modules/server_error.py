@@ -17,7 +17,7 @@ def get_server_error(url, base_header, full, authent, url_file):
 
     payloads_error = ["%2a","%EXT%", "%ff", "%0A", "..%3B/", "..%3B", "%2e"]
     for p in payloads_error:
-        url_error = f"{url}{p}" if url[-1] else f"{url}/{p}"
+        url_error = f"{url}{p}" if url[-1] == "/" else f"{url}/{p}"
         try:
             req_error = requests.get(url_error, verify=False, headers={'User-agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko'}, timeout=10, auth=authent)
 

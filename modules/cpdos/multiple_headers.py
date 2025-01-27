@@ -169,7 +169,7 @@ def MHC(url, req_main, authent, human):
                 conn.close()
                 verify_cache_poisoning(mh, conn, url, payload, main_status_code, authent, host)
             human_time(human)
-            print(f" \033[34m {url} : {mh}\033[0m\r", end="")
+            print(f" \033[34m {VULN_NAME} : {mh}\033[0m\r", end="")
             print("\033[K", end="")
 
     except Exception as e:

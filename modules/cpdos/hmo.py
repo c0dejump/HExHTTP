@@ -12,7 +12,7 @@ logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Method Override"
 
-CONTENT_DELTA_RANGE = 500
+CONTENT_DELTA_RANGE = 800
 
 def HMO(url, s, initial_response, authent, human):
     """Function to test for HTTP Method Override vulnerabilities"""
@@ -30,6 +30,18 @@ def HMO(url, s, initial_response, authent, human):
         "HELP",
         "OPTIONS",
         "CONNECT",
+        "PURGE",
+        "RESUME",
+        "SEARCH",
+        "MERGE",
+        "LOCK",
+        "UNLOCK",
+        "SYNC",
+        "ARCHIVE",
+        "CLONE",
+        "ROLLBACK",
+        "EXECUTE",
+        "INTROSPECT",
         "NONSENSE",
     ]
 
@@ -51,6 +63,8 @@ def HMO(url, s, initial_response, authent, human):
         uri = f"{url}{random.randrange(999)}"
         try:
             probe_headers = {header: method}
+            print(f" \033[34m {VULN_NAME} : {probe_headers}\033[0m\r", end="")
+            print("\033[K", end="")
             probe = s.get(
                 uri,
                 headers=probe_headers,
@@ -59,8 +73,22 @@ def HMO(url, s, initial_response, authent, human):
                 auth=authent,
                 allow_redirects=False,
             )
-
-            if probe.status_code == main_status_code and len(probe.content) in range(
+            human_time(human)
+            if probe.status_code != main_status_code and probe.status_code not in [
+                main_status_code,
+                429, 403
+            ]:
+                reason = (
+                    f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code}"
+                )
+                status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
+            elif len(probe.content) != main_len and len(probe.content) not in range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE):
+                reason = (
+                    f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(probe.content)}b"
+                )
+                #print(probe.content)
+                status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
+            elif probe.status_code == main_status_code and len(probe.content) in range(
                 main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE
             ):
                 continue
@@ -75,29 +103,27 @@ def HMO(url, s, initial_response, authent, human):
                     allow_redirects=False,
                 )
                 human_time(human)
-            control = s.get(uri, verify=False, timeout=10, auth=authent)
-
-            reason = ""
+            control = requests.get(uri, verify=False, headers={"User-agent": "xxxxx"}, timeout=10, auth=authent)
             if control.status_code == probe.status_code and control.status_code not in [
                 main_status_code,
-                429,
+                429, 403
             ]:
                 reason = (
                     f"DIFFERENT STATUS-CODE {main_status_code} > {control.status_code}"
                 )
+                status = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
 
             if len(control.content) == len(probe.content) and len(probe.content) not in range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE):
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(control.content)}b"
                 )
+                #print(control.content)
+                status = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
 
             if reason:
                 print(
-                    f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMO DOS | \033[34m{uri}\033[0m | {reason} | PAYLOAD: {probe_headers}"
+                    f" {status} | HMO DOS | \033[34m{uri}\033[0m | {reason} | PAYLOAD: {probe_headers}"
                 )
-
-            print(f" \033[34m {VULN_NAME} : {probe_headers}\033[0m\r", end="")
-            print("\033[K", end="")
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)

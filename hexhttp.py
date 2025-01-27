@@ -114,7 +114,7 @@ def args():
         "-hu",
         "--humans",
         dest="humans",
-        help="Performs a timesleep to reproduce human behavior (Default: 0s)",
+        help="Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'",
         default="0",
         required=False,
     )
@@ -231,6 +231,29 @@ def check_cache_header(url, req_main):
         print(f" └──  {r:<30}")
 
 
+def check_auth(auth, url):
+    try:
+        authent = (auth.split(":")[0], auth.split(":")[1])
+        r = requests.get(
+            url, allow_redirects=False, verify=False, auth=authent, timeout=10
+        )
+        if r.status_code in [200, 302, 301]:
+            print("\n+ Authentication successfull\n")
+            return authent
+        else:
+            print("\nAuthentication error")
+            continue_error = input(
+                "The authentication seems bad, continue ? [y/N]"
+            )
+            if continue_error not in ["y", "Y"]:
+                print("Exiting")
+                sys.exit()
+    except Exception as e:
+        traceback.print_exc()
+        print('Error, the authentication format need to be "user:pass"')
+        sys.exit()
+
+
 def process_modules(url, s, a_tech):
     domain = get_domain_from_url(url)
 
@@ -271,13 +294,19 @@ def process_modules(url, s, a_tech):
         # print(f"Error in processing {url}: {e}")
 
 
-def main(urli, s):
+def main(urli, s, auth):
     global base_header
+    global authent
     base_header = []
 
     # DEBUG global completed_tasks
 
     a_tech = technology()
+
+    if auth:
+        authent = check_auth(auth, urli)
+    else:
+        authent = False
 
     if url_file and threads != 1337:
         try:
@@ -332,34 +361,11 @@ if __name__ == "__main__":
 
     configure_logging(results.verbose, results.log, results.log_file)
 
-    global authent
     global human
 
     human = humans
 
     try:
-        if auth:
-            try:
-                authent = (auth.split(":")[0], auth.split(":")[1])
-                r = requests.get(
-                    url, allow_redirects=False, verify=False, auth=authent, timeout=10
-                )
-                if r.status_code in [200, 302, 301]:
-                    print("\n+ Authentication successfull\n")
-                else:
-                    print("\nAuthentication error")
-                    continue_error = input(
-                        "The authentication seems bad, continue ? [y/N]"
-                    )
-                    if continue_error not in ["y", "Y"]:
-                        print("Exiting")
-                        sys.exit()
-            except Exception as e:
-                print('Error, the authentication format need to be "user:pass"')
-                sys.exit()
-        else:
-            authent = False
-
         s = requests.Session()
         if user_agent:
             s.headers.update({"User-agent": user_agent})
@@ -391,7 +397,7 @@ if __name__ == "__main__":
                 for url in urls:
                     enclosure_queue.put(url)
                 for i in range(threads):
-                    worker = Thread(target=main, args=(enclosure_queue, s))
+                    worker = Thread(target=main, args=(enclosure_queue, s, auth))
                     worker.start()
                 enclosure_queue.join()
                 for thread in threads:
@@ -409,9 +415,9 @@ if __name__ == "__main__":
             with open(url_file, "r") as urls:
                 urls = urls.read().splitlines()
                 for url in urls:
-                    main(url, s)
+                    main(url, s, auth)
         else:
-            main(url, s)
+            main(url, s, auth)
         # basic errors
     except KeyboardInterrupt:
         print("Exiting")

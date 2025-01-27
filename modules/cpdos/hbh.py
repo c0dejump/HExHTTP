@@ -55,6 +55,8 @@ def cache_poisoning(
         print(
             f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {reason} | PAYLOAD: {payload}"
         )
+        #print(response_3.headers)
+        #print(response_3.text)
 
 
 def HBH(

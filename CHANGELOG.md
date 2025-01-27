@@ -2,6 +2,16 @@ Changelog:
 ----------
 
 
+- 1.7.3
+---------
+	News:
+	- Sponsors button
+	Updated:
+	- News payloads and fix on HMO modules (~800)
+	- Fixed issues
+
+---------
+
 - 1.7.2
 ---------
 	News:

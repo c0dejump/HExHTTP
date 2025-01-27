@@ -133,6 +133,7 @@ def port_poisoning_check(url, initialResponse, custom_header):
         custom_head = custom_head.update(custom_header)
     try:
         response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=custom_head, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
+        human_time(human)
         explicitCache = str(use_caching(response.headers)).upper()
 
         if response.status_code != initialResponse.status_code and response.status_code != 429:
@@ -180,6 +181,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
         response = None
         try:
             response = requests.get(uri, headers=payload, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
+            human_time(human)
         except KeyboardInterrupt:
             pass
         except requests.Timeout:
@@ -292,7 +294,6 @@ def check_cache_poisoning(url, custom_header, behavior_, authent, human):
     if url:
         try:
             cache_poisoning_check(url, custom_header)
-            human_time(human)
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
             sys.exit()

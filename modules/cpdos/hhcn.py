@@ -50,34 +50,38 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
         )
         probe_size = len(probe.content)
         behavior = ""
-        if not (
-            main_response_size - content_delta_range
-            < probe_size
-            < main_response_size + content_delta_range
-        ) or (main_response.status_code != probe.status_code):
-            for rf in probe.headers:
-                if "cache" in rf.lower() or "age" in rf.lower():
-                    for _ in range(10):
+        if not (main_response_size - content_delta_range < probe_size < main_response_size + content_delta_range) or (main_response.status_code != probe.status_code):
+            if len(probe.headers) > 0:
+                for rf in probe.headers:
+                    if "cache" in rf.lower() or "age" in rf.lower():
+                        for _ in range(10):
+                            req_hhcn_bis = s.get(
+                                url,
+                                headers=headers,
+                                verify=False,
+                                timeout=10,
+                                auth=authent,
+                                allow_redirects=False,
+                            )
+                    else:
                         req_hhcn_bis = s.get(
-                            url,
-                            headers=headers,
-                            verify=False,
-                            timeout=10,
-                            auth=authent,
-                            allow_redirects=False,
-                        )
-                        # print(req_hhcn_bis)
-                        break  # ???
-                else:
-                    req_hhcn_bis = s.get(
-                        url,
-                        headers=headers,
-                        verify=False,
-                        timeout=10,
-                        auth=authent,
-                        allow_redirects=False,
-                    )
-
+                                url,
+                                headers=headers,
+                                verify=False,
+                                timeout=10,
+                                auth=authent,
+                                allow_redirects=False,
+                            )
+                        break;
+            else:
+                req_hhcn_bis = s.get(
+                                url,
+                                headers=headers,
+                                verify=False,
+                                timeout=10,
+                                auth=authent,
+                                allow_redirects=False,
+                            )
             if not (
                 main_response_size - content_delta_range
                 < probe_size
@@ -111,8 +115,8 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
                 print(
                     f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
                 )
+
+        print(f" \033[34m {VULN_NAME} : {headers}\033[0m\r", end="")
+        print("\033[K", end="")
     except requests.exceptions.ConnectionError as e:
         logger.exception(e)
-
-    print(f" \033[34m {VULN_NAME} : {headers}\033[0m\r", end="")
-    print("\033[K", end="")

@@ -20,11 +20,15 @@ def crawl_files(url, s, req_main, domain, custom_header, authent, human):
     try:
         regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css))(?=")'
         regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css))(?=")'
+        #regexp3 = r'(?<=src=")(\/[^\/].+?)(?=")'
+        #regexp4 = r'(?<=href=")(\/[^\/].+?)(?=")'
 
         responseText = req_main.text
 
         filesURL = re.findall(regexp1, responseText)
         filesURL += re.findall(regexp2, responseText)
+        #filesURL = re.findall(regexp3, responseText)
+        #filesURL += re.findall(regexp4, responseText)
 
         for fu in filesURL:
             if "<" not in fu[0]:
