@@ -255,7 +255,7 @@ def headers_poisoning_check(url, initialResponse, custom_header, human):
     if findingState == 1:
         return "UNCONFIRMED"
 
-def crawl_and_scan(url, initialResponse, custom_header):
+def crawl_and_scan(url, initialResponse, custom_header, human):
     selectedURLS = crawl_files(url, initialResponse)
     for url in selectedURLS:
         potential_verbose_message("CRAWLING", url)
@@ -272,7 +272,7 @@ def cache_poisoning_check(url, custom_header, human):
             resultPort = port_poisoning_check(url, initialResponse, custom_header, human)
             resultHeaders = headers_poisoning_check(url, initialResponse, custom_header, human)
             if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
-                crawl_and_scan(url, initialResponse, custom_header)
+                crawl_and_scan(url, initialResponse, custom_header, human)
         elif initialResponse and initialResponse.status_code == 429:
             time.sleep(3)
         else:
