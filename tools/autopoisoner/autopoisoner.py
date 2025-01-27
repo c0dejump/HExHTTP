@@ -118,7 +118,7 @@ def base_request(url, custom_header):
         return 1337
 
 
-def port_poisoning_check(url, initialResponse, custom_header):
+def port_poisoning_check(url, initialResponse, custom_header, human):
     randNum = str(random.randrange(999))
     buster = str(random.randrange(999))
     findingState = 0
@@ -171,7 +171,7 @@ def port_poisoning_check(url, initialResponse, custom_header):
         return None
     
 
-def headers_poisoning_check(url, initialResponse, custom_header):
+def headers_poisoning_check(url, initialResponse, custom_header, human):
     findingState = 0
     for header in headersToFuzz.keys():
         payload = {header: headersToFuzz[header]}
@@ -195,7 +195,7 @@ def headers_poisoning_check(url, initialResponse, custom_header):
                 potential_verbose_message("ERROR", url)
                 print(f"Request error with {uri} URL with {payload}")
                 print("Error on the 179 Lines")
-                #traceback.print_exc()
+                traceback.print_exc()
             continue
         explicitCache = str(use_caching(response.headers)).upper()
         sys.stdout.write(f"\033[34m  {header}\033[0m\r")
@@ -260,17 +260,17 @@ def crawl_and_scan(url, initialResponse, custom_header):
     for url in selectedURLS:
         potential_verbose_message("CRAWLING", url)
         initResponse = base_request(url, custom_header)
-        port_poisoning_check(url, initResponse, custom_header)
-        headers_poisoning_check(url, initResponse, custom_header)
+        port_poisoning_check(url, initResponse, custom_header, human)
+        headers_poisoning_check(url, initResponse, custom_header, human)
 
 
-def cache_poisoning_check(url, custom_header):
+def cache_poisoning_check(url, custom_header, human):
     initialResponse = base_request(url, custom_header)
 
     if initialResponse != 1337:
         if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 502, 503, 505, 520):
-            resultPort = port_poisoning_check(url, initialResponse, custom_header)
-            resultHeaders = headers_poisoning_check(url, initialResponse, custom_header)
+            resultPort = port_poisoning_check(url, initialResponse, custom_header, human)
+            resultHeaders = headers_poisoning_check(url, initialResponse, custom_header, human)
             if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
                 crawl_and_scan(url, initialResponse, custom_header)
         elif initialResponse and initialResponse.status_code == 429:
@@ -293,7 +293,7 @@ def check_cache_poisoning(url, custom_header, behavior_, authent, human):
 
     if url:
         try:
-            cache_poisoning_check(url, custom_header)
+            cache_poisoning_check(url, custom_header, human)
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
             sys.exit()
