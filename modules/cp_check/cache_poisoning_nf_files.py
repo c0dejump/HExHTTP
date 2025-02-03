@@ -9,6 +9,7 @@ https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws
 from modules.utils import requests, random, re, sys, configure_logger
 from modules.lists import header_list
 
+logger = configure_logger(__name__)
 
 def valid_reflection(uri, s, pk, authent, matching_forward):
     for _ in range(0, 10):
