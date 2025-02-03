@@ -40,7 +40,7 @@ def check_meta_character(url, s, main_status_code, authent, meta_character, huma
     if reason:
         payload = f"PAYLOAD: {headers}"
         print(
-            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMC | {url} | {reason} | {payload}"
+            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HMC | \033[34m{url}\033[0m | {reason} | {payload}"
         )
     human_time(human)
 

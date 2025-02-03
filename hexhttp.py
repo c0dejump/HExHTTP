@@ -5,18 +5,25 @@ import argparse
 import re
 
 from modules.utils import *
-from modules.logging_config import valid_log_level, configure_logging
-from modules.check_localhost import check_localhost
-from modules.server_error import get_server_error
-from modules.methods import check_methods
-from modules.CPDoS import check_CPDoS
-from modules.technologies import technology
-from modules.cache_poisoning_files import check_cache_files
-from modules.cookie_reflection import check_cookie_reflection
-from modules.http_version import check_http_version
-from modules.vhosts import check_vhost
 
+#header checks
+from modules.header_checks.check_localhost import check_localhost
+from modules.header_checks.methods import check_methods
+from modules.header_checks.http_version import check_http_version
+from modules.header_checks.vhosts import check_vhost
+
+#cp & cpdos
+from modules.cp_check.cache_poisoning_nf_files import check_cache_files
+from modules.cp_check.nextjs_pageprops import datareq_check
+from modules.CPDoS import check_CPDoS
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
+
+#others
+from modules.logging_config import valid_log_level, configure_logging
+from modules.server_error import get_server_error
+from modules.technologies import technology
+from modules.cookie_reflection import check_cookie_reflection
+
 
 if sys.version_info[0] < 3:
     from Queue import Queue
@@ -282,8 +289,9 @@ def process_modules(url, s, a_tech):
         check_methods(url, custom_header, authent)
         check_http_version(url)
         check_CPDoS(url, s, req_main, domain, custom_header, authent, human)
+        datareq_check(url, s, req_main, custom_header, authent)
         check_cache_poisoning(url, custom_header, behavior, authent, human)
-        check_cache_files(url, custom_header, authent) #TOREDO
+        check_cache_files(url, s, custom_header, authent) #TOREDO
         check_cookie_reflection(url, custom_header, authent)
         techno = get_technos(a_tech, req_main, url, s)
         # fuzz_x_header(url) #TODO
@@ -372,7 +380,9 @@ if __name__ == "__main__":
         else:
             s.headers.update(
                 {
-                    "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
+                    "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko",
+                    "Accept": "html",
+                    "Accept-Encoding": "gzip"
                 }
             )
 

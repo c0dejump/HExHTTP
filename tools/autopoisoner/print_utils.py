@@ -29,12 +29,12 @@ def behavior_or_confirmed_message(uri, behaviorOrConfirmed, behaviorType, explic
                    }
 
     if header != "default":
-        message = f" └── {messageDict[behaviorOrConfirmed]} | {messageDict[behaviorType]} | CACHE : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
+        message = f" └── {messageDict[behaviorOrConfirmed]} | {messageDict[behaviorType]} | CACHETAG : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
         print(message)
         #if behaviorOrConfirmed != "BEHAVIOR":
             #vuln_found_notify(uri, header)
     else:
-        message = f" └── {messageDict[behaviorOrConfirmed]} | PORT {messageDict[behaviorType]} | CACHE : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
+        message = f" └── {messageDict[behaviorOrConfirmed]} | PORT {messageDict[behaviorType]} | CACHETAG : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
         print(message)
         #if behaviorOrConfirmed != "BEHAVIOR":
             #vuln_found_notify(uri, header)

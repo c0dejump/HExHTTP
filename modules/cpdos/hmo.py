@@ -12,7 +12,8 @@ logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Method Override"
 
-CONTENT_DELTA_RANGE = 800
+CONTENT_DELTA_RANGE = 500
+BIG_CONTENT_DELTA_RANGE = 1000
 
 def HMO(url, s, initial_response, authent, human):
     """Function to test for HTTP Method Override vulnerabilities"""
@@ -74,6 +75,10 @@ def HMO(url, s, initial_response, authent, human):
                 allow_redirects=False,
             )
             human_time(human)
+
+            range_exlusion = range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE) if main_len < 10000 else range(main_len - BIG_CONTENT_DELTA_RANGE, main_len + BIG_CONTENT_DELTA_RANGE)
+            #print(range_exlusion)
+
             if probe.status_code != main_status_code and probe.status_code not in [
                 main_status_code,
                 429, 403
@@ -82,15 +87,13 @@ def HMO(url, s, initial_response, authent, human):
                     f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code}"
                 )
                 status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
-            elif len(probe.content) != main_len and len(probe.content) not in range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE):
+            elif len(probe.content) != main_len and len(probe.content) not in range_exlusion:
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(probe.content)}b"
                 )
                 #print(probe.content)
                 status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
-            elif probe.status_code == main_status_code and len(probe.content) in range(
-                main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE
-            ):
+            elif probe.status_code == main_status_code and len(probe.content) in range_exlusion:
                 continue
 
             for _ in range(15):
@@ -113,7 +116,7 @@ def HMO(url, s, initial_response, authent, human):
                 )
                 status = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
 
-            if len(control.content) == len(probe.content) and len(probe.content) not in range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE):
+            if len(control.content) == len(probe.content) and len(probe.content) not in range_exlusion:
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(control.content)}b"
                 )

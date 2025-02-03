@@ -1,6 +1,17 @@
 Changelog:
 ----------
 
+- 1.7.4
+---------
+	News:
+	- New module to check Nextjs cache poisoning Zhero research (modules/cp_check/nextjs_datareq)
+	Updated:
+	- Reduce FP
+	- Change "CACHE" by "CACHETAG" to avoid confusion
+	- Clean-up and remodeling of module file/folder architecture
+	- cache_poisoining_file => cache_poisoining__nf_file: total reconstruction of the module, to check on source files (js/css) that do not exist whether it is possible to inject text into the header or body and cache it
+
+---------
 
 - 1.7.3
 ---------

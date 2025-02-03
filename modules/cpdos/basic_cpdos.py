@@ -62,13 +62,13 @@ def check_cached_status(url, s, pk, main_status_code, authent):
     )
     if confirmed:
         print(
-            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
         )
         behavior = False
         confirmed = False
     elif behavior:
         print(
-            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
         )
 
 
@@ -115,12 +115,12 @@ def check_cached_len(url, s, pk, main_len, authent):
     )
     if confirmed:
         print(
-            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
         )
         behavior = False
     elif behavior:
         print(
-            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHE : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
         )
 
 
@@ -145,7 +145,7 @@ def cpdos_main(url, s, initial_response, authent, human):
 
             if req.status_code == 888:
                 print(
-                    f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError 888 response | CACHE: N/A | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+                    f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError 888 response | CACHETAG: N/A | \033[34m{url}\033[0m | PAYLOAD: {pk}"
                 )
                 check_cached_status(uri, s, pk, main_status_code, authent)
             elif req.status_code == 403 or req.status_code == 429:
