@@ -6,7 +6,7 @@ Attempts to find Cache Poisoning with Host Header Case Normalization (HHCN)
 https://youst.in/posts/cache-key-normalization-denial-of-service/
 """
 
-from modules.utils import random, requests, get_domain_from_url, configure_logger
+from modules.utils import random, requests, get_domain_from_url, configure_logger, Identify
 
 logger = configure_logger(__name__)
 
@@ -91,7 +91,7 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
                     f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {probe_size}b"
                 )
                 print(
-                    f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                    f" {Identify.behavior} | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
                 )
 
             if main_response.status_code != probe.status_code:
@@ -99,7 +99,7 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
                     f"DIFFERENT STATUS-CODE | {main_response_size}b > {probe_size}b"
                 )
                 print(
-                    f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                    f" {Identify.behavior} | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
                 )
 
             control = s.get(url, verify=False, timeout=10, auth=authent)
@@ -107,13 +107,13 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
             if behavior and len(req_hhcn_bis.content) == len(control.content) and len(control.content) != main_response_size:
                 behavior = f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {len(control.content)}b"
                 print(
-                    f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                    f" {Identify.confirmed} | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
                 )
 
             if behavior and req_hhcn_bis.status_code == control.status_code and control.status_code != main_response.status_code:
                 behavior = f"DIFFERENT STATUS-CODE | {main_response.status_code} > {control.status_code}"
                 print(
-                    f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                    f" {Identify.confirmed} | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
                 )
 
         print(f" \033[34m {VULN_NAME} : {headers}\033[0m\r", end="")

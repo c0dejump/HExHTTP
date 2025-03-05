@@ -6,7 +6,7 @@ Web Cache Poisoning on unkeyed Header
 https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws#using-web-cache-poisoning-to-exploit-unsafe-handling-of-resource-imports
 """
 
-from modules.utils import requests, random, re, sys, configure_logger
+from modules.utils import requests, random, re, sys, configure_logger, Identify
 from modules.lists import header_list
 
 logger = configure_logger(__name__)
@@ -30,11 +30,11 @@ def valid_reflection(uri, s, pk, authent, matching_forward):
             )
     if matching_forward in req_valid.text:
         print(
-            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | BODY REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f" {Identify.confirmed} | BODY REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
         )
     elif matching_forward in req_valid.headers:
         print(
-            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HEADER REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f" {Identify.confirmed} | HEADER REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
         )
 
 
@@ -52,12 +52,12 @@ def check_reflection(url, s, authent, matching_forward):
         )
         if matching_forward in req.text:
             print(
-                f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | BODY REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+                f" {Identify.behavior} | BODY REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
             )
             valid_reflection(uri, s, pk, authent, matching_forward)
         elif matching_forward in req.headers:
             print(
-                f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | HEADER REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+                f" {Identify.behavior} | HEADER REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
             )
             valid_reflection(uri, s, pk, authent, matching_forward)
         else:

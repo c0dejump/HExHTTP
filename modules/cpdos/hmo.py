@@ -47,7 +47,7 @@ def HMO(url, s, initial_response, authent, human):
     ]
 
     hmo_headers = [
-        "HTTP-Method-Overrid",
+        "HTTP-Method-Override",
         "X-HTTP-Method-Override",
         "X-Method-Override",
         "Method-Override",
@@ -107,6 +107,10 @@ def HMO(url, s, initial_response, authent, human):
                 )
                 human_time(human)
             control = requests.get(uri, verify=False, headers={"User-agent": "xxxxx"}, timeout=10, auth=authent)
+            #print(control)
+            #print(probe)
+            #print(len(control.content))
+            #print(len(probe.content))
             if control.status_code == probe.status_code and control.status_code not in [
                 main_status_code,
                 429, 403

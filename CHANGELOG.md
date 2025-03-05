@@ -1,6 +1,18 @@
 Changelog:
 ----------
 
+- 1.7.5
+---------
+	News
+	- Add a folder/check containing more-less well-known CVEs linked to headers or cache
+	- Add proxy feature [In Progress]
+	Updated:
+	- News payloads (~1k)
+	- Fixed bugs/FP
+	- Linting
+---------
+
+
 - 1.7.4
 ---------
 	News:

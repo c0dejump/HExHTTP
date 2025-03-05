@@ -6,7 +6,7 @@ Attempts to find Hop-By-Hop Header abuse
 https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
-from modules.utils import requests, generate_cache_buster, configure_logger, human_time
+from modules.utils import requests, generate_cache_buster, configure_logger, human_time, Identify
 from modules.lists import header_list
 
 logger = configure_logger(__name__)
@@ -55,7 +55,7 @@ def cache_poisoning(
     if reason:
         payload = f"Connection: {headers['Connection']}"
         print(
-            f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {reason} | PAYLOAD: {payload}"
+            f" {Identify.confirmed} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {reason} | PAYLOAD: {payload}"
         )
         #print(response_3.headers)
         #print(response_3.text)
@@ -141,7 +141,7 @@ def HBH(
             if behavior:
                 payload = f"Connection: {headers['Connection']}"
                 print(
-                    f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {payload}"
+                    f" {Identify.behavior} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {payload}"
                 )
                 cache_poisoning(
                     url, s, parameters, response_1, response_2, authent, headers

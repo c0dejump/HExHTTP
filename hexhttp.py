@@ -14,8 +14,9 @@ from modules.header_checks.vhosts import check_vhost
 
 #cp & cpdos
 from modules.cp_check.cache_poisoning_nf_files import check_cache_files
-from modules.cp_check.nextjs_pageprops import datareq_check
+from modules.cp_cve.CVE202446982 import datareq_check
 from modules.CPDoS import check_CPDoS
+from modules.CVE import check_cpcve
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 
 #others
@@ -156,6 +157,13 @@ def args():
         default=0,
         help="Increase verbosity (can be used multiple times)",
     )
+    parser.add_argument(
+        "-p",
+        "--proxy",
+        dest="custom_proxy",
+        help="Add a custom proxy. Ex: http://127.0.0.1:8080 [In Progress]",
+        required=False,
+    )
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -289,12 +297,12 @@ def process_modules(url, s, a_tech):
         check_methods(url, custom_header, authent)
         check_http_version(url)
         check_CPDoS(url, s, req_main, domain, custom_header, authent, human)
-        datareq_check(url, s, req_main, custom_header, authent)
+        check_cpcve(url, s, req_main, domain, custom_header, authent, human)
         check_cache_poisoning(url, custom_header, behavior, authent, human)
         check_cache_files(url, s, custom_header, authent) #TOREDO
         check_cookie_reflection(url, custom_header, authent)
         techno = get_technos(a_tech, req_main, url, s)
-        # fuzz_x_header(url) #TODO
+        #fuzz_x_header(url) #TODO
         check_cache_header(url, req_main)
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
@@ -366,6 +374,7 @@ if __name__ == "__main__":
     user_agent = results.user_agent
     threads = results.threads
     humans = results.humans
+    proxy = results.custom_proxy
 
     configure_logging(results.verbose, results.log, results.log_file)
 
@@ -381,7 +390,7 @@ if __name__ == "__main__":
             s.headers.update(
                 {
                     "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko",
-                    "Accept": "html",
+                    #"Accept": "html",
                     "Accept-Encoding": "gzip"
                 }
             )
@@ -397,6 +406,11 @@ if __name__ == "__main__":
                 print(e)
                 print('Error, HTTP Header format need to be "foo:bar"')
                 sys.exit()
+        if proxy:
+            proxies = {
+                'https': proxy,
+            }
+            session.proxies.update(proxies)
 
         s.max_redirects = 60
 

@@ -175,8 +175,11 @@ def check_methods(url, custom_header, authent):
         "BAN",
         "PLOP",
         "ACL",
-        "FASTLYPURGE",
         "BREW",
+        "DISMISS",
+        "FASTLYPURGE",
+        "PURGESINGLE",
+        "SHOWHEADERS",
     ]
     for ml in method_list:
         check_other_methods(ml, url, http)

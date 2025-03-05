@@ -101,6 +101,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 
 ## TODO
 
+- [ ] Add proxy feature
 - [ ] Try with mobile user-agent [WIP]
 - [ ] Filter False Positive on WAF blocking [WIP]
 - [ ] Code Linting & Optimization [WIP]

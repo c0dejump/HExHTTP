@@ -7,7 +7,7 @@ https://zhero-web-sec.github.io/research-and-things/nextjs-cache-and-chains-the-
 """
 
 
-from modules.utils import requests, random, sys, configure_logger
+from modules.utils import requests, random, sys, configure_logger, Identify
 
 logger = configure_logger(__name__)
 
@@ -21,7 +21,7 @@ def nextjsdos(url, uri, s):
         reqdos = s.get(uri, headers=headers, verify=False, auth=authent, timeout=10, allow_redirects=False)
     reqverify = s.get(url, verify=False, auth=authent, timeout=10, allow_redirects=False)
     if "pageProps" in req.text or len(reqdos.content) == len(reqverify.content):
-        print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | {url} | {headers}")
+        print(f" {Identify.confirmed} | {url} | {headers}")
 
 
 def datareq_check(url, s, req_main, custom_header, authent):
@@ -34,7 +34,7 @@ def datareq_check(url, s, req_main, custom_header, authent):
         len_req = len(req.content)
 
         if "pageProps" in req.text or "__N_SSP" in req.text:
-            print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | pageProps | TAG OK | \033[34m{uri}\033[0m | PAYLOAD: x-now-route-matches: 1")
+            print(f" {Identify.behavior} | CVE-2024-46982 | TAG OK | \033[34m{uri}\033[0m | PAYLOAD: x-now-route-matches: 1")
             #nextjsdos(url, uri, s)
         #elif len_req != main_len and req.status_code not in [403, 301, 302]:
             #print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | DIFF LENGTH | {uri} | {req.status_code}")

@@ -42,7 +42,7 @@ def HHO(url, s, main_response, authent, human):
 
         try:
             probe = s.get(
-                url, headers=h, auth=authent, allow_redirects=False, timeout=10
+                url, headers=h, auth=authent, allow_redirects=False, verify=False, timeout=10
             )
 
             logger.debug(
@@ -76,7 +76,7 @@ def HHO(url, s, main_response, authent, human):
 
     if error_detected:
         try:
-            verify = s.get(url, auth=authent, allow_redirects=False, timeout=10)
+            verify = s.get(url, auth=authent, allow_redirects=False, verify=False, timeout=10)
             if (
                 verify.status_code in [400, 413, 500, 502]
                 and verify.status_code != main_status_code

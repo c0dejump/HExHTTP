@@ -7,7 +7,7 @@ https://cpdos.org/
 """
 
 from modules.lists import payloads_keys
-from modules.utils import requests, random, sys, configure_logger, human_time
+from modules.utils import requests, random, sys, configure_logger, human_time, Identify
 
 logger = configure_logger(__name__)
 
@@ -62,13 +62,13 @@ def check_cached_status(url, s, pk, main_status_code, authent):
     )
     if confirmed:
         print(
-            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
         )
         behavior = False
         confirmed = False
     elif behavior:
         print(
-            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f" {Identify.behavior} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
         )
 
 
@@ -115,12 +115,12 @@ def check_cached_len(url, s, pk, main_len, authent):
     )
     if confirmed:
         print(
-            f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
         )
         behavior = False
     elif behavior:
         print(
-            f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f" {Identify.behavior} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
         )
 
 
@@ -131,7 +131,7 @@ def cpdos_main(url, s, initial_response, authent, human):
     blocked = 0
     for pk in payloads_keys:
         # pk = pk.encode(encoding='UTF-8')
-        uri = f"{url}{random.randrange(999)}"
+        uri = f"{url}{random.randrange(99999)}"
         try:
             req = s.get(
                 uri,
@@ -145,7 +145,7 @@ def cpdos_main(url, s, initial_response, authent, human):
 
             if req.status_code == 888:
                 print(
-                    f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError 888 response | CACHETAG: N/A | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+                    f" {Identify.behavior} | CPDoSError 888 response | CACHETAG: N/A | \033[34m{url}\033[0m | PAYLOAD: {pk}"
                 )
                 check_cached_status(uri, s, pk, main_status_code, authent)
             elif req.status_code == 403 or req.status_code == 429:

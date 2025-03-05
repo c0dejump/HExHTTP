@@ -1,6 +1,6 @@
 import http.client
 from urllib.parse import urlparse
-from modules.utils import requests, configure_logger, random, human_time
+from modules.utils import requests, configure_logger, random, human_time, Identify
 from modules.lists import header_list
 
 VULN_NAME = "Multiple Headers"
@@ -39,7 +39,7 @@ def verify_cache_poisoning(VULN_TYPE, conn, url, payload, main_status_code, auth
         if req.status_code == res_status and res_status != main_status_code:
             reason = f"DIFFERENT STATUS-CODE  {main_status_code} > {response.status}"
             print(
-                f" \033[31m└── [VULNERABILITY CONFIRMED]\033[0m | {VULN_NAME} | \033[34m{uri}\033[0m | {reason} | PAYLOAD: {payload}"
+                f" {Identify.confirmed} | {VULN_NAME} | \033[34m{uri}\033[0m | {reason} | PAYLOAD: {payload}"
             )
     except Exception as e:
         logger.exception(e)
@@ -149,7 +149,7 @@ def MHC(url, req_main, authent, human):
                     payload = f"[Host: {host}, Host: toto.com]"
 
                 print(
-                        f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | {VULN_NAME} | \033[34m{url}?cb={vuln_type_res[1]}\033[0m | {behavior} | PAYLOAD: {payload}"
+                        f" {Identify.behavior} | {VULN_NAME} | \033[34m{url}?cb={vuln_type_res[1]}\033[0m | {behavior} | PAYLOAD: {payload}"
                     )
                 conn.close()
                 verify_cache_poisoning(vuln_type, conn, url, payload, main_status_code, authent, host)
@@ -164,7 +164,7 @@ def MHC(url, req_main, authent, human):
                 payload = f"[{mh}: xxxx, {mh}: xxxx]"
 
                 print(
-                        f" \033[33m└── [INTERESTING BEHAVIOR]\033[0m | {VULN_NAME} | \033[34m{url}?cb={DH[1]}\033[0m | {behavior} | PAYLOAD: {payload}"
+                        f" {Identify.behavior} | {VULN_NAME} | \033[34m{url}?cb={DH[1]}\033[0m | {behavior} | PAYLOAD: {payload}"
                     )
                 conn.close()
                 verify_cache_poisoning(mh, conn, url, payload, main_status_code, authent, host)

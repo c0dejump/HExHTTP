@@ -1298,4 +1298,5 @@ headersToFuzz = {
     "X-Tengine-Forwarded-For": CANARY,
     "X-Tengine-Request-ID": CANARY,
     "Etag": CANARY,
+    "Region": CANARY
 }
