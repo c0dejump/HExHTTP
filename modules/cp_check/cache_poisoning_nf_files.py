@@ -70,7 +70,7 @@ def check_reflection(url, s, authent, matching_forward):
 
 def check_cache_files(uri, s, custom_header, authent):
 
-    matching_forward = "ndvyepenbvtidpvyzh.com"
+    matching_forward = "ndvyepenbvtidpvyzh"
 
     for endpoints in ["plopiplop.js", "plopiplop.css"]:
         url = f"{uri}{endpoints}"

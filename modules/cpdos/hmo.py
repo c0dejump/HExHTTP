@@ -13,7 +13,7 @@ logger = configure_logger(__name__)
 VULN_NAME = "HTTP Method Override"
 
 CONTENT_DELTA_RANGE = 500
-BIG_CONTENT_DELTA_RANGE = 1000
+BIG_CONTENT_DELTA_RANGE = 5000
 
 def HMO(url, s, initial_response, authent, human):
     """Function to test for HTTP Method Override vulnerabilities"""

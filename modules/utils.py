@@ -68,5 +68,5 @@ class Colors:
     RESET = "\033[0m"
 
 class Identify:
-    behavior = "\033[33m └── [INTERESTING BEHAVIOR]\033[0m"
-    confirmed = "\033[31m └── [VULNERABILITY CONFIRMED]\033[0m"
+    behavior = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
+    confirmed = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
