@@ -11,6 +11,9 @@ except ImportError:
     __version__ = "v1.7.5"
 
 
+from static.version import check_for_update
+
+
 
 def print_banner() -> None:
     """
@@ -38,6 +41,7 @@ def print_banner() -> None:
     print(
         f"HExHTTP({__version__}) is a tool designed to perform tests on HTTP headers."
     )
+    check_for_update(__version__)
 
 
 if __name__ == "__main__":

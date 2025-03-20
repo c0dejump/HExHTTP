@@ -1,6 +1,18 @@
 Changelog:
 ----------
 
+- 1.7.6
+---------
+	News
+	- Check your HExHTTP version 
+	- New cve module to check Nuxt.js CPDoS Zhero research (CVE-2025-27415)
+	Updated:
+	- News payloads (headers, methods and http version)
+	- Fixed bugs/FP
+	- Linting
+---------
+
+
 - 1.7.5
 ---------
 	News
@@ -16,7 +28,7 @@ Changelog:
 - 1.7.4
 ---------
 	News:
-	- New module to check Nextjs cache poisoning Zhero research (modules/cp_check/nextjs_datareq)
+	- New cve module to check Nextjs cache poisoning Zhero research
 	Updated:
 	- Reduce FP
 	- Change "CACHE" by "CACHETAG" to avoid confusion

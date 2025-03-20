@@ -175,6 +175,7 @@ def headers_poisoning_check(url, initialResponse, custom_header, human):
     findingState = 0
     for header in headersToFuzz.keys():
         payload = {header: headersToFuzz[header]}
+        payload = payload.update({"user-agent": "xxxxxxxx"})
         randNum = str(random.randrange(999))
         buster = str(random.randrange(999))
         uri = f"{url}?cacheBusterX{randNum}={buster}"

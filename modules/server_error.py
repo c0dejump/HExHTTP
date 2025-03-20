@@ -9,8 +9,8 @@ from modules.utils import requests, configure_logger
 
 logger = configure_logger(__name__)
 
-def get_server_error(url, base_header, full, authent, url_file):
-    print("\n\033[36m ├ Server error analysis\033[0m")
+def get_server_error(url, base_header, authent, url_file):
+    print("\033[36m ├ Server error analysis\033[0m")
     error_header = []
     valid_error = False
     error_length = 0
@@ -44,9 +44,8 @@ def get_server_error(url, base_header, full, authent, url_file):
                 print("")
                 print(f" \033[36m200 response header\033[0m {' ':<25} \033[36m400 response header\033[0m")
                 for pbh, peh in zip(base_header, error_header):
-                    if not full:
-                        pbh = pbh.replace(pbh[40:], "...") if len(pbh) > 40 else pbh
-                        peh = peh.replace(peh[60:], "...\033[0m") if len(peh) > 60 else peh
+                    pbh = pbh.replace(pbh[40:], "...") if len(pbh) > 40 else pbh
+                    peh = peh.replace(peh[60:], "...\033[0m") if len(peh) > 60 else peh
                     print(' {pbh:<45} → {peh:<15}'.format(pbh=pbh, peh=peh))
                 print("")
             else:

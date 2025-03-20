@@ -61,6 +61,7 @@ def check_cached_status(url, s, pk, main_status_code, authent):
         else f"\033[32m{cache_status}\033[0m"
     )
     if confirmed:
+        #print(headers)
         print(
             f" {Identify.confirmed} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
         )
@@ -178,8 +179,8 @@ def cpdos_main(url, s, initial_response, authent, human):
                 ):
                     check_cached_len(uri, s, pk, main_len, authent)
             human_time(human)
-
-            if len(list(pk.values())[0]) < 50:
+            
+            if len(list(pk.values())[0]) < 50 and len(list(pk.keys())[0]) < 50:
                 sys.stdout.write(f"\033[34m {pk}\033[0m\r")
                 sys.stdout.write("\033[K")
         except KeyboardInterrupt:

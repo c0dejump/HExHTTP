@@ -14,7 +14,7 @@ logger = configure_logger(__name__)
 def check_http_version(url):
   
     print("\033[36m ├ HTTP Version analysis\033[0m")
-    versions = ["HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2"]
+    versions = ["HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/1.6", "HTTP/2", "HTTP/3", "QUIC", "HtTP/1.1", "SHTTP/1.3", "HTTP/1.1.1"]
 
     try:
         req = requests.get(url, verify=False, allow_redirects=False, timeout=10)

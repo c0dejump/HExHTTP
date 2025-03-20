@@ -18,8 +18,8 @@ logger = configure_logger(__name__)
 
 def crawl_files(url, s, req_main, domain, custom_header, authent, human):
     try:
-        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|svg|png|jpg|jpeg))(?=")'
-        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|svg|png|jpg|jpeg))(?=")'
+        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|svg))(?=")'
+        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|svg))(?=")'
         #regexp3 = r'(?<=src=")(\/[^\/].+?)(?=")'
         #regexp4 = r'(?<=href=")(\/[^\/].+?)(?=")'
 

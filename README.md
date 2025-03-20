@@ -11,14 +11,28 @@
 
 ## Installation
 
-### Python
 
-```bash
-pip install -r requirements.txt
-./hexhttp.py -u 'https://target.tld/'
-# OR
-python3 hexhttp.py -u 'https://target.tld/'
-```
+Follow these steps to install **HExHTTP**:
+
+1. **Clone the repository** to your local machine:
+   ```bash
+   git clone https://github.com/c0dejump/HExHTTP.git
+   ```
+2. **Change Directory**   
+   ```bash
+   cd HExHTTP
+   ```
+3. **Install** the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. **Ensure HExHTTP** is running correctly:
+   ```bash
+   ./hexhttp.py -u 'https://target.tld/'
+      # OR
+   python3 hexhttp.py -u 'https://target.tld/'
+   ```
+For More Advanced use, Check [Usage](#usage) section below.
 
 ### Docker
 
@@ -30,30 +44,30 @@ docker run --rm -it --net=host -v "$PWD:/hexhttp/" hexhttp:latest -u 'https://ta
 ## Usage
 
 ```bash
-Usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-F] [-a AUTH] [-b]
+Usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-F] [-a AUTH] [-b] [-hu HUMANS] [-t THREADS] [-l LOG] [-L LOG_FILE] [-v] [-p CUSTOM_PROXY]
 
 HExHTTP is a tool designed to perform tests on HTTP headers.
 
 options:
   -h, --help            show this help message and exit
-  -u URL, --url URL     URL to test [required]
-  -f URL_FILE, --file URL_FILE
-                        File of URLs
-  -H CUSTOM_HEADER, --header CUSTOM_HEADER
+  -u, --url URL         URL to test [required]
+  -f, --file URL_FILE   File of URLs
+  -H, --header CUSTOM_HEADER
                         Add a custom HTTP Header
-  -A USER_AGENT, --user-agent USER_AGENT
+  -A, --user-agent USER_AGENT
                         Add a custom User Agent
   -F, --full            Display the full HTTP Header
-  -a AUTH, --auth AUTH  Add an HTTP authentication. Ex: --auth admin:admin
+  -a, --auth AUTH       Add an HTTP authentication. Ex: --auth admin:admin
   -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
-  -hu HUMANS, --humans HUMANS
-                        Performs a timesleep to reproduce human behavior (Default: 0s) value: "r" or "random"
-  -t THREADS, --threads THREADS
+  -hu, --humans HUMANS  Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
+  -t, --threads THREADS
                         Threads numbers for multiple URLs. Default: 10
-  -l LOG, --log LOG     Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-  -L LOG_FILE, --log-file LOG_FILE
+  -l, --log LOG         Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  -L, --log-file LOG_FILE
                         The file path pattern for the log file. Default: logs/
   -v, --verbose         Increase verbosity (can be used multiple times)
+  -p, --proxy CUSTOM_PROXY
+                        Add a custom proxy. Ex: http://127.0.0.1:8080 [In Progress]
 
 ```
 
@@ -65,6 +79,9 @@ options:
 
 # Scan a list of domains with behavior feature
 » ./hexhttp.py -b -f domains.lst
+
+# if the application is very sensitive (waf or not)
+» ./hexhttp.py -u 'https://target.tld/' -hu r
 
 # Add custom User-Agent
 » ./hexhttp.py -u 'https://target.tld/' --user-agent "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/123.0-BugBounty"

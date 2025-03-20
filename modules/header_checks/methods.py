@@ -115,9 +115,13 @@ def check_other_methods(ml, url, http):
             print(
                 f" └── {ml}{'':<3}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]"
             )
-        elif len(ml) < 4:
+        elif len(ml) < 4 and len(ml) > 2:
             print(
                 f" └── {ml}{'':<5}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]"
+            )
+        elif len(ml) == 2:
+            print(
+                f" └── {ml}{'':<6}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]"
             )
         else:
             print(
@@ -168,15 +172,19 @@ def check_methods(url, custom_header, authent):
                     print(f"    |-- allow: {req_head[x]}")
 
     method_list = [
+        "ST",
+        "BAN",
+        "ACL",
+        "PLOP",
         "HELP",
+        "BREW",
         "PURGE",
         "DEBUG",
         "TRACE",
-        "BAN",
-        "PLOP",
-        "ACL",
-        "BREW",
+        "REPORT",
         "DISMISS",
+        "CONNECT",
+        "PROPFIND",
         "FASTLYPURGE",
         "PURGESINGLE",
         "SHOWHEADERS",

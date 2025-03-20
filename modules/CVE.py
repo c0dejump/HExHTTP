@@ -7,6 +7,7 @@ from modules.cp_cve.CVE202446982 import datareq_check
 from modules.cp_cve.CVE201919326 import silverstripe
 from modules.cp_cve.CVE202447374 import litespeed
 from modules.cp_cve.CVE20235256 import drupaljsonapi
+from modules.cp_cve.CVE202527415 import nuxt_check
 
 logger = configure_logger(__name__)
 
@@ -31,6 +32,7 @@ def run_cve_modules(url, s, req_main, domain, custom_header, authent, human):
         silverstripe(uri, s, req_main, custom_header, authent)
         litespeed(url)
         drupaljsonapi(url)
+        nuxt_check(url, s, req_main, custom_header, authent)
         #TODO:https://labs.withsecure.com/advisories/plone-cms-cache-poisoning-xss-vulnerability
         #TODO:https://github.com/ZephrFish/F5-CVE-2022-1388-Exploit/tree/main
 

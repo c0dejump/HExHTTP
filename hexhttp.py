@@ -33,6 +33,7 @@ else:
 
 import threading
 from threading import Thread
+
 from static.banner import print_banner
 
 try:
@@ -60,7 +61,6 @@ def args():
         -f, --file (str): File of URLs.
         -H, --header (str): Add a custom HTTP Header.
         -A, --user-agent (str): Add a custom User Agent.
-        -F, --full (bool): Display the full HTTP Header.
         -a, --auth (str): Add an HTTP authentication. Ex: --auth admin:admin.
         -b, --behavior (bool): Activates a simplified version of verbose,
             highlighting interesting cache behaviors.
@@ -94,14 +94,6 @@ def args():
         dest="user_agent",
         help="Add a custom User Agent",
         required=False,
-    )
-    parser.add_argument(
-        "-F",
-        "--full",
-        dest="full",
-        help="Display the full HTTP Header",
-        required=False,
-        action="store_true",
     )
     parser.add_argument(
         "-a",
@@ -218,8 +210,8 @@ def fuzz_x_header(url):
     pass
 
 
-def check_cache_header(url, req_main):
-    print("\033[36m ├ Header cache\033[0m")
+def check_cachetag_header(url, req_main):
+    print("\n\033[36m ├ Header cache tags\033[0m")
     # basic_header = ["Content-Type", "Content-Length", "Date", "Content-Security-Policy", "Alt-Svc", "Etag", "Referrer-Policy", "X-Dns-Prefetch-Control", "X-Permitted-Cross-Domain-Policies"]
 
     result = []
@@ -269,6 +261,7 @@ def check_auth(auth, url):
         sys.exit()
 
 
+
 def process_modules(url, s, a_tech):
     domain = get_domain_from_url(url)
 
@@ -291,7 +284,8 @@ def process_modules(url, s, a_tech):
         for k in req_main.headers:
             base_header.append(f"{k}: {req_main.headers[k]}")
 
-        get_server_error(url, base_header, full, authent, url_file)
+        check_cachetag_header(url, req_main)
+        get_server_error(url, base_header, authent, url_file)
         check_vhost(domain, url)
         check_localhost(url, s, domain, authent)
         check_methods(url, custom_header, authent)
@@ -303,7 +297,6 @@ def process_modules(url, s, a_tech):
         check_cookie_reflection(url, custom_header, authent)
         techno = get_technos(a_tech, req_main, url, s)
         #fuzz_x_header(url) #TODO
-        check_cache_header(url, req_main)
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
         pass
@@ -367,7 +360,6 @@ if __name__ == "__main__":
 
     url = results.url
     url_file = results.url_file
-    full = results.full
     custom_header = results.custom_header
     behavior = results.behavior
     auth = results.auth
