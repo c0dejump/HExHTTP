@@ -67,7 +67,7 @@ options:
                         The file path pattern for the log file. Default: logs/
   -v, --verbose         Increase verbosity (can be used multiple times)
   -p, --proxy CUSTOM_PROXY
-                        Add a custom proxy. Ex: http://127.0.0.1:8080 [In Progress]
+                        Add a custom proxy. Ex: http://127.0.0.1:8080
 
 ```
 
@@ -91,6 +91,7 @@ options:
 
 # Loop on domains, grep for vulnerabilities only and send result with notify (from projectdiscovery)
 » for domain in $(cat domains.lst); do ./hexhttp.py -u "$domain" | grep -Eio "(INTERESTING|CONFIRMED)(.*)PAYLOAD.?:(.*){5,20}$" | notify -silent; done
+
 ```
 
 ## Examples
@@ -118,7 +119,6 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 
 ## TODO
 
-- [ ] Add proxy feature [WIP]
 - [ ] Filter False Positive on WAF blocking [WIP]
 - [ ] Code Linting & Optimization [WIP]
 - [ ] Human scan (rate limiting + timeout randomization ) [WIP] -- works but cleaning, linting etc...
@@ -138,7 +138,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 - [Responsible denial of service with web cache poisoning](https://portswigger.net/research/responsible-denial-of-service-with-web-cache-poisoning)
 - [CPDoS.org](https://cpdos.org/)
 - [Autopoisoner](https://github.com/Th0h0/autopoisoner)
-- [Rachid.A research](https://zhero-web-sec.github.io/research-and-things/nextjs-and-cache-poisoning-a-quest-for-the-black-hole)
+- [Rachid.A research](https://zhero-web-sec.github.io/research-and-things/)
 
 ## Contributing
 

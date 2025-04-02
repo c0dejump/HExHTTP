@@ -1,6 +1,19 @@
 Changelog:
 ----------
 
+- 1.8
+---------
+	News
+	- New cve module to check Next.js CPDoS Zhero research (CVE-2025-29927)
+	- New module to check cache poisoning via path traversal (Thanks to 0xrth !)
+	- Proxy features (-p option)
+	Updated:
+	- News payloads
+	- Fixed bugs/FP
+	- Linting
+	- requirement.txt
+---------
+
 - 1.7.6
 ---------
 	News

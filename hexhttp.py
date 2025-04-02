@@ -402,7 +402,7 @@ if __name__ == "__main__":
             proxies = {
                 'https': proxy,
             }
-            session.proxies.update(proxies)
+            s.proxies.update(proxies)
 
         s.max_redirects = 60
 

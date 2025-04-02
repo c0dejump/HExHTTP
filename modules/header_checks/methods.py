@@ -130,7 +130,7 @@ def check_other_methods(ml, url, http):
         logger.debug("Data response: %s", resp.data)
 
     except urllib3.exceptions.MaxRetryError:
-        print(f" └── {ml}{'':<4}: Error due to a too many redirects")
+        print(f" └── {ml} : Error due to a too many redirects")
     except Exception as e:
         logger.exception(e)
 

@@ -17,7 +17,7 @@ def check_cached_status(url, s, pk, main_status_code, authent):
     confirmed = False
     cache_status = False
 
-    for _ in range(0, 20):
+    for _ in range(0, 5):
         req = s.get(
             url,
             headers=pk,
@@ -78,7 +78,7 @@ def check_cached_len(url, s, pk, main_len, authent):
     confirmed = False
     cache_status = False
 
-    for _ in range(0, 20):
+    for _ in range(0, 5):
         req = s.get(
             url,
             headers=pk,

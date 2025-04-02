@@ -47,6 +47,7 @@ def nuxt_check(url, s, req_main, custom_header, authent):
 
         if "nuxt" in req.text or "nuxt" in req.headers:
             unrisk_page = get_unrisk_page(url, req)
+            #print(unrisk_page)
             if unrisk_page:
                 poison_url = f"{unrisk_page}_payload.json" if unrisk_page[-1] == "/" else f"{unrisk_page}/_payload.json"
                 req_nuxt = requests.get(poison_url, verify=False, auth=authent, headers=custom_header, timeout=10, allow_redirects=False)

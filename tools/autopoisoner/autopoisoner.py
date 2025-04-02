@@ -92,7 +92,7 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
         return False
     except Exception as e:
         #print(f"Error 95 line: {e}")
-        #traceback.print_exc()
+        ##traceback.print_exc()
         return False
     if confirmationResponse.status_code == responseCandidate.status_code and confirmationResponse.text == responseCandidate.text:
         if canary_in_response(responseCandidate):
@@ -175,13 +175,14 @@ def headers_poisoning_check(url, initialResponse, custom_header, human):
     findingState = 0
     for header in headersToFuzz.keys():
         payload = {header: headersToFuzz[header]}
-        payload = payload.update({"user-agent": "xxxxxxxx"})
+        pp = payload.copy()
+        pp.update({"user-agent": "xxxxxxxx"})
         randNum = str(random.randrange(999))
         buster = str(random.randrange(999))
         uri = f"{url}?cacheBusterX{randNum}={buster}"
         response = None
         try:
-            response = requests.get(uri, headers=payload, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
+            response = requests.get(uri, headers=pp, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
             human_time(human)
         except KeyboardInterrupt:
             pass
@@ -196,7 +197,7 @@ def headers_poisoning_check(url, initialResponse, custom_header, human):
                 potential_verbose_message("ERROR", url)
                 print(f"Request error with {uri} URL with {payload}")
                 print("Error on the 179 Lines")
-                traceback.print_exc()
+                #traceback.print_exc()
             continue
         explicitCache = str(use_caching(response.headers)).upper()
         sys.stdout.write(f"\033[34m  {header}\033[0m\r")

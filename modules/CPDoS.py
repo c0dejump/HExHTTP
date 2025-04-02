@@ -10,6 +10,7 @@ from modules.cpdos.hmo import HMO
 from modules.cpdos.hhcn import HHCN
 from modules.cpdos.hbh import HBH
 from modules.cpdos.multiple_headers import MHC
+from modules.cpdos.path_traversal import path_traversal_check
 
 from modules.utils import random, re, sys, configure_logger
 
@@ -68,6 +69,7 @@ def run_cpdos_modules(url, s, req_main, domain, custom_header, authent, human):
         HHCN(uri, s, req_main, authent)
         HBH(url, s, req_main, authent, human)
         MHC(url, req_main, authent, human)
+        path_traversal_check(url, s, req_main, authent)
         cpdos_main(uri, s, req_main, authent, human)
         # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:

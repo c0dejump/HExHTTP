@@ -4,3 +4,4 @@ urllib3==2.2.1
 notify-py==0.3.42
 pync==2.0.3
 bs4
+httpx

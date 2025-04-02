@@ -8,7 +8,7 @@ Prints a colorful ASCII art banner along with a brief description of the HExHTTP
 try:
     from _version import __version__
 except ImportError:
-    __version__ = "v1.7.6"
+    __version__ = "v1.8"
 
 
 from static.version import check_for_update
