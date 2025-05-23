@@ -52,7 +52,7 @@ def human_time(human):
     #print(human)
     if human.isdigit():
         time.sleep(int(human))
-    elif human == "r" or human == "random" or human == "R":
+    elif human.lower() == "r" or human.lower() == "random":
             time.sleep(random.randrange(6))
     else:
         pass

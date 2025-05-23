@@ -32,6 +32,9 @@ Follow these steps to install **HExHTTP**:
       # OR
    python3 hexhttp.py -u 'https://target.tld/'
    ```
+
+Or you can do ```pip install hexhttp```
+
 For More Advanced use, Check [Usage](#usage) section below.
 
 ### Docker
@@ -113,9 +116,9 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 - HTTP Version analysis **[Experimental]**
 - Cache Poisoning DoS (CPDoS) techniques
 - Web cache poisoning
-- Range poisoning/error (416 response error) **[Experimental]**
+- HTTP type CVE checking
 - Cookie Reflection
-- CDN/proxies Analysis (Envoy/Apache/Akamai/Nginx) **[IP]**
+- CDN/proxies Analysis (Envoy/Apache/Akamai/Nginx) **[WIP]**
 
 ## TODO
 
@@ -125,7 +128,6 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 - [ ] Parameter Cloacking
 - [ ] Try with mobile user-agent
 - [ ] Tests Bed for regression testing
-- [ ] Pypi package (src/ layout + tests/ + tox)
 - [ ] Different Output formats (eg, JSON, JSONL, TXT)
 
 ### Based on
