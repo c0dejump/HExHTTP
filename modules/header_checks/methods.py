@@ -2,25 +2,29 @@
 # -*- coding: utf-8 -*-
 
 """
-Check support for different HTTP methods
+Check support for different HTTP methods (NOT DELETE & PATCH)
 """
 
 import urllib3
 from urllib3 import Timeout, PoolManager
-from modules.utils import requests, configure_logger
+from modules.utils import requests, configure_logger, Colors
 
 logger = configure_logger(__name__)
 
 desc_method = {
-    204: "204 No Content",
-    400: "\033[33m400 Bad Request\033[0m",
-    405: "\033[33m405 Method Not Allowed\033[0m",
-    406: "\033[33m406 Not Acceptable\033[0m",
-    409: "\033[33m409 Conflict\033[0m",
-    410: "410 Gone",
-    500: "\033[31m500 Internal Server Error\033[0m",
-    501: "\033[31m501 Not Implemented\033[0m",
-    502: "\033[31m502 Bad Gateway\033[0m",
+    200: f"\033[32m200 OK{Colors.RESET}",
+    204: f"204 No Content{Colors.RESET}",
+    400: f"\033[33m400 Bad Request{Colors.RESET}",
+    401: f"\033[31m401 AUTH{Colors.RESET}",
+    403: f"\033[31m403 FORBIDDEN{Colors.RESET}",
+    405: f"\033[33m405 Method Not Allowed{Colors.RESET}",
+    406: f"\033[33m406 Not Acceptable{Colors.RESET}",
+    409: f"\033[33m409 Conflict{Colors.RESET}",
+    410: f"410 Gone",
+    412: f"\033[33m412 Precondition Failed{Colors.RESET}",
+    500: f"\033[31m500 Internal Server Error{Colors.RESET}",
+    501: f"\033[31m501 Not Implemented{Colors.RESET}",
+    502: f"\033[31m502 Bad Gateway{Colors.RESET}",
 }
 
 header = {
@@ -81,7 +85,7 @@ def options(url):
     )
 
 
-def check_other_methods(ml, url, http):
+def check_other_methods(ml, url, http, pad):
     try:
         if ml == "DELETE":
             url = f"{url}plopiplop.css"
@@ -111,22 +115,11 @@ def check_other_methods(ml, url, http):
             ):
                 cache_status = True
         len_req = len(resp.data.decode("utf-8"))
-        if len(ml) > 4:
-            print(
-                f" └── {ml}{'':<3}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]"
+        space = " " * (pad - len(ml) + 1)
+        print(
+                f" └── {ml}{space}{rs:<3}  [{len_req} bytes]{'':<2}[CacheTag: {cache_status}]"
             )
-        elif len(ml) < 4 and len(ml) > 2:
-            print(
-                f" └── {ml}{'':<5}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]"
-            )
-        elif len(ml) == 2:
-            print(
-                f" └── {ml}{'':<6}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]"
-            )
-        else:
-            print(
-                f" └── {ml}{'':<4}: {rs:<3} [{len_req} bytes]{'':<1}[CacheTag: {cache_status}]"
-            )
+
         logger.debug("Data response: %s", resp.data)
 
     except urllib3.exceptions.MaxRetryError:
@@ -165,29 +158,15 @@ def check_methods(url, custom_header, authent):
             if "cache" in rh.lower():
                 cache_status = True
                 cache_res = rh
-        print(f" └── {type_r:<8}: {rs:<3} [{len_req} bytes] [CacheTag: {cache_status}]")
+        print(f" └── {type_r:<10} {rs:<3} [{len_req} bytes] [CacheTag: {cache_status}]")
         if type_r == "OPTIONS":
             for x in req_head:
                 if x.lower() == "allow":
                     print(f"    |-- allow: {req_head[x]}")
 
-    method_list = [
-        "ST",
-        "BAN",
-        "ACL",
-        "PLOP",
-        "HELP",
-        "BREW",
-        "PURGE",
-        "DEBUG",
-        "TRACE",
-        "REPORT",
-        "DISMISS",
-        "CONNECT",
-        "PROPFIND",
-        "FASTLYPURGE",
-        "PURGESINGLE",
-        "SHOWHEADERS",
-    ]
-    for ml in method_list:
-        check_other_methods(ml, url, http)
+    list_path = "modules/lists/methods_list.lst"
+    with open(list_path, "r") as method_list:
+        method_list = method_list.read().splitlines()
+        pad = max(len(m) for m in method_list)
+        for ml in method_list:
+            check_other_methods(ml, url, http, pad)

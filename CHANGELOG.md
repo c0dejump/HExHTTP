@@ -1,5 +1,12 @@
 Changelog:
 ----------
+
+- 1.9.1
+---------
+	Updated:
+	- Linting of the http methods module and addition of +50 new methods to be check
+---------
+
 - 1.9
 ---------
 	News

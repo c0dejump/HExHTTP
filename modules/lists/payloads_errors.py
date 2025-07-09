@@ -1037,4 +1037,6 @@ payloads_keys = [  # {"xxxx":"缓"},
     {'x-middleware-subrequest': 'src/middleware:src/middleware:src/middleware:src/middleware:src/middleware'},
     {'X-React-Router-SPA-Mode': 'yes'},
     {'X-React-Router-Prerender-Data': '[{"plop":"plip"}, "toto"]'},
+    {'X-Prototype-Version': '1.7'},
+    {'X-Prototype-Version': 'xxx'},
 ]
