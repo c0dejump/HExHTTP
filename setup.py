@@ -1,36 +1,39 @@
-from setuptools import setup, find_packages
+# Author:
+# Nathan Faillenot (codejump - @c0dejump)
+
+import pathlib
+import setuptools
+from setuptools import setup, find_packages, Extension
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 setup(
-    name="hexhttp",
-    version="1.8",
-    description="HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors.",
-    long_description=open("README.md", encoding="utf-8").read(),
-    long_description_content_type="text/markdown",
+    name="HExHTTP",
+    version="1.9",
     author="c0dejump",
-    url="https://github.com/c0dejump/HExHTTP",
-    license="MIT",
-    packages=find_packages(exclude=["tests", "docs"]),
-    python_requires=">=3.7",
+    author_email="codejumpgame@gmail.com",
+    description="HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    packages=find_packages(exclude=["static"]),
+    include_package_data=True,
+    url="https://github.com/c0dejump/HExHTTP/",
     install_requires=[
-        "requests==2.31.0",
-        "wafw00f==2.2.0",
-        "urllib3==2.2.1",
-        "notify-py==0.3.42",
-        "pync==2.0.3",
-        "bs4",
-        "httpx"
+        'requests==2.31.0',
+        'wafw00f==2.2.0',
+        'urllib3==2.2.1',
+        'notify-py==0.3.42',
+        'pync==2.0.3',
+        'bs4',
+        'httpx'
     ],
-    entry_points={
-        "console_scripts": [
-            "hexhttp=hexhttp:main",
-        ],
+    project_urls={
+        "Bug Tracker": "https://github.com/c0dejump/HExHTTP/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-        "Topic :: Security",
-        "Intended Audience :: Developers",
     ],
-    include_package_data=True,
 )

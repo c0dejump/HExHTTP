@@ -96,7 +96,7 @@ def HMO(url, s, initial_response, authent, human):
             elif probe.status_code == main_status_code and len(probe.content) in range_exlusion:
                 continue
 
-            for _ in range(15):
+            for _ in range(5):
                 probe = s.get(
                     uri,
                     headers=probe_headers,
@@ -120,7 +120,7 @@ def HMO(url, s, initial_response, authent, human):
                 )
                 status = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
 
-            if len(control.content) == len(probe.content) and len(probe.content) not in range_exlusion:
+            if len(control.content) == len(probe.content) and len(probe.content) not in range_exlusion and control.status_code not in [429, 403]:
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(control.content)}b"
                 )

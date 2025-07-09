@@ -124,8 +124,8 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 
 - [ ] Filter False Positive on WAF blocking [WIP]
 - [ ] Code Linting & Optimization [WIP]
-- [ ] Human scan (rate limiting + timeout randomization ) [WIP] -- works but cleaning, linting etc...
 - [ ] Parameter Cloacking
+- [X] Human scan (rate limiting + timeout randomization ) [WIP] -- works but cleaning, linting etc...
 - [ ] Try with mobile user-agent
 - [ ] Tests Bed for regression testing
 - [ ] Different Output formats (eg, JSON, JSONL, TXT)

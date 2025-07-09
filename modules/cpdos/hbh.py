@@ -143,6 +143,16 @@ def HBH(
                 print(
                     f" {Identify.behavior} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {payload}"
                 )
+                for _ in range(0, 5):
+                    response_2 = s.get(
+                        url,
+                        headers=headers,
+                        params=parameters,
+                        auth=authent,
+                        allow_redirects=False,
+                        verify=False,
+                        timeout=10,
+                    )
                 cache_poisoning(
                     url, s, parameters, response_1, response_2, authent, headers
                 )

@@ -1,5 +1,16 @@
 Changelog:
 ----------
+- 1.9
+---------
+	News
+	- New module to check cache poisoning via backslash transformation
+	- New Akamai check (https://web.archive.org/web/20230101082612/https://spyclub.tech/2022/12/14/unusual-cache-poisoning-akamai-s3/#How-to-prevent) + Linting
+	Updated:
+	- Cleaning and tidying up threads
+	- Fixed header add by -H option, now you can add multiple headers, exemple: -H "toto: titi" -H "plop: plip"
+	- News payloads
+	- Fixed bugs/FP
+---------
 
 - 1.8
 ---------

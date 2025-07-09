@@ -276,16 +276,13 @@ def cache_poisoning_check(url, custom_header, human):
             if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
                 crawl_and_scan(url, initialResponse, custom_header, human)
         elif initialResponse and initialResponse.status_code == 429:
-            time.sleep(3)
+            pass
         else:
             print(f"Error 261: {initialResponse}")
             #traceback.print_exc()
             potential_verbose_message("ERROR", url)
             #return "ERROR"
 
-"""def sequential_cache_poisoning_check(urlList):
-    for url in urlList:
-        cache_poisoning_check(url)"""
 
 def check_cache_poisoning(url, custom_header, behavior_, authent, human):
     print("\033[36m ├ Cache poisoning analysis\033[0m")
@@ -302,48 +299,3 @@ def check_cache_poisoning(url, custom_header, behavior_, authent, human):
         except Exception as e:
             print(f"Error 1: {e}")
             #traceback.print_exc()
-    """elif file:
-        try:
-            if not args.threads or args.threads == 1:
-                sequential_cache_poisoning_check(allURLs)
-            else:
-                workingThreads = []
-                split = splitURLS(args.threads)
-                for subList in split:
-                    t = threading.Thread(target=sequential_cache_poisoning_check, args=[subList])
-                    workingThreads.append(t)
-                for thread in workingThreads:
-                    thread.start()
-                for thread in workingThreads:
-                    thread.join()
-        except KeyboardInterrupt:
-            print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-            sys.exit()"""
-
-"""if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("--file", "-f", type=str, required=False, help="file containing URLs to be tested")
-    parser.add_argument("--url", "-u", type=str, required=False, help="url to be tested")
-    parser.add_argument("--threads", "-n", type=int, required=False, help= 'number of threads for the tool')
-    parser.add_argument("--output", "-o", type=str, required=False, help='output file path')
-    parser.add_argument("--verbose", "-v", required=False, action='store_true', help="activate verbose mode")
-    parser.add_argument("--behavior", "-b", required=False, action='store_true', help="activate a lighter version of verbose, highlighting interesting cache behavior") 
-
-    args = parser.parse_args()
-    if not (args.file or args.url):
-        parser.error('No input selected: Please add --file or --url.')
-
-    # if args.output:
-    #     outputFile = open(args.output, "w")
-    # else:
-    #     pass
-        # outputFile = open("output.txt", "w")
-
-    if args.file :
-        try:
-            allURLs = [line.replace('\n', '') for line in open(args.file, "r")]
-        except FileNotFoundError:
-            print("Error, input file not found")
-            sys.exit()
-    check_cache_poisoning(args.url)"""

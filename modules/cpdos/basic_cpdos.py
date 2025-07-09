@@ -32,8 +32,8 @@ def check_cached_status(url, s, pk, main_status_code, authent):
     # print(f"{req.status_code} :: {req_verify.status_code}")
     if (
         req.status_code == req_verify.status_code
-        and req.status_code not in [429, 200, 304, 303]
-        or req_verify.status_code not in [429, 200, 304, 303]
+        and req.status_code not in [429, 200, 304, 303, 403]
+        or req_verify.status_code not in [429, 200, 304, 303, 403]
         and req_verify.status_code != main_status_code
     ):
         behavior = True
@@ -94,6 +94,7 @@ def check_cached_len(url, s, pk, main_len, authent):
     if (
         len(req.content) == len(req_verify.content)
         and len(req_verify.content) != main_len
+        and req_verify.status_code not in [429, 403]
     ):
         behavior = True
         for rh in req_verify.headers:
@@ -132,6 +133,7 @@ def cpdos_main(url, s, initial_response, authent, human):
     blocked = 0
     for pk in payloads_keys:
         # pk = pk.encode(encoding='UTF-8')
+        #print(pk)
         uri = f"{url}{random.randrange(99999)}"
         try:
             req = s.get(

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from modules.utils import random, re, sys, configure_logger
+
 from modules.cpdos.basic_cpdos import cpdos_main
 from modules.cpdos.waf_rules import waf_rules
 from modules.cpdos.hho import HHO
@@ -11,8 +12,7 @@ from modules.cpdos.hhcn import HHCN
 from modules.cpdos.hbh import HBH
 from modules.cpdos.multiple_headers import MHC
 from modules.cpdos.path_traversal import path_traversal_check
-
-from modules.utils import random, re, sys, configure_logger
+from modules.cpdos.backslash import backslash_poisoning
 
 logger = configure_logger(__name__)
 
@@ -41,8 +41,10 @@ def crawl_files(url, s, req_main, domain, custom_header, authent, human):
                 elif uri.startswith("http://"):
                     uri = f"https://{uri[7:].replace('//', '/')}"
 
-                # print(uri)
+                #print(uri)
                 run_cpdos_modules(uri, s, req_main, domain, custom_header, authent, human)
+                backslash_poisoning(uri, s)
+
     except Exception as e:
         logger.exception(e)
 

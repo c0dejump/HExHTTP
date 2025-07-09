@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys
-import argparse
-import re
+
+import sys, argparse, re
 
 from modules.utils import *
 
@@ -11,10 +10,10 @@ from modules.header_checks.check_localhost import check_localhost
 from modules.header_checks.methods import check_methods
 from modules.header_checks.http_version import check_http_version
 from modules.header_checks.vhosts import check_vhost
+from modules.header_checks.cachetag_header import check_cachetag_header
 
 #cp & cpdos
 from modules.cp_check.cache_poisoning_nf_files import check_cache_files
-from modules.cp_cve.CVE202446982 import datareq_check
 from modules.CPDoS import check_CPDoS
 from modules.CVE import check_cpcve
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
@@ -24,25 +23,18 @@ from modules.logging_config import valid_log_level, configure_logging
 from modules.server_error import get_server_error
 from modules.technologies import technology
 from modules.cookie_reflection import check_cookie_reflection
-
-
-if sys.version_info[0] < 3:
-    from Queue import Queue
-else:
-    import queue as Queue
-
-import threading
-from threading import Thread
-
 from static.banner import print_banner
+
+#threading
+from queue import Queue, Empty
 
 try:
     enclosure_queue = Queue()
 except:
     enclosure_queue = Queue.Queue()
 
-# DEBUG completed_tasks = 0
-# DEBUG lock = threading.Lock()
+from threading import Thread
+
 
 
 def args():
@@ -86,6 +78,7 @@ def args():
         "--header",
         dest="custom_header",
         help="Add a custom HTTP Header",
+        action="append",
         required=False,
     )
     parser.add_argument(
@@ -174,7 +167,7 @@ def get_technos(a_tech, req_main, url, s):
         "apache": ["apache", "tomcat"],
         "nginx": ["nginx"],
         "envoy": ["envoy"],
-        "akamai": ["akamai", "x-akamai", "x-akamai-transformed", "akamaighost"],
+        "akamai": ["akamai", "x-akamai", "x-akamai-transformed", "akamaighost", "akamaiedge", "edgesuite"],
         "imperva": ["imperva"],
         "fastly": ["fastly"],
         "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"],
@@ -198,45 +191,15 @@ def get_technos(a_tech, req_main, url, s):
             tech_hit = False
 
 
+"""
 def fuzz_x_header(url):
-    """
     When fuzzing for custom X-Headers on a target, a setup example as below can be combined with a dictionary/bruteforce attack. This makes it possible to extract hidden headers that the target uses.
         X-Forwarded-{FUZZ}
         X-Original-{FUZZ}
         X-{COMPANY_NAME}-{FUZZ}
     (https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
-    #TODO
-    """
-    pass
-
-
-def check_cachetag_header(url, req_main):
-    print("\n\033[36m ├ Header cache tags\033[0m")
-    # basic_header = ["Content-Type", "Content-Length", "Date", "Content-Security-Policy", "Alt-Svc", "Etag", "Referrer-Policy", "X-Dns-Prefetch-Control", "X-Permitted-Cross-Domain-Policies"]
-
-    result = []
-    for headi in base_header:
-        if "cache" in headi or "Cache" in headi:
-            result.append(f"{headi.split(':')[0]}:{headi.split(':')[1]}")
-    for vary in base_header:
-        if "Vary" in vary:
-            result.append(f"{vary.split(':')[0]}:{vary.split(':')[1]}")
-    for age in base_header:
-        if age == "age" or age == "Age":
-            result.append(f"{age.split(':')[0]}:{age.split(':')[1]}")
-    for get_custom_header in base_header:
-        if "Access" in get_custom_header:
-            result.append(
-                f"{get_custom_header.split(':')[0]}:{get_custom_header.split(':')[1]}"
-            )
-    for get_custom_host in base_header:
-        if "host" in get_custom_header:
-            result.append(
-                f"{get_custom_host.split(':')[0]}:{get_custom_host.split(':')[1]}"
-            )
-    for r in result:
-        print(f" └──  {r:<30}")
-
+    #TODO real utility ?
+"""
 
 def check_auth(auth, url):
     try:
@@ -284,16 +247,18 @@ def process_modules(url, s, a_tech):
         for k in req_main.headers:
             base_header.append(f"{k}: {req_main.headers[k]}")
 
-        check_cachetag_header(url, req_main)
+        check_cachetag_header(url, req_main, base_header)
         get_server_error(url, base_header, authent, url_file)
         check_vhost(domain, url)
         check_localhost(url, s, domain, authent)
         check_methods(url, custom_header, authent)
         check_http_version(url)
+
         check_CPDoS(url, s, req_main, domain, custom_header, authent, human)
         check_cpcve(url, s, req_main, domain, custom_header, authent, human)
         check_cache_poisoning(url, custom_header, behavior, authent, human)
-        check_cache_files(url, s, custom_header, authent) #TOREDO
+        check_cache_files(url, s, custom_header, authent) 
+
         check_cookie_reflection(url, custom_header, authent)
         techno = get_technos(a_tech, req_main, url, s)
         #fuzz_x_header(url) #TODO
@@ -301,6 +266,16 @@ def process_modules(url, s, a_tech):
         print(f"Error: {e}")
         pass
         # print(f"Error in processing {url}: {e}")
+
+
+def parse_headers(header_list):
+    headers = {}
+    if header_list:
+        for header in header_list:
+            if ":" in header:
+                key, value = header.split(":", 1)
+                headers[key.strip()] = value.strip()
+    return headers
 
 
 def main(urli, s, auth):
@@ -319,31 +294,23 @@ def main(urli, s, auth):
 
     if url_file and threads != 1337:
         try:
-            while not urli.empty():
-                q = urli
-
-                url = urli.get()
-                process_modules(url, s, a_tech)
-                # with lock: #Debug
-                # completed_tasks += 1
-                # print(f"completed tasks : {completed_tasks}")
-                q.task_done()
+            while True:
+                try:
+                    url = urli.get_nowait()
+                except Empty:
+                    break
+                try:
+                    process_modules(url, s, a_tech)
+                finally:
+                    urli.task_done()
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-            q.task_done()
+            urli.task_done()
             sys.exit()
         except Exception as e:
             pass
             # print(f"Error : {e}")
-            q.task_done()
-    elif url_file and threads == 1337:
-        try:
-            process_modules(urli, s, a_tech)
-        except KeyboardInterrupt:
-            print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-            sys.exit()
-        except Exception as e:
-            print(f"Error : {e}")
+            urli.task_done()
     else:
         try:
             process_modules(urli, s, a_tech)
@@ -386,17 +353,12 @@ if __name__ == "__main__":
                     "Accept-Encoding": "gzip"
                 }
             )
-
         if custom_header:
             try:
-                custom_header = custom_header.replace(" ", "")
-                custom_header = {
-                    custom_header.split(":")[0]: custom_header.split(":")[1]
-                }
-                s.headers.update(custom_header)
+                custom_headers = parse_headers(custom_header)
+                s.headers.update(custom_headers)
             except Exception as e:
                 print(e)
-                print('Error, HTTP Header format need to be "foo:bar"')
                 sys.exit()
         if proxy:
             proxies = {
@@ -412,12 +374,15 @@ if __name__ == "__main__":
             try:
                 for url in urls:
                     enclosure_queue.put(url)
-                for i in range(threads):
+                worker_threads = []
+                for _ in range(threads):
                     worker = Thread(target=main, args=(enclosure_queue, s, auth))
+                    worker.daemon = True
                     worker.start()
+                    worker_threads.append(worker)
                 enclosure_queue.join()
-                for thread in threads:
-                    thread.join()
+                for worker in worker_threads:
+                    worker.join()
             except KeyboardInterrupt:
                 print("Exiting")
                 sys.exit()
@@ -448,4 +413,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error : {e}")
     print("")
-    # print("Scan finish")
