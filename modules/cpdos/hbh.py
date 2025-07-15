@@ -6,7 +6,7 @@ Attempts to find Hop-By-Hop Header abuse
 https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
-from modules.utils import requests, generate_cache_buster, configure_logger, human_time, Identify
+from modules.utils import requests, generate_cache_buster, configure_logger, human_time, cache_tag_verify, Identify
 from modules.lists import header_list
 
 logger = configure_logger(__name__)

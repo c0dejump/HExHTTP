@@ -6,7 +6,7 @@ Attempts to find Cache Poisoning with HTTP Method Override (HMO)
 https://cpdos.org/#HMO
 """
 
-from modules.utils import requests, random, configure_logger, human_time
+from modules.utils import requests, random, configure_logger, human_time, Identify
 
 logger = configure_logger(__name__)
 
@@ -86,13 +86,13 @@ def HMO(url, s, initial_response, authent, human):
                 reason = (
                     f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code}"
                 )
-                status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
+                status = f"{Identify.behavior}"
             elif len(probe.content) != main_len and len(probe.content) not in range_exlusion:
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(probe.content)}b"
                 )
                 #print(probe.content)
-                status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
+                status = f"{Identify.behavior}"
             elif probe.status_code == main_status_code and len(probe.content) in range_exlusion:
                 continue
 
@@ -118,14 +118,14 @@ def HMO(url, s, initial_response, authent, human):
                 reason = (
                     f"DIFFERENT STATUS-CODE {main_status_code} > {control.status_code}"
                 )
-                status = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
+                status = f"{Identify.confirmed}"
 
             if len(control.content) == len(probe.content) and len(probe.content) not in range_exlusion and control.status_code not in [429, 403]:
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(control.content)}b"
                 )
                 #print(control.content)
-                status = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
+                status = f"{Identify.confirmed}"
 
             if reason:
                 print(

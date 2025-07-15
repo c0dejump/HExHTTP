@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.utils import requests, random, sys, configure_logger, human_time, Identify
+from modules.utils import requests, random, sys, configure_logger, human_time, cache_tag_verify, Identify
 from urllib.parse import urlparse
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
@@ -25,16 +25,17 @@ def parse_path(url_b):
 def backslash_test(pp, url_b, req_main, s):
     for _ in range(0, 5):
         req_b = s.get(pp, verify=False, timeout=10, allow_redirects=False)
+    cache_status = cache_tag_verify(req_b)    
     if req_b.status_code != req_main.status_code:
-        print(f" {Identify.behavior} | {VULN_NAME} {req_main.status_code} > {req_b.status_code} | \033[34m{url_b}\033[0m | PAYLOAD: {pp}")
+        print(f" {Identify.behavior} | {VULN_NAME} {req_main.status_code} > {req_b.status_code} | CACHETAG : {cache_status} | \033[34m{url_b}\033[0m | PAYLOAD: {pp}")
         vcp_c = vcp_code(url_b, s, req_b)
         if vcp_c:
-            print(f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_b.status_code} | \033[34m{url_b}\033[0m | PAYLOAD: {pp}")
+            print(f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_b.status_code} | CACHETAG : {cache_status} | \033[34m{url_b}\033[0m | PAYLOAD: {pp}")
     elif len(req_b.content) != len(req_main.content):
-        print(f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_b.content)}b | \033[34m{url_b}\033[0m | PAYLOAD: {pp}")
+        print(f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_b.content)}b | CACHETAG : {cache_status} | \033[34m{url_b}\033[0m | PAYLOAD: {pp}")
         vcp_l = vcp_len(url_b, s, req_b)
         if vcp_l:
-            print(f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_b.content)}b | \033[34m{url_b}\033[0m | PAYLOAD: {pp}")
+            print(f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_b.content)}b | CACHETAG : {cache_status} | \033[34m{url_b}\033[0m | PAYLOAD: {pp}")
     
 
 

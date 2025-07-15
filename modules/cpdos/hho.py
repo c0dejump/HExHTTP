@@ -6,7 +6,7 @@ Attempts to find Cache Poisoning with HTTP Header Oversize (HHO)
 https://cpdos.org/#HHO
 """
 
-from modules.utils import requests, configure_logger, human_time
+from modules.utils import requests, configure_logger, human_time, Identify
 
 logger = configure_logger(__name__)
 
@@ -82,10 +82,10 @@ def HHO(url, s, main_response, authent, human):
                 and verify.status_code != main_status_code
             ):
                 reason = f"DIFFERENT STATUS-CODE {main_status_code} > {verify.status_code}"
-                status = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
+                status = f"{Identify.confirmed}"
             else:
                 reason = f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code}"
-                status = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
+                status = f"{Identify.behavior}"
             print(f" {status} | HHO DOS | \033[34m{url}\033[0m | {reason} | PAYLOAD: X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}")
 
         except requests.exceptions.ConnectionError as e:

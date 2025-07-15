@@ -57,16 +57,26 @@ def human_time(human):
     else:
         pass
 
+def cache_tag_verify(req):
+    cachetag = False
+    for rh in req.headers:
+        if "age" in rh.lower() or "hit" in rh.lower() or "cache" in rh.lower():
+            cachetag = True
+        else:
+            pass
+    return cachetag
+
+
 class Colors:
     """Colors constants for the output messages"""
-
     RED = "\033[31m"
     YELLOW = "\033[33m"
     GREEN = "\033[32m"
     BLUE = "\033[34m"
     CYAN = "\033[36m"
+    MAGENTA = "\033[35m"
     RESET = "\033[0m"
 
 class Identify:
-    behavior = "\033[33m└── [INTERESTING BEHAVIOR]\033[0m"
-    confirmed = "\033[31m└── [VULNERABILITY CONFIRMED]\033[0m"
+    behavior =  "\033[33m└──   INTERESTING BEHAVIOR  \033[0m"
+    confirmed = "\033[31m└── VULNERABILITY CONFIRMED \033[0m"

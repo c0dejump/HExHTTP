@@ -9,6 +9,7 @@ from modules.cp_cve.CVE202447374 import litespeed
 from modules.cp_cve.CVE20235256 import drupaljsonapi
 from modules.cp_cve.CVE202527415 import nuxt_check
 from modules.cp_cve.CVE202529927 import middleware
+from modules.cp_cve.CVE202549826 import nextjs_204
 
 logger = configure_logger(__name__)
 
@@ -35,6 +36,7 @@ def run_cve_modules(url, s, req_main, domain, custom_header, authent, human):
         drupaljsonapi(url)
         nuxt_check(url, s, req_main, custom_header, authent)
         middleware(url)
+        nextjs_204(url)
 
         #TODO:https://labs.withsecure.com/advisories/plone-cms-cache-poisoning-xss-vulnerability
         #TODO:https://github.com/ZephrFish/F5-CVE-2022-1388-Exploit/tree/main

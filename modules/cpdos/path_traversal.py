@@ -6,7 +6,7 @@ From 0xrth research
 """
 
 
-from modules.utils import random, requests, configure_logger, Identify
+from modules.utils import random, requests, configure_logger, cache_tag_verify, Identify
 import traceback
 try:
     import httpx
@@ -31,10 +31,11 @@ def verify(req_main, url, url_cb, url_test, completed_path, range_exlusion, p, s
 
         req_cb = s.get(url_cb, verify=False, timeout=10, allow_redirects=False)
         #print(f"req_cb.status_code: {req_cb.status_code} | req_verify.status_code: {req_verify.status_code} | req_main.status_code: {req_main.status_code}")
+        cache_status = cache_tag_verify(req_cb)
         if req_cb.status_code == req_verify.status_code and req_cb.status_code != req_main.status_code and req_cb.status_code not in [403, 401, 429]:
-            print(f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_cb.status_code} | \033[34m{url_cb}\033[0m | PAYLOAD: {url_test}")
+            print(f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_cb.status_code} | CACHETAG : {cache_status} | \033[34m{url_cb}\033[0m | PAYLOAD: {url_test}")
         elif len(req_cb.content) not in range_exlusion and req_cb.status_code not in [403, 401, 429]:
-            print(f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_cb.content)}b | \033[34m{url_cb}\033[0m | PAYLOAD: {url_test}")
+            print(f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_cb.content)}b | CACHETAG : {cache_status} | \033[34m{url_cb}\033[0m | PAYLOAD: {url_test}")
     except requests.Timeout:
         #print(f"request timeout {url} {p}")
         pass
@@ -61,7 +62,7 @@ def path_traversal_check(url, s, req_main, authent):
             cb = f"?cb={random.randrange(999)}"
 
             completed_path = f"{p}{cb}"
-            url_test = f"{url}{p}{cb}" if url[-1] == "/" else f"{url}/{p}{cb}"
+            url_test = f"{url}{completed_path}" if url[-1] == "/" else f"{url}/{completed_path}"
             url_cb = f"{url}{cb}"
 
             req_test = s.get(url_test, verify=False, timeout=10, allow_redirects=False)

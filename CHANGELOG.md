@@ -1,10 +1,23 @@
 Changelog:
 ----------
 
+- 1.9.2
+---------
+	News
+	- New cve module to check Next.js CPDoS by Zhero research (CVE-2025-49826)
+	Updated:
+	- Updated TODO list
+	- Updated HTTP method checks (+50 added)
+	- Fixed bugs
+---------
+
 - 1.9.1
 ---------
+	News
+	- Added only cache poisoning option (--ocp)
 	Updated:
 	- Linting of the http methods module and addition of +50 new methods to be check
+	- Fixed bugs
 ---------
 
 - 1.9

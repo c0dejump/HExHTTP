@@ -7,7 +7,7 @@ Check support for different HTTP methods (NOT DELETE & PATCH)
 
 import urllib3
 from urllib3 import Timeout, PoolManager
-from modules.utils import requests, configure_logger, Colors
+from modules.utils import requests, configure_logger, Colors, human_time
 
 logger = configure_logger(__name__)
 
@@ -128,7 +128,7 @@ def check_other_methods(ml, url, http, pad):
         logger.exception(e)
 
 
-def check_methods(url, custom_header, authent):
+def check_methods(url, custom_header, authent, human):
     """
     Try other method
     Ex: OPTIONS /admin
@@ -170,3 +170,4 @@ def check_methods(url, custom_header, authent):
         pad = max(len(m) for m in method_list)
         for ml in method_list:
             check_other_methods(ml, url, http, pad)
+            human_time(human)

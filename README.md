@@ -122,6 +122,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 
 ## TODO
 
+- [ ] BURP/CAIDO plugin
 - [ ] Filter False Positive on WAF blocking [WIP]
 - [ ] Code Linting & Optimization [WIP]
 - [ ] Parameter Cloacking

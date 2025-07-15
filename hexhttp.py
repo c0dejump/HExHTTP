@@ -149,6 +149,15 @@ def args():
         help="Add a custom proxy. Ex: http://127.0.0.1:8080 [In Progress]",
         required=False,
     )
+    parser.add_argument(
+        "--ocp",
+        "--only-cp",
+        dest="only_cp",
+        help="Only cache poisoning modules",
+        required=False,
+        action="store_true"
+    )
+
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -247,20 +256,22 @@ def process_modules(url, s, a_tech):
         for k in req_main.headers:
             base_header.append(f"{k}: {req_main.headers[k]}")
 
-        check_cachetag_header(url, req_main, base_header)
-        get_server_error(url, base_header, authent, url_file)
-        check_vhost(domain, url)
-        check_localhost(url, s, domain, authent)
-        check_methods(url, custom_header, authent)
-        check_http_version(url)
+        if not only_cp:
+            check_cachetag_header(url, req_main, base_header)
+            get_server_error(url, base_header, authent, url_file)
+            check_vhost(domain, url)
+            check_localhost(url, s, domain, authent)
+            check_methods(url, custom_header, authent, human)
+            check_http_version(url)
 
-        check_CPDoS(url, s, req_main, domain, custom_header, authent, human)
         check_cpcve(url, s, req_main, domain, custom_header, authent, human)
+        check_CPDoS(url, s, req_main, domain, custom_header, authent, human)
         check_cache_poisoning(url, custom_header, behavior, authent, human)
-        check_cache_files(url, s, custom_header, authent) 
+        check_cache_files(url, s, custom_header, authent)
 
-        check_cookie_reflection(url, custom_header, authent)
-        techno = get_technos(a_tech, req_main, url, s)
+        if not only_cp:
+            techno = get_technos(a_tech, req_main, url, s)
+        #check_cookie_reflection(url, custom_header, authent) #REDO
         #fuzz_x_header(url) #TODO
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
@@ -334,6 +345,7 @@ if __name__ == "__main__":
     threads = results.threads
     humans = results.humans
     proxy = results.custom_proxy
+    only_cp = results.only_cp
 
     configure_logging(results.verbose, results.log, results.log_file)
 
