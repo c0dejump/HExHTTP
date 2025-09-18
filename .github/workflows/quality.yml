@@ -1,0 +1,50 @@
+name: Code Quality
+
+on:
+  # push:
+  #   branches: [ "main" ]
+  pull_request:
+    branches: [ "v2.2" ]
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]  # Major versions ≥ 3.11
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Run Ruff
+        run: ruff check .
+
+      - name: Run Black (check only, no reformat in CI)
+        run: black --check .
+
+      - name: Run Mypy
+        run: mypy .
+
+      - name: Run Bandit
+        run: bandit -r .
+
+      - name: Run Tests with Coverage (HTML + summary)
+        run: pytest --cov=. --cov-report=term-missing --cov-report=html
+
+      - name: Upload HTML Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html-${{ matrix.python-version }}
+          path: htmlcov/
