@@ -6,7 +6,9 @@ Attempts to find Cache Poisoning with HTTP Metachar Character (HMC)
 https://cpdos.org/#HMC
 """
 
-from modules.utils import random, requests, configure_logger, human_time, Identify
+from utils.utils import random, requests, configure_logger, human_time
+from utils.style import Identify, Colors
+import utils.proxy as proxy
 
 logger = configure_logger(__name__)
 
@@ -40,8 +42,11 @@ def check_meta_character(url, s, main_status_code, authent, meta_character, huma
     if reason:
         payload = f"PAYLOAD: {headers}"
         print(
-            f" {Identify.confirmed} | HMC | \033[34m{url}\033[0m | {reason} | {payload}"
+            f" {Identify.confirmed} | HMC | \033[34m{url}\033[0m | {reason} | {Colors.THISTLE}{payload}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+            proxy_request(s, "GET", url, headers=headers, data=None, severity="confirmed")
     human_time(human)
 
 

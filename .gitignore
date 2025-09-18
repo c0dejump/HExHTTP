@@ -4,3 +4,5 @@ __pycache__
 todo.md
 dev/
 logs/*.log
+dist
+*.egg-info

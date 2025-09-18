@@ -1,6 +1,7 @@
 import http.client
 from urllib.parse import urlparse
-from modules.utils import requests, configure_logger, random, human_time, Identify
+from utils.utils import requests, configure_logger, random, human_time
+from utils.style import Identify, Colors
 from modules.lists import header_list
 
 VULN_NAME = "Multiple Headers"
@@ -39,7 +40,7 @@ def verify_cache_poisoning(VULN_TYPE, conn, url, payload, main_status_code, auth
         if req.status_code == res_status and res_status != main_status_code:
             reason = f"DIFFERENT STATUS-CODE  {main_status_code} > {response.status}"
             print(
-                f" {Identify.confirmed} | {VULN_NAME} | \033[34m{uri}\033[0m | {reason} | PAYLOAD: {payload}"
+                f" {Identify.confirmed} | {VULN_NAME} | \033[34m{uri}\033[0m | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
             )
     except Exception as e:
         logger.exception(e)
@@ -149,7 +150,7 @@ def MHC(url, req_main, authent, human):
                     payload = f"[Host: {host}, Host: toto.com]"
 
                 print(
-                        f" {Identify.behavior} | {VULN_NAME} | \033[34m{url}?cb={vuln_type_res[1]}\033[0m | {behavior} | PAYLOAD: {payload}"
+                        f" {Identify.behavior} | {VULN_NAME} | \033[34m{url}?cb={vuln_type_res[1]}\033[0m | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
                     )
                 conn.close()
                 verify_cache_poisoning(vuln_type, conn, url, payload, main_status_code, authent, host)
@@ -164,7 +165,7 @@ def MHC(url, req_main, authent, human):
                 payload = f"[{mh}: xxxx, {mh}: xxxx]"
 
                 print(
-                        f" {Identify.behavior} | {VULN_NAME} | \033[34m{url}?cb={DH[1]}\033[0m | {behavior} | PAYLOAD: {payload}"
+                        f" {Identify.behavior} | {VULN_NAME} | \033[34m{url}?cb={DH[1]}\033[0m | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
                     )
                 conn.close()
                 verify_cache_poisoning(mh, conn, url, payload, main_status_code, authent, host)

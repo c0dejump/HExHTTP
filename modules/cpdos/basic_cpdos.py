@@ -7,7 +7,9 @@ https://cpdos.org/
 """
 
 from modules.lists import payloads_keys
-from modules.utils import requests, random, sys, configure_logger, human_time, Identify
+from utils.utils import requests, random, sys, configure_logger, human_time
+from utils.style import Identify, Colors
+import utils.proxy as proxy
 
 logger = configure_logger(__name__)
 
@@ -63,14 +65,20 @@ def check_cached_status(url, s, pk, main_status_code, authent):
     if confirmed:
         #print(headers)
         print(
-            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+            proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
         behavior = False
         confirmed = False
     elif behavior:
         print(
-            f" {Identify.behavior} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f" {Identify.behavior} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {Colors.THISTLE}{pk if len(pk) < 60 else pk[0:60]}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+            proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
 
 
 def check_cached_len(url, s, pk, main_len, authent):
@@ -117,13 +125,19 @@ def check_cached_len(url, s, pk, main_len, authent):
     )
     if confirmed:
         print(
-            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+            proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
         behavior = False
     elif behavior:
         print(
-            f" {Identify.behavior} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f" {Identify.behavior} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {Colors.THISTLE}{pk if len(pk) < 60 else pk[0:60]}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+            proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
 
 
 def cpdos_main(url, s, initial_response, authent, human):

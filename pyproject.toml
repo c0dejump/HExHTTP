@@ -1,0 +1,36 @@
+[project.optional-dependencies]
+# Dev dependencies (installed via `pip install .[dev]`)
+dev = [
+  "black",
+  "ruff",
+  "mypy",
+  "bandit",
+  "pytest",
+  "types-setuptools",
+  "types-requests",
+  "types-urllib3",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+skip-string-normalization = false  # Enforce double quotes unless you set true
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]  # Let Black handle line length instead of Ruff
+fix = true
+
+[tool.mypy]
+python_version = "3.11"
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_optional = true
+ignore_missing_imports = true
+
+[tool.bandit]
+skips = ["B101"]

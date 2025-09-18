@@ -10,7 +10,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="HExHTTP",
-    version="1.9",
+    version="2.0",
     author="c0dejump",
     author_email="codejumpgame@gmail.com",
     description="HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors.",

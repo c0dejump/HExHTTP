@@ -6,7 +6,7 @@ Checks if WAF blocking can be cached
 ex: user-agent: sqlmap > blocked by waf > cached
 """
 
-from modules.utils import * 
+from utils.utils import * 
 
 def waf_rules(url, s, req_main, authent):
     print(" - waf rules")

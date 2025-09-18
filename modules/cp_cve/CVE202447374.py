@@ -5,7 +5,8 @@
 https://blog.ostorlab.co/litespeed-cache,cve-2024-47374.html
 """
 
-from modules.utils import requests, sys, configure_logger, Identify
+from utils.utils import requests, random, sys, configure_logger
+from utils.style import Identify
 
 logger = configure_logger(__name__)
 

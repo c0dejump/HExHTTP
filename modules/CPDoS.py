@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.utils import random, re, sys, configure_logger
+from utils.utils import random, re, sys, configure_logger
 
 from modules.cpdos.basic_cpdos import cpdos_main
 from modules.cpdos.waf_rules import waf_rules
@@ -10,6 +10,7 @@ from modules.cpdos.hmc import HMC
 from modules.cpdos.hmo import HMO
 from modules.cpdos.hhcn import HHCN
 from modules.cpdos.hbh import HBH
+from modules.cpdos.ocd import OCD
 from modules.cpdos.multiple_headers import MHC
 from modules.cpdos.path_traversal import path_traversal_check
 from modules.cpdos.backslash import backslash_poisoning
@@ -57,20 +58,22 @@ def run_cpdos_modules(url, s, req_main, domain, custom_header, authent, human):
     try:
         req_main = s.get(
             uri,
-            headers=headers,
+            #headers=headers,
             verify=False,
             allow_redirects=False,
             timeout=15,
             auth=authent,
         )
+        #print(req_main.status_code)
         logger.debug(req_main.content)
 
-        HHO(uri, s, req_main, authent, human)
-        HMC(uri, s, req_main, authent, human)
-        HMO(uri, s, req_main, authent, human)
-        HHCN(uri, s, req_main, authent)
-        HBH(url, s, req_main, authent, human)
+        #HHO(uri, s, req_main, authent, human)
+        #HMC(uri, s, req_main, authent, human)
+        #HMO(uri, s, req_main, authent, human)
+        #HHCN(uri, s, req_main, authent)
+        #HBH(url, s, req_main, authent, human)
         MHC(url, req_main, authent, human)
+        OCD(url, req_main, authent)
         path_traversal_check(url, s, req_main, authent)
         cpdos_main(uri, s, req_main, authent, human)
         # waf_rules(url, s, req_main, authent)

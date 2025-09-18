@@ -18,6 +18,8 @@ import re
 import time
 
 import requests
+import yaml
+import socket
 
 # Local imports
 #from static.vuln_notify import vuln_found_notify
@@ -25,24 +27,21 @@ import requests
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+CONTENT_DELTA_RANGE = 500
+BIG_CONTENT_DELTA_RANGE = 5000
 
-def get_domain_from_url(url: str) -> str:
-    """
-    Extracts the domain from a given URL.
 
-    Args:
-        url (str): The URL from which to extract the domain.
-
-    Returns:
-        str: The domain extracted from the URL.
-    """
+def get_domain_from_url(url):
     domain = urlparse(url).netloc
     return domain
 
+def get_ip_from_url(url):
+    domain = get_domain_from_url(url)
+    ip = socket.gethostbyname(domain)
+    return ip
+
 
 def generate_cache_buster(length: Optional[int] = 12) -> str:
-    """Generate a random string used as a cache buster"""
-
     if not isinstance(length, int) or length <= 0:
         raise ValueError("[!] Lenght of cacheBuster be a positive integer")
     return "".join(random.choice(string.ascii_lowercase) for i in range(length))
@@ -64,19 +63,28 @@ def cache_tag_verify(req):
             cachetag = True
         else:
             pass
+    cachetag = f"\033[32m{cachetag}\033[0m" if cachetag else f"\033[31m{cachetag}\033[0m"
     return cachetag
 
 
-class Colors:
-    """Colors constants for the output messages"""
-    RED = "\033[31m"
-    YELLOW = "\033[33m"
-    GREEN = "\033[32m"
-    BLUE = "\033[34m"
-    CYAN = "\033[36m"
-    MAGENTA = "\033[35m"
-    RESET = "\033[0m"
-
-class Identify:
-    behavior =  "\033[33m└──   INTERESTING BEHAVIOR  \033[0m"
-    confirmed = "\033[31m└── VULNERABILITY CONFIRMED \033[0m"
+def check_auth(auth, url):
+    try:
+        authent = (auth.split(":")[0], auth.split(":")[1])
+        r = requests.get(
+            url, allow_redirects=False, verify=False, auth=authent, timeout=10
+        )
+        if r.status_code in [200, 302, 301]:
+            print("\n+ Authentication successfull\n")
+            return authent
+        else:
+            print("\nAuthentication error")
+            continue_error = input(
+                "The authentication seems bad, continue ? [y/N]"
+            )
+            if continue_error not in ["y", "Y"]:
+                print("Exiting")
+                sys.exit()
+    except Exception as e:
+        traceback.print_exc()
+        print('Error, the authentication format need to be "user:pass"')
+        sys.exit()

@@ -1,5 +1,5 @@
 import requests
-from modules.utils import Colors
+from utils.style import Colors
 
 OWNER = "c0dejump"
 REPO = "HExHTTP"

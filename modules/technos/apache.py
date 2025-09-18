@@ -1,7 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.utils import *
+from utils.utils import *
+
+
+"""
+Origin CORS DoS poisoning
+def requestUriTooLongNoCacheParamTest(url, ip):
+    
+    baselineRequest = getRequest(ip, url)
+    baseUrlLength = len(url)
+    maxParamLength = 8190 - baseUrlLength - 1
+    if("?" in url):
+        craftedUrl = f"{url}&{'a' * maxParamLength}"
+    else:
+        craftedUrl = f"{url}?{'a' * maxParamLength}"
+    poisonnedRequest = getRequest(ip, craftedUrl, headers={'Accept-Encoding': 'identity'})
+    resultRequest = getRequest(ip, url, headers={'Accept-Encoding': 'identity'})
+    
+    if baselineRequest != None and poisonnedRequest != None and resultRequest != None:
+        if baselineRequest.status_code != resultRequest.status_code:
+                log("RequestUriTooLongNoCacheParam", ip, f"{url} (do not forget to set the 'Accept-Encoding: identity' header", f"(Status Codes: {baselineRequest.status_code} -> {resultRequest.status_code})", baselineRequest.status_code == 200)
+                if(DEBUG):
+                    debugRequests(baselineRequest, poisonnedRequest, resultRequest)
+"""
 
 def apache(url, s):
     """

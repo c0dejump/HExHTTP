@@ -6,7 +6,9 @@ Attempts to find Cache Poisoning with HTTP Header Oversize (HHO)
 https://cpdos.org/#HHO
 """
 
-from modules.utils import requests, configure_logger, human_time, Identify
+from utils.utils import requests, configure_logger, human_time
+from utils.style import Identify, Colors
+import utils.proxy as proxy
 
 logger = configure_logger(__name__)
 
@@ -83,10 +85,16 @@ def HHO(url, s, main_response, authent, human):
             ):
                 reason = f"DIFFERENT STATUS-CODE {main_status_code} > {verify.status_code}"
                 status = f"{Identify.confirmed}"
+                severity = "confirmed"
+
             else:
                 reason = f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code}"
                 status = f"{Identify.behavior}"
-            print(f" {status} | HHO DOS | \033[34m{url}\033[0m | {reason} | PAYLOAD: X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}")
+                severity = "behavior"
+            print(f" {status} | HHO DOS | \033[34m{url}\033[0m | {reason} | PAYLOAD: {Colors.THISTLE}X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}{Colors.RESET}")
+            if proxy.proxy_enabled:
+                from utils.proxy import proxy_request
+                proxy_request(s, "GET", url, headers=h, data=None, severity=severity)
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from modules.utils import requests, random, re, sys, configure_logger
+from utils.utils import requests, random, re, sys, configure_logger
 
 from modules.cp_cve.CVE202446982 import datareq_check
 from modules.cp_cve.CVE201919326 import silverstripe
@@ -10,6 +10,7 @@ from modules.cp_cve.CVE20235256 import drupaljsonapi
 from modules.cp_cve.CVE202527415 import nuxt_check
 from modules.cp_cve.CVE202529927 import middleware
 from modules.cp_cve.CVE202549826 import nextjs_204
+from modules.cp_cve.CVE202127577 import apache_cp
 
 logger = configure_logger(__name__)
 
@@ -33,10 +34,11 @@ def run_cve_modules(url, s, req_main, domain, custom_header, authent, human):
         datareq_check(url, s, req_main, custom_header, authent)
         silverstripe(uri, s, req_main, custom_header, authent)
         litespeed(url)
-        drupaljsonapi(url)
+        drupaljsonapi(url, custom_header)
         nuxt_check(url, s, req_main, custom_header, authent)
-        middleware(url)
+        middleware(url, s, custom_header)
         nextjs_204(url)
+        apache_cp(url, authent)
 
         #TODO:https://labs.withsecure.com/advisories/plone-cms-cache-poisoning-xss-vulnerability
         #TODO:https://github.com/ZephrFish/F5-CVE-2022-1388-Exploit/tree/main

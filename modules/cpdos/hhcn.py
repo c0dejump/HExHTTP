@@ -6,13 +6,14 @@ Attempts to find Cache Poisoning with Host Header Case Normalization (HHCN)
 https://youst.in/posts/cache-key-normalization-denial-of-service/
 """
 
-from modules.utils import random, requests, get_domain_from_url, configure_logger, Identify
+from utils.utils import random, requests, get_domain_from_url, configure_logger, CONTENT_DELTA_RANGE
+from utils.style import Identify, Colors
+import utils.proxy as proxy
 
 logger = configure_logger(__name__)
 
 VULN_NAME = "Host Header Case Normalization"
 
-CONTENT_DELTA_RANGE = 500
 
 def random_domain_capitalization(url):
     """Randomly capitalize characters from the url domain"""
@@ -36,6 +37,7 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
 
     headers = {"Host": random_domain_capitalization(url)}
     payload = f"PAYLOAD: {headers}"
+    confirmed = ""
 
     try:
         main_response_size = len(main_response.content)
@@ -91,7 +93,7 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
                     f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {probe_size}b"
                 )
                 print(
-                    f" {Identify.behavior} | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                    f" {Identify.behavior} | HHCN | \033[34m{url}\033[0m | {behavior} | {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
 
             if main_response.status_code != probe.status_code:
@@ -99,22 +101,29 @@ def HHCN(url, s, main_response, authent, content_delta_range=CONTENT_DELTA_RANGE
                     f"DIFFERENT STATUS-CODE | {main_response_size}b > {probe_size}b"
                 )
                 print(
-                    f" {Identify.behavior} | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                    f" {Identify.behavior} | HHCN | \033[34m{url}\033[0m | {behavior} | {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
+
+            if behavior and proxy.proxy_enabled:
+                from utils.proxy import proxy_request
+                proxy_request(s, "GET", url, headers=headers, data=None)
 
             control = s.get(url, verify=False, timeout=10, auth=authent)
 
             if behavior and len(req_hhcn_bis.content) == len(control.content) and len(control.content) != main_response_size:
-                behavior = f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {len(control.content)}b"
+                confirmed = f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {len(control.content)}b"
                 print(
-                    f" {Identify.confirmed} | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                    f" {Identify.confirmed} | HHCN | \033[34m{url}\033[0m | {confirmed} | {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
 
             if behavior and req_hhcn_bis.status_code == control.status_code and control.status_code != main_response.status_code:
-                behavior = f"DIFFERENT STATUS-CODE | {main_response.status_code} > {control.status_code}"
+                confirmed = f"DIFFERENT STATUS-CODE | {main_response.status_code} > {control.status_code}"
                 print(
-                    f" {Identify.confirmed} | HHCN | \033[34m{url}\033[0m | {behavior} | {payload}"
+                    f" {Identify.confirmed} | HHCN | \033[34m{url}\033[0m | {confirmed} | {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
+            if confirmed and proxy.proxy_enabled:
+                from utils.proxy import proxy_request
+                proxy_request(s, "GET", url, headers=headers, data=None)
 
         print(f" \033[34m {VULN_NAME} : {headers}\033[0m\r", end="")
         print("\033[K", end="")

@@ -77,11 +77,11 @@ def akamai(url, s):
                     pattern = re.compile(r"name=([^;]+); value=([^,]+)")
                     matches = pattern.findall(req.headers[res])
                     segments = [f"{name}={colour(value)}{value}{RESET}" for name, value in matches]
-                    print(f"\033[36m   - {url} | H:{header}\033[0m")
-                    print("   └── " + " | ".join(segments))
+                    print(f"\033[36m   └── {url} | H:{header}\033[0m")
+                    print("   - " + " | ".join(segments))
                 else:
-                    print(f"\033[36m   - {url} | H:{header}\033[0m")
-                    print(f"   └── {res}: {req.headers[res]}")
+                    print(f"\033[36m   └── {url} | H:{header}\033[0m")
+                    print(f"   - {res}: {req.headers[res]}")
         except KeyboardInterrupt:
             print("Exiting")
             sys.exit()
@@ -101,7 +101,7 @@ Request smuggling on Akamai
 ---------------------
 """
 def req_smuggling(url, s):
-    print(f"\033[36m   - Akamai Request smuggling test\033[0m")
+    print(f"\033[36m   └── Akamai Request smuggling test\033[0m")
     url = f"{url}?cb={random.randrange(999)}"
 
     headers = {
@@ -179,7 +179,7 @@ def raw_http_get(parsed: urllib.parse.ParseResult,
 
 
 def cp_s3_akamai_raw(url: str) -> None:
-    print("  \033[36m - Akamai S3 cache-poisoning test\033[0m")
+    print("\033[36m   └── Akamai S3 cache-poisoning test\033[0m")
 
     target = urllib.parse.urlparse(url)
 

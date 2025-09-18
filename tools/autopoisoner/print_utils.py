@@ -1,5 +1,5 @@
 #from static.vuln_notify import vuln_found_notify
-
+from utils.style import Colors
 
 def potential_verbose_message(message, url="default"):
     verbose = False
@@ -24,17 +24,17 @@ def behavior_or_confirmed_message(uri, behaviorOrConfirmed, behaviorType, explic
     messageDict = {"REFLECTION": "HEADER REFLECTION",
                    "STATUS": f"DIFFERENT STATUS-CODE: {status_codes}",
                    "LENGTH": "DIFFERENT RESPONSE LENGTH",
-                   "BEHAVIOR": "\033[33m[INTERESTING BEHAVIOR]\033[0m",
+                   "BEHAVIOR": "\033[33mINTERESTING BEHAVIOR\033[0m",
                    "CONFIRMED": "\033[31mVULNERABILITY CONFIRMED\033[0m"
                    }
 
     if header != "default":
-        message = f" └── {messageDict[behaviorOrConfirmed]} | {messageDict[behaviorType]} | CACHETAG : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
+        message = f" └──   {messageDict[behaviorOrConfirmed]}   | {messageDict[behaviorType]} | CACHETAG : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {Colors.THISTLE}{header}{Colors.RESET}"
         print(message)
         #if behaviorOrConfirmed != "BEHAVIOR":
             #vuln_found_notify(uri, header)
     else:
-        message = f" └── {messageDict[behaviorOrConfirmed]} | PORT {messageDict[behaviorType]} | CACHETAG : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {header}"
+        message = f" └──   {messageDict[behaviorOrConfirmed]}   | PORT {messageDict[behaviorType]} | CACHETAG : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {Colors.THISTLE}{header}{Colors.RESET}"
         print(message)
         #if behaviorOrConfirmed != "BEHAVIOR":
             #vuln_found_notify(uri, header)

@@ -7,12 +7,10 @@ https://docs.silverstripe.org/en/3/changelogs/3.7.5/
 """
 
 
-from modules.utils import requests, random, sys, configure_logger, Identify
+from utils.utils import requests, random, sys, configure_logger, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
+from utils.style import Identify
 
 logger = configure_logger(__name__)
-
-CONTENT_DELTA_RANGE = 500
-BIG_CONTENT_DELTA_RANGE = 1000
 
 
 def confirm_vuln(url, s, authent, headers):
