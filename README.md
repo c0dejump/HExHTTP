@@ -1,6 +1,6 @@
 # HExHTTP
 
-![logo](./docs/_media/logo-v1.png)
+![logo](./static/docs/_media/logo-v1.png)
 
 > HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors.
 
@@ -44,6 +44,24 @@ docker build -t hexhttp:latest .
 docker run --rm -it --net=host -v "$PWD:/hexhttp/" hexhttp:latest -u 'https://target.tld/'
 ```
 
+## Burp Suite Integration Setup
+Prerequisites:
+- Burp Suite Community or Professional
+- Python 3.x
+- Jython (for Burp extensions)
+### Install the Custom Extension
+  Download the Extension ./utils/burp_extension_issue.py
+
+  In Burp Suite, go to *Extensions > Add*
+
+  Select Python as the extension type
+  ```
+  > Click Select file and choose burp_extension_issue.py
+  > Click Next and then Close
+  ```
+  Verify the extension is loaded in the Extensions tab
+
+
 ## Usage
 
 ```bash
@@ -53,24 +71,33 @@ HExHTTP is a tool designed to perform tests on HTTP headers.
 
 options:
   -h, --help            show this help message and exit
+
+> General:
   -u, --url URL         URL to test [required]
   -f, --file URL_FILE   File of URLs
+  -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
+
+> Request Settings:
   -H, --header CUSTOM_HEADER
                         Add a custom HTTP Header
   -A, --user-agent USER_AGENT
                         Add a custom User Agent
-  -F, --full            Display the full HTTP Header
   -a, --auth AUTH       Add an HTTP authentication. Ex: --auth admin:admin
-  -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
   -hu, --humans HUMANS  Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
   -t, --threads THREADS
                         Threads numbers for multiple URLs. Default: 10
+
+> Log settings:
   -l, --log LOG         Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   -L, --log-file LOG_FILE
                         The file path pattern for the log file. Default: logs/
   -v, --verbose         Increase verbosity (can be used multiple times)
+
+> Tips:
   -p, --proxy CUSTOM_PROXY
-                        Add a custom proxy. Ex: http://127.0.0.1:8080
+                        Add a custom proxy. Ex: http://127.0.0.1:8080 [In Progress]
+  --ocp, --only-cp      Only cache poisoning modules
+
 
 ```
 
@@ -100,12 +127,15 @@ options:
 ## Examples
 
 ### Example on a public target
-![example 1](./docs/_media/example_01.png)
+![example 1](./static/docs/_media/example_01.png)
 
 ### Example with a confirmed Cache Poisoning vulnerability
 You can test this tool on the Web Security Academy's vulnerable labs, like [Web cache poisoning with an unkeyed header](https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws/lab-web-cache-poisoning-with-an-unkeyed-header). The expected result should be the same as below.
 
-![example poisoner](./docs/_media/example_02.png)
+![example poisoner](./static/docs/_media/example_02.png)
+
+### TOOL TIPS
+- If the base URL responds with a 403, try removing the comments in hexhttp.py (line 220) and restarting.
 
 ## Features
 
@@ -113,20 +143,19 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 - Localhost header response analysis
 - Vhosts checking
 - Methods response analysis
-- HTTP Version analysis **[Experimental]**
+- HTTP Version & protocol analysis **[Experimental]**
 - Cache Poisoning DoS (CPDoS) techniques
 - Web cache poisoning
 - HTTP type CVE checking
-- Cookie Reflection
+- HTTP Proxy plugin
 - CDN/proxies Analysis (Envoy/Apache/Akamai/Nginx) **[WIP]**
+- [X] Human scan (rate limiting + timeout randomization ) [WIP] -- works but cleaning, linting etc...
 
 ## TODO
 
-- [ ] BURP/CAIDO plugin
+- [ ] Cache poisoning module (autopoisoner) remake
 - [ ] Filter False Positive on WAF blocking [WIP]
-- [ ] Code Linting & Optimization [WIP]
 - [ ] Parameter Cloacking
-- [X] Human scan (rate limiting + timeout randomization ) [WIP] -- works but cleaning, linting etc...
 - [ ] Try with mobile user-agent
 - [ ] Tests Bed for regression testing
 - [ ] Different Output formats (eg, JSON, JSONL, TXT)

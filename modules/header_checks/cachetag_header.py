@@ -26,4 +26,4 @@ def check_cachetag_header(url, req_main, base_header):
                 f"{get_custom_host.split(':')[0]}:{get_custom_host.split(':')[1]}"
             )
     for r in result:
-        print(f" └──  {r:<30}")
+        print(f" ├──  {r:<30}")

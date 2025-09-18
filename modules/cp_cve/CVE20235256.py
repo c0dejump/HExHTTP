@@ -5,15 +5,16 @@
 https://github.com/elttam/publications/blob/master/writeups/CVE-2023-5256.md
 """
 
-from modules.utils import requests, random, sys, configure_logger, Identify
+from utils.utils import requests, random, sys, configure_logger
+from utils.style import Identify
 
 logger = configure_logger(__name__)
 
-def drupaljsonapi(url):
+def drupaljsonapi(url, headers):
     payload = "/jsonapi/user/user?filter[a-labex][condition][path]=cachingyourcookie"
     uri = f"{url}{payload}"
     try:
-        req = requests.get(uri, verify=False, timeout=10, allow_redirects=False)
+        req = requests.get(uri, headers=headers, verify=False, timeout=10, allow_redirects=False)
         if req.status_code not in [200, 301, 302, 307, 308, 401, 403, 404] and "jsonapi" in req.text:
             print(f" {Identify.behavior} | CVE-2023-5256 | \033[34m{uri}\033[0m | {req.status_code}")
             if "Cookie" in req.text and "User-Agent" in req.text:

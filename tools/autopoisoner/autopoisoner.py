@@ -6,7 +6,7 @@ import time
 import threading
 import traceback
 from tools.autopoisoner.headerfuzz import headersToFuzz
-from modules.utils import human_time
+from utils.utils import human_time
 
 currentPath = os.path.dirname(__file__)
 

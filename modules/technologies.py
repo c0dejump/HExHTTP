@@ -28,34 +28,34 @@ class technology:
     """
 
     def apache(self, url, s):
-        print("\033[36m --├ Apache analysis\033[0m")
+        print("\033[36m ├── Apache analysis\033[0m")
         apache(url, s)
 
     def nginx(self, url, s):
         # Unkeyed Query Exploitation:
-        print("\033[36m --├ Nginx analysis\033[0m")
+        print("\033[36m ├── Nginx analysis\033[0m")
         nginx(url, s)
 
     def envoy(self, url, s):
-        print("\033[36m --├ Envoy analysis\033[0m")
+        print("\033[36m ├── Envoy analysis\033[0m")
         envoy(url, s)
 
     def akamai(self, url, s):
-        print("\033[36m --├ Akamai analysis\033[0m")
+        print("\033[36m ├── Akamai analysis\033[0m")
         akamai(url, s)
 
     def fastly(self, url, s):
-        print("\033[36m --├ Fastly analysis\033[0m")
+        print("\033[36m ├── Fastly analysis\033[0m")
         fastly(url, s)
 
     def cloudflare(self, url, s):
-        print("\033[36m --├ Cloudflare analysis\033[0m")
+        print("\033[36m ├── Cloudflare analysis\033[0m")
         cloudflare(url, s)
 
     def imperva(self, url, s):
-        print("\033[36m --├ Imperva analysis\033[0m")
+        print("\033[36m ├── Imperva analysis\033[0m")
         imperva(url, s)
 
     def vercel(self, url, s):
-        print("\033[36m --├ Vercel analysis\033[0m")
+        print("\033[36m ├── Vercel analysis\033[0m")
         vercel(url, s)

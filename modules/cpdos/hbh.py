@@ -6,15 +6,15 @@ Attempts to find Hop-By-Hop Header abuse
 https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
-from modules.utils import requests, generate_cache_buster, configure_logger, human_time, cache_tag_verify, Identify
+from utils.utils import requests, generate_cache_buster, configure_logger, human_time, cache_tag_verify, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
+from utils.style import Identify, Colors
+import utils.proxy as proxy
 from modules.lists import header_list
 
 logger = configure_logger(__name__)
 
 VULN_NAME = "Hop-By-Hop"
 
-CONTENT_DELTA_RANGE = 500
-BIG_CONTENT_DELTA_RANGE = 1000
 
 MAX_SAMPLE_STATUS = 3
 MAX_SAMPLE_CONTENT = 3
@@ -55,8 +55,11 @@ def cache_poisoning(
     if reason:
         payload = f"Connection: {headers['Connection']}"
         print(
-            f" {Identify.confirmed} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {reason} | PAYLOAD: {payload}"
+            f" {Identify.confirmed} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+            proxy_request(s, "GET", url, headers=headers, data=None, severity="confirmed")
         #print(response_3.headers)
         #print(response_3.text)
 
@@ -141,8 +144,11 @@ def HBH(
             if behavior:
                 payload = f"Connection: {headers['Connection']}"
                 print(
-                    f" {Identify.behavior} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {payload}"
+                    f" {Identify.behavior} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
+                if proxy.proxy_enabled:
+                    from utils.proxy import proxy_request
+                    proxy_request(s, "GET", url, headers=headers, data=None, severity="behavior")
                 for _ in range(0, 5):
                     response_2 = s.get(
                         url,

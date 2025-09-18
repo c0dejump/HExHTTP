@@ -6,39 +6,17 @@ Based on Zhero research
 https://zhero-web-sec.github.io/research-and-things/nextjs-cache-and-chains-the-stale-elixir
 """
 
-from modules.utils import requests, random, sys, configure_logger, re, Identify
+from utils.utils import requests, random, sys, configure_logger, re 
+from utils.style import Identify
+import utils.proxy as proxy
+from modules.cp_cve.unrisk_page import get_unrisk_page
+
 
 logger = configure_logger(__name__)
 
 
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-
-COMMON_PATHS = [
-    "mentions-legales", "mentions", "legal", "cgu", "terms", "conditions",
-    "terms-of-service", "privacy", "politique-de-confidentialite"
-]
-
-def get_unrisk_page(base_url, response):
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    for link in soup.find_all("a", href=True):
-        href = link["href"].lower()
-        if any(keyword in href for keyword in COMMON_PATHS):
-            legal_url = urljoin(base_url, href)
-            return legal_url
-
-    for path in COMMON_PATHS:
-        test_url = urljoin(base_url, "/" + path)
-        try:
-            response = requests.get(test_url, timeout=5)
-            if response.status_code == 200:
-                if re.search(r"mentions\s+legales|conditions\s+générales", response.text, re.IGNORECASE):
-                    return test_url
-        except requests.RequestException:
-            continue
-
-    return None
 
 
 def nextjsdos(url, uri, s):
@@ -64,12 +42,17 @@ def datareq_check(url, s, req_main, custom_header, authent):
 
         if "pageProps" in req.text or "__N_SSP" in req.text:
             print(f" {Identify.behavior} | CVE-2024-46982 | TAG OK | \033[34m{uri}\033[0m | PAYLOAD: x-now-route-matches: 1")
+            if proxy.proxy_enabled:
+                from utils.proxy import proxy_request
+                proxy_request("GET", uri, headers={"x-now-route-matches": "1"}, data=None)
             unrisk_page = get_unrisk_page(url, req)
             if unrisk_page:
                 uri = f"{unrisk_page}?__nextDataReq=1"
                 nextjsdos(unrisk_page, uri, s)
         #elif len_req != main_len and req.status_code not in [403, 301, 302]:
             #print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | DIFF LENGTH | {uri} | {req.status_code}")
+            else:
+                print(" CVE-2024-46982 | [i] No risk-free pages have been found. Please do a manual check.")
     except requests.Timeout:
         #print(f"request timeout {url} {p}")
         pass
