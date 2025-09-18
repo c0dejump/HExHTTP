@@ -1,53 +1,40 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-from typing import Optional
-from urllib.parse import urlparse
-from modules.logging_config import configure_logger
-
-import string
-import logging
 import random
+import socket
+import string
 import sys
-import urllib3
-
-# import os
-import traceback
-import pprint
-import re
 import time
+import traceback
+from urllib.parse import urlparse
 
 import requests
-import yaml
-import socket
+import urllib3
 
-# Local imports
-#from static.vuln_notify import vuln_found_notify
+from utils.style import Colors
 
-# Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 CONTENT_DELTA_RANGE = 500
 BIG_CONTENT_DELTA_RANGE = 5000
 
 
-def get_domain_from_url(url):
+def get_domain_from_url(url: str) -> str:
     domain = urlparse(url).netloc
     return domain
 
-def get_ip_from_url(url):
+def get_ip_from_url(url: str) -> str:
     domain = get_domain_from_url(url)
     ip = socket.gethostbyname(domain)
     return ip
 
-
-def generate_cache_buster(length: Optional[int] = 12) -> str:
+def generate_cache_buster(length: int | None = 12) -> str:
     if not isinstance(length, int) or length <= 0:
         raise ValueError("[!] Lenght of cacheBuster be a positive integer")
     return "".join(random.choice(string.ascii_lowercase) for i in range(length))
 
 
-def human_time(human):
+def human_time(human: str) -> None:
     #print(human)
     if human.isdigit():
         time.sleep(int(human))
@@ -56,18 +43,18 @@ def human_time(human):
     else:
         pass
 
-def cache_tag_verify(req):
+def cache_tag_verify(req: requests.Response) -> str:
     cachetag = False
     for rh in req.headers:
         if "age" in rh.lower() or "hit" in rh.lower() or "cache" in rh.lower():
             cachetag = True
         else:
             pass
-    cachetag = f"\033[32m{cachetag}\033[0m" if cachetag else f"\033[31m{cachetag}\033[0m"
-    return cachetag
+    colored_cachetag = (f"{Colors.GREEN}" if cachetag else f"{Colors.RED}") + f"{str(cachetag)}{Colors.RESET}" 
+    return colored_cachetag
 
 
-def check_auth(auth, url):
+def check_auth(auth: str, url: str) -> tuple[str, str] | None:
     try:
         authent = (auth.split(":")[0], auth.split(":")[1])
         r = requests.get(
@@ -84,7 +71,9 @@ def check_auth(auth, url):
             if continue_error not in ["y", "Y"]:
                 print("Exiting")
                 sys.exit()
-    except Exception as e:
+            else:
+                return None
+    except Exception:
         traceback.print_exc()
         print('Error, the authentication format need to be "user:pass"')
         sys.exit()
