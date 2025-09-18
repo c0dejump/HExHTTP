@@ -51,6 +51,7 @@ dev = [
     "mypy",
     "bandit",
     "pytest",
+    "pre-commit",
     "types-setuptools",
     "types-requests",
     "types-urllib3"
