@@ -193,7 +193,8 @@ def main(urli, s, auth):
             print(f"Error : {e}")
 
 
-if __name__ == "__main__":
+def cli_main():
+    """Entry point for the CLI command."""
     # Parse arguments
     results = args()
 
@@ -292,3 +293,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error : {e}")
     print("")
+
+
+if __name__ == "__main__":
+    cli_main()
