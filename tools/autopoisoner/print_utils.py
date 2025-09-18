@@ -1,7 +1,8 @@
-#from static.vuln_notify import vuln_found_notify
+#!/usr/bin/env python3
 from utils.style import Colors
 
-def potential_verbose_message(message, url="default"):
+
+def potential_verbose_message(message: str, url: str = "default") -> None:
     verbose = False
     if verbose:
         if message == "ERROR":
@@ -17,24 +18,30 @@ def potential_verbose_message(message, url="default"):
         elif message == "CRAWLING":
             print(f"[VERBOSE] Crawling. Scanning : {url}")
 
-def behavior_or_confirmed_message(uri, behaviorOrConfirmed, behaviorType, explicitCache, url, status_codes="default", header = "default", outputFile = "default", LOCK = "default"):
+def behavior_or_confirmed_message(
+    uri: str,
+    behaviorOrConfirmed: str,
+    behaviorType: str,
+    explicitCache: str,
+    url: str,
+    status_codes: str = "default",
+    header: str = "default",
+    outputFile: str = "default",
+    LOCK: str = "default"
+) -> None:
 
-    explicitCache = f"\033[31m{explicitCache}\033[0m" if explicitCache == "FALSE" else f"\033[32m{explicitCache}\033[0m"
+    explicitCache = f"{Colors.RED}{explicitCache}{Colors.RESET}" if explicitCache == "FALSE" else f"{Colors.GREEN}{explicitCache}{Colors.RESET}"
 
     messageDict = {"REFLECTION": "HEADER REFLECTION",
                    "STATUS": f"DIFFERENT STATUS-CODE: {status_codes}",
                    "LENGTH": "DIFFERENT RESPONSE LENGTH",
-                   "BEHAVIOR": "\033[33mINTERESTING BEHAVIOR\033[0m",
-                   "CONFIRMED": "\033[31mVULNERABILITY CONFIRMED\033[0m"
+                   "BEHAVIOR": f"{Colors.YELLOW}INTERESTING BEHAVIOR{Colors.RESET}",
+                   "CONFIRMED": f"{Colors.RED}VULNERABILITY CONFIRMED{Colors.RESET}"
                    }
 
     if header != "default":
-        message = f" └──   {messageDict[behaviorOrConfirmed]}   | {messageDict[behaviorType]} | CACHETAG : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {Colors.THISTLE}{header}{Colors.RESET}"
-        print(message)
-        #if behaviorOrConfirmed != "BEHAVIOR":
-            #vuln_found_notify(uri, header)
+        message = f" └──   {messageDict[behaviorOrConfirmed]}   | {messageDict[behaviorType]} | CACHETAG : {explicitCache} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD : {Colors.THISTLE}{header}{Colors.RESET}"
     else:
-        message = f" └──   {messageDict[behaviorOrConfirmed]}   | PORT {messageDict[behaviorType]} | CACHETAG : {explicitCache} | \033[34m{uri}\033[0m | PAYLOAD : {Colors.THISTLE}{header}{Colors.RESET}"
-        print(message)
-        #if behaviorOrConfirmed != "BEHAVIOR":
-            #vuln_found_notify(uri, header)
+        message = f" └──   {messageDict[behaviorOrConfirmed]}   | PORT {messageDict[behaviorType]} | CACHETAG : {explicitCache} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD : {Colors.THISTLE}{header}{Colors.RESET}"
+    print(message)
+
