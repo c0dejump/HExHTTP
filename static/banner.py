@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Prints a colorful ASCII art banner along with a brief description of the HExHTTP tool.
 """
 
-try:
-    from _version import __version__
-except ImportError:
-    __version__ = "v2.0"
-
-
-from static.version import check_for_update
-
+from static.version import __version__, check_for_update
 
 
 def print_banner() -> None:
