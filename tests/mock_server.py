@@ -237,7 +237,7 @@ class MockServer:
         @self.app.route('/health')
         def health_check() -> Response:
             """Health check endpoint for testing server availability."""
-            return jsonify({
+            response: Response = jsonify({
                 'status': 'healthy',
                 'server': 'mock-server',
                 'endpoints': [
@@ -247,7 +247,8 @@ class MockServer:
                     '/headers/uncommon', '/errors/500'
                 ]
             })
-    
+            return response
+
     def start(self) -> None:
         """Start the mock server in a separate thread."""
         if self.server_thread and self.server_thread.is_alive():
