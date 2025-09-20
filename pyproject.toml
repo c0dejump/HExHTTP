@@ -99,6 +99,12 @@ warn_unused_ignores = true
 warn_return_any = true
 strict_optional = true
 ignore_missing_imports = true
+exclude = [
+    "build/",
+    "dist/",
+    "*.egg-info/",
+    "__pycache__/",
+]
 
 [tool.bandit]
 skips = ["B101"]

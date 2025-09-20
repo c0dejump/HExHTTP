@@ -2,11 +2,12 @@ __pycache__
 .vscode/
 *_cache/
 .venv/
-dist
+dist/
+build/
 dev/
 logs/*.log
 *.txt
 todo.md
-*.egg-info
+*.egg-info/
 .py3
 .coverage
