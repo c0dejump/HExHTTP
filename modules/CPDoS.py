@@ -43,9 +43,7 @@ def crawl_files(
                     uri = f"https://{uri[7:].replace('//', '/')}"
 
                 # print(uri)
-                run_cpdos_modules(
-                    uri, s, req_main, authent, human
-                )
+                run_cpdos_modules(uri, s, req_main, authent, human)
                 backslash_poisoning(uri, s)
 
     except Exception as e:
