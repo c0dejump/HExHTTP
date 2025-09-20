@@ -40,14 +40,14 @@ def get_ip_from_url(url: str) -> str:
 def generate_cache_buster(length: int | None = 12) -> str:
     if not isinstance(length, int) or length <= 0:
         raise ValueError("[!] Lenght of cacheBuster be a positive integer")
-    return "".join(random.choice(string.ascii_lowercase) for i in range(length))
+    return "".join(random.choice(string.ascii_lowercase) for i in range(length))  # nosec B311
 
 
 def human_time(human: str) -> None:
     if human.isdigit():
         time.sleep(int(human))
     elif human.lower() == "r" or human.lower() == "random":
-        time.sleep(random.randrange(6))
+        time.sleep(random.randrange(6))  # nosec B311
     else:
         pass
 
@@ -69,7 +69,7 @@ def check_auth(auth: str, url: str) -> tuple[str, str] | None:
     try:
         authent = (auth.split(":")[0], auth.split(":")[1])
         r = requests.get(
-            url, allow_redirects=False, verify=False, auth=authent, timeout=10
+            url, allow_redirects=False, verify=False, auth=authent, timeout=10  # nosec B501
         )
         if r.status_code in [200, 302, 301]:
             print("\n+ Authentication successfull\n")
