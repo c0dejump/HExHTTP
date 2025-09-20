@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import random
+import re  # noqa: F401
 import socket
 import string
 import sys
@@ -11,6 +12,7 @@ from urllib.parse import urlparse
 import requests
 import urllib3
 
+from modules.logging_config import configure_logger  # noqa: F401
 from utils.style import Colors
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

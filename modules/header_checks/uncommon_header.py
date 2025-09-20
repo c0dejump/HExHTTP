@@ -4,18 +4,17 @@ Script d'analyse des en-têtes HTTP non-communs avec tests de paramètres
 pour identifier des comportements d'erreur potentiels et détecter les réflexions
 """
 
-import requests
-import time
 import random
-import argparse
 import sys
-from urllib.parse import urlparse
-from typing import Dict, List, Set, Tuple
-import json
 import traceback
+from typing import Any
 
+import requests
+import urllib3
 
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+from utils.style import Colors, Identify
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 reflect_word = "bycodejump"
 
@@ -41,35 +40,35 @@ errors_payload = [
 ]
 
 
-def verify_cp(url, s, main_status_code, main_len, main_head, payload, authent):
+def verify_cp(url: str, s: requests.Session, main_status_code: int, main_len: int, main_head: Any, payload: dict[str, str], authent: bool) -> None:
     uri = f'{url}{random.randrange(9999)}'
 
     for _ in range(5):
-        req_cached = s.get(uri, headers=payload, verify=False, allow_redirects=False, timeout=10)
+        s.get(uri, headers=payload, verify=False, allow_redirects=False, timeout=10)
 
     req_verify = requests.get(uri, headers={"User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"}, verify=False, allow_redirects=False, timeout=10)
 
     if req_verify.status_code != main_status_code:
-        print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_status_code} > {req_verify.status_code} | \033[34m{uri}\033[0m | PAYLOAD: {payload}")
+        print(f"{Identify.confirmed} | CPDoSError {main_status_code} > {req_verify.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {payload}")
     elif len(req_verify.content) not in range(main_len - 200, main_len + 200):
-        print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | CPDoSError {main_len}b > {len(req_verify.content)}b | \033[34m{uri}\033[0m | PAYLOAD: {payload}")
+        print(f"{Identify.confirmed} | CPDoSError {main_len}b > {len(req_verify.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {payload}")
 
 
-def verify_cp_reflect(url, s, main_status_code, main_len, main_head, payload, authent):
+def verify_cp_reflect(url: str, s: requests.Session, main_status_code: int, main_len: int, main_head: Any, payload: dict[str, str], authent: bool) -> None:
     uri = f'{url}{random.randrange(9999)}'
 
     for _ in range(5):
-        req_cached = s.get(uri, headers=payload, verify=False, allow_redirects=False, timeout=10)
+        s.get(uri, headers=payload, verify=False, allow_redirects=False, timeout=10)
     req_verify = s.get(uri, verify=False, allow_redirects=False, timeout=10)
 
     if reflect_word in req_verify.text:
-        print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | BODY REFLECTED | \033[34m{uri}\033[0m | PAYLOAD: {headers}")
+        print(f"{Identify.confirmed} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {payload}")
     elif reflect_word in req_verify.headers:
-        print(f"\033[31m └── [VULNERABILITY CONFIRMED]\033[0m | HEADER REFLECTED | \033[34m{uri}\033[0m | PAYLOAD: {headers}")
+        print(f"{Identify.confirmed} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {payload}")
 
 
 
-def test_reflection(url, s, main_status_code, main_len, main_head, uncommon_header, authent):
+def test_reflection(url: str, s: requests.Session, main_status_code: int, main_len: int, main_head: Any, uncommon_header: list[str], authent: bool) -> None:
     for uh in uncommon_header:
         headers = {
             uh: reflect_word 
@@ -78,14 +77,14 @@ def test_reflection(url, s, main_status_code, main_len, main_head, uncommon_head
         uri = f'{url}{random.randrange(9999)}'
         req_reflected = s.get(url, headers=headers, verify=False, allow_redirects=False, timeout=10)
         if reflect_word in req_reflected.text:
-            print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | BODY REFLECTED | \033[34m{uri}\033[0m | PAYLOAD: {headers}")
+            print(f"{Identify.behavior} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {headers}")
             verify_cp_reflect(url, s, main_status_code, main_len, main_head, headers, authent)
         elif reflect_word in req_reflected.headers:
-            print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | HEADER REFLECTED | \033[34m{uri}\033[0m | PAYLOAD: {headers}")
+            print(f"{Identify.behavior} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {headers}")
             verify_cp_reflect(url, s, main_status_code, main_len, main_head, headers, authent)
 
 
-def uncommon_header_test(url, s, main_status_code, main_len, main_head, uncommon_header, authent):
+def uncommon_header_test(url: str, s: requests.Session, main_status_code: int, main_len: int, main_head: Any, uncommon_header: list[str], authent: bool) -> None:
     for uh in uncommon_header:
         for ep in errors_payload:
             headers = {
@@ -96,15 +95,15 @@ def uncommon_header_test(url, s, main_status_code, main_len, main_head, uncommon
             req_uh = s.get(uri, headers=headers, verify=False, allow_redirects=False, timeout=10)
             if req_uh.status_code not in [401, 403]:
                 if req_uh.status_code != main_status_code:
-                    print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_status_code} > {req_uh.status_code} | \033[34m{uri}\033[0m | PAYLOAD: {headers}")
+                    print(f"{Identify.behavior} | CPDoSError {main_status_code} > {req_uh.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {headers}")
                     verify_cp(url, s, main_status_code, main_len, main_head, headers, authent)
                 elif len(req_uh.content) not in range(main_len - 500, main_len + 500):
-                    print(f"\033[33m └── [INTERESTING BEHAVIOR]\033[0m | CPDoSError {main_len}b > {len(req_uh.content)}b | \033[34m{uri}\033[0m | PAYLOAD: {headers}")
+                    print(f"{Identify.behavior} | CPDoSError {main_len}b > {len(req_uh.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {headers}")
                     verify_cp(url, s, main_status_code, main_len, main_head, headers, authent)
 
 
-def get_http_headers(url, s, main_status_code, main_len, main_head, authent):
-    print("\n\033[36m ├ Uncommon header analysis\033[0m")
+def get_http_headers(url: str, s: requests.Session, main_status_code: int, main_len: int, main_head: Any, authent: bool) -> None:
+    print(f"\n{Colors.CYAN} ├ Uncommon header analysis{Colors.RESET}")
     url = f"{url}?cb={random.randrange(9999)}"
 
     uncommon_header = []
@@ -150,8 +149,8 @@ if __name__ == '__main__':
 
         get_http_headers(url, s, main_status_code, main_len, main_head, authent)
     else:
-        with open(url_arg, "r") as urls:
-            urls = urls.read().splitlines()
+        with open(url_arg) as url_file:
+            urls = url_file.read().splitlines()
             for url in urls:
                 url = f"{url}?cb=foo"
                 try:
@@ -167,6 +166,6 @@ if __name__ == '__main__':
                 except KeyboardInterrupt:
                     print("Exiting")
                     sys.exit()
-                except:
+                except Exception:
                     pass
                 print(f" {url}", end='\r')

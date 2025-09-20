@@ -1,35 +1,34 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# main_status_code: int, main_len: int, authent: tuple[str, str] | None are not used ??
+
+import random
+import sys
 
 import requests
-import random
-import string
-import sys
-import os
-import traceback
-import pprint
-from urllib.parse import urlparse
-from typing import Optional
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+import urllib3
 
-def print_result(status, vuln, reason, url, payload):
+from utils.style import Colors, Identify
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+def print_result(status: str, vuln: str, reason: str, url: str, payload: str) -> None:
     if payload:
         print(
-            f" {status} | {vuln} | {reason} | \033[34m{url}\033[0m |{Colors.THISTLE}{payload}{Colors.RESET}"
+            f" {status} | {vuln} | {reason} | {Colors.BLUE}{url}{Colors.RESET} |{Colors.THISTLE}{payload}{Colors.RESET}"
             )
 
 
-def verify_ocd_caching(url, method, headers):
+def verify_ocd_caching(url: str, method: str, headers: dict[str, str]) -> None:
     for _ in range(5):
-        req_verify = requests.request(method, url=url, headers=headers, verify=False, allow_redirects=False, timeout=10)
+        requests.request(method, url=url, headers=headers, verify=False, allow_redirects=False, timeout=10)
     req_main = requests.get(url, verify=False, allow_redirects=False, timeout=10)
     if 'geluorigin' in req_main.text:
-        print_result(Identify.confirmed, "OCD", "{} BODY REFLECTION".format(method), url, "PAYLOAD: 'Origin: https://geluorigin.chat'")
+        print_result(Identify.confirmed, "OCD", f"{method} BODY REFLECTION", url, "PAYLOAD: 'Origin: https://geluorigin.chat'")
     if 'geluorigin' in req_main.headers:
-        print_result(Identify.confirmed, "OCD", "{} HEADER REFLECTION".format(method), url, "PAYLOAD: 'Origin: https://geluorigin.chat'")
+        print_result(Identify.confirmed, "OCD", f"{method} HEADER REFLECTION", url, "PAYLOAD: 'Origin: https://geluorigin.chat'")
 
 
-def get_ocd(url, headers, main_status_code, main_len, authent):
+def get_ocd(url: str, headers: dict[str, str], main_status_code: int, main_len: int, authent: tuple[str, str] | None) -> None:
     req_get = requests.get(url, headers=headers, verify=False, allow_redirects=False, timeout=10)
     if 'geluorigin' in req_get.text:
         print_result(Identify.behavior, "OCD", "GET BODY REFLECTION", url, "PAYLOAD: 'Origin: https://geluorigin.chat'")
@@ -39,7 +38,7 @@ def get_ocd(url, headers, main_status_code, main_len, authent):
         verify_ocd_caching(url, "GET", headers)
 
 
-def options_ocd(url, headers, main_status_code, main_len, authent):
+def options_ocd(url: str, headers: dict[str, str], main_status_code: int, main_len: int, authent: tuple[str, str] | None) -> None:
     req_options = requests.options(url, headers=headers, verify=False, allow_redirects=False, timeout=10)
     if 'geluorigin' in req_options.text:
         print_result(Identify.behavior, "OCD", "OPTIONS BODY REFLECTION", url, "PAYLOAD: 'Origin: https://geluorigin.chat'")
@@ -50,35 +49,28 @@ def options_ocd(url, headers, main_status_code, main_len, authent):
 
 
 
-def OCD(url, req_main, authent):
+def OCD(url: str, req_main: requests.Response, authent: tuple[str, str] | None) -> None:
     main_len = len(req_main.content)
+    main_status_code = req_main.status_code
     uri = f"{url}{random.randrange(999)}"
     headers = {
         'Origin': 'https://geluorigin.chat'
     }
-    get_ocd(uri, headers, req_main, main_len, authent)
-    options_ocd(uri, headers, req_main, main_len, authent)
+    get_ocd(uri, headers, main_status_code, main_len, authent)
+    options_ocd(uri, headers, main_status_code, main_len, authent)
 
 
 
 if __name__ == '__main__':
     url_file = sys.argv[1]
-    #url = f"{url_file}?cb=foo"
-    #req_main = requests.get(url_file, verify=False, timeout=10, allow_redirects=False)
-    #main_len = len(req_main.content)
-    #main_status_code = req_main.status_code
-    #authent = False
-    #OCD(url, main_status_code, main_len, authent)
-    with open(url_file, "r") as urls:
-        urls = urls.read().splitlines()
-        for url in urls:
+    with open(url_file) as url_file_handle:
+        url_list = url_file_handle.read().splitlines()
+        for url in url_list:
             url = f"{url}?cb=foo"
             try:
                 req_main = requests.get(url, verify=False, headers={"User-Agent": "xxxx"}, timeout=10, allow_redirects=False)
-                main_len = len(req_main.content)
-                main_status_code = req_main.status_code
-                authent = False
-                OCD(url, main_status_code, main_len, authent)
+                authent = None
+                OCD(url, req_main, authent)
             except KeyboardInterrupt:
                 print("Exiting")
                 sys.exit()

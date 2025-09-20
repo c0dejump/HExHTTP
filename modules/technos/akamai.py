@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-#from modules.utils import *
-import requests, sys, re
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-import traceback
 import random
-import ssl
-from typing import Iterable
-import urllib.parse
+import re
 import socket
+import ssl
+import sys
+import traceback
+import urllib.parse
+from collections.abc import Iterable
 
+import urllib3
+
+from utils.style import Colors
+from utils.utils import requests
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 CTRL_HEADERS: Iterable[str] = ["\x0b", "\x0c", "\x1c", "\x1d", "\x1e", "\x1f"]
 
@@ -26,24 +29,19 @@ REGIONS: Iterable[str] = [
 
 TIMEOUT = 6          # seconds
 READ_LIMIT = 8192    # read only the first 8 KB – enough to spot the error
-GREEN   = "\033[32m"
-BLUE    = "\033[34m"
-VIOLET  = "\033[35m"
-RED     = "\033[31m"
-RESET = "\033[0m"
 domain_regex = re.compile(r"^[a-z0-9.-]+\.[a-z]{2,}$", re.I)
 
 
 def colour(value: str) -> str:
     if value == "<<ENCRYPTED>>":
-        return GREEN
+        return Colors.GREEN
     if re.match(r"^https?://", value, re.I) or domain_regex.match(value):
-        return BLUE
+        return Colors.BLUE
     if re.match(r"^\d+$", value):
-        return VIOLET
-    return RED
+        return Colors.MAGENTA
+    return Colors.RED
 
-def akamai(url, s):
+def akamai(url: str, s: requests.Session) -> None:
     """
        https://techdocs.akamai.com/edge-diagnostics/docs/pragma-headers
        akamai-x-get-nonces
@@ -76,16 +74,16 @@ def akamai(url, s):
                 if pgl == "akamai-x-get-extracted-values":
                     pattern = re.compile(r"name=([^;]+); value=([^,]+)")
                     matches = pattern.findall(req.headers[res])
-                    segments = [f"{name}={colour(value)}{value}{RESET}" for name, value in matches]
-                    print(f"\033[36m   └── {url} | H:{header}\033[0m")
+                    segments = [f"{name}={colour(value)}{value}{Colors.RESET}" for name, value in matches]
+                    print(f"{Colors.CYAN}   └── {url} | H:{header}{Colors.RESET}")
                     print("   - " + " | ".join(segments))
                 else:
-                    print(f"\033[36m   └── {url} | H:{header}\033[0m")
+                    print(f"{Colors.CYAN}   └── {url} | H:{header}{Colors.RESET}")
                     print(f"   - {res}: {req.headers[res]}")
         except KeyboardInterrupt:
             print("Exiting")
             sys.exit()
-        except:
+        except Exception:
             #traceback.print_exc() 
             pass
     req_smuggling(url, s)
@@ -100,8 +98,8 @@ Request smuggling on Akamai
     #https://blog.hacktivesecurity.com/index.php/2022/09/17/http/
 ---------------------
 """
-def req_smuggling(url, s):
-    print(f"\033[36m   └── Akamai Request smuggling test\033[0m")
+def req_smuggling(url: str, s: requests.Session) -> None:
+    print(f"{Colors.CYAN}   └── Akamai Request smuggling test{Colors.RESET}")
     url = f"{url}?cb={random.randrange(999)}"
 
     headers = {
@@ -121,8 +119,8 @@ def req_smuggling(url, s):
         response = s.get(url, headers=headers, data=body, verify=False, timeout=10)
 
         if response.status_code > 500 and response.status_code != res_main.status_code:
-            print(f'  \033[33m └── [INTERESTING BEHAVIOR]\033[0m | {url} [{res_main.status_code} > {response.status_code}]\n     └── H {headers}\n     └── B {body}')
-    except:
+            print(f'  {Colors.YELLOW} └── [INTERESTING BEHAVIOR]{Colors.RESET} | {url} [{res_main.status_code} > {response.status_code}]\n     └── H {headers}\n     └── B {body}')
+    except Exception:
         #traceback.print_exc()
         pass
 
@@ -131,7 +129,7 @@ def req_smuggling(url, s):
 XSS on Akamai
 ---------------------
 """
-def xss_akamai(url, s):
+def xss_akamai(url: str, s: requests.Session) -> None:
     url = f"{url}?cb={random.randrange(999)}"
 
     headers = {
@@ -142,8 +140,8 @@ def xss_akamai(url, s):
         response = s.get(url, headers=headers, verify=False, timeout=10)
         for h in response.headers:
             if "x-true-cache-key" in h.lower() and "origin" in response.headers[h.lower()]:
-                print(f'  \033[33m └── [INTERESTING BEHAVIOR]\033[0m | {url} \n   └── H {headers}\n  ')
-    except Exception as e:
+                print(f'  {Colors.YELLOW} └── [INTERESTING BEHAVIOR]{Colors.RESET} | {url} \n   └── H {headers}\n  ')
+    except Exception:
         #print(f"Error : {e}")
         pass
 
@@ -179,7 +177,7 @@ def raw_http_get(parsed: urllib.parse.ParseResult,
 
 
 def cp_s3_akamai_raw(url: str) -> None:
-    print("\033[36m   └── Akamai S3 cache-poisoning test\033[0m")
+    print(f"{Colors.CYAN}   └── Akamai S3 cache-poisoning test{Colors.RESET}")
 
     target = urllib.parse.urlparse(url)
 
@@ -199,9 +197,10 @@ def cp_s3_akamai_raw(url: str) -> None:
                     target, hdr_name, fake_host, path_qs
                 )
                 if "NoSuchBucket" in resp:
-                    print(f"\033[33m   [+] POSSIBLE CP – origin reached {fake_host} with {hdr_name!r}\033[0m")
+                    target_with_path = f"{target.scheme}://{target.netloc}{path_qs}"
+                    print(f"{Colors.YELLOW}   [+] POSSIBLE CP – origin reached {fake_host} with {hdr_name!r}{Colors.RESET}")
                     print(f"      Target URL: {target_with_path}\n")
-            except Exception as e:
+            except Exception:
                 #print(f"   [-] {fake_host} ({repr(ctrl)})  ->  Network error : {e}")
                 pass
 
@@ -211,15 +210,15 @@ if __name__ == '__main__':
     s = requests.Session()
     #akamai(url_file, s)
     try:
-        with open(url_file, "r") as urls:
-            urls = urls.read().splitlines()
+        with open(url_file) as url_file_handle:
+            urls = url_file_handle.read().splitlines()
             for url in urls:
                 try:
                     akamai(url, s)
                 except KeyboardInterrupt:
                     print("Exiting")
                     sys.exit()
-                except:
+                except Exception:
                     traceback.print_exc()    
                 #print(f" {url}", end='\r')
     except KeyboardInterrupt:

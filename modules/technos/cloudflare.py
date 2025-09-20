@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+from utils.style import Colors
+from utils.utils import requests
 
 
-def cloudflare(url, s):
+def cloudflare(url: str, s: requests.Session) -> None:
     """
         Cloudflare:
         X-Forwarded-Proto: http => 301/302/303 + CF-Cache-Status: HIT
@@ -26,4 +28,4 @@ def cloudflare(url, s):
     if cf_loop in [301, 302, 303]:
         print(cf_loop.headers)
         if "CF-Cache-Status: HIT" in cf_loop.headers:
-            print(f"\033[32m   └──\033[0m Potential redirect loop exploit possible with \033[32m{headers}\033[0m payload")
+            print(f"{Colors.GREEN}   └──{Colors.RESET} Potential redirect loop exploit possible with {Colors.GREEN}{headers}{Colors.RESET} payload")

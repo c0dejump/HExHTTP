@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-from utils.utils import random, re, sys, configure_logger
 
-from modules.cpdos.basic_cpdos import cpdos_main
-from modules.cpdos.waf_rules import waf_rules
-from modules.cpdos.hho import HHO
-from modules.cpdos.hmc import HMC
-from modules.cpdos.hmo import HMO
-from modules.cpdos.hhcn import HHCN
-from modules.cpdos.hbh import HBH
-from modules.cpdos.ocd import OCD
-from modules.cpdos.multiple_headers import MHC
-from modules.cpdos.path_traversal import path_traversal_check
 from modules.cpdos.backslash import backslash_poisoning
+from modules.cpdos.basic_cpdos import cpdos_main
+from modules.cpdos.multiple_headers import MHC
+from modules.cpdos.ocd import OCD
+from modules.cpdos.path_traversal import path_traversal_check
+from utils.style import Colors
+from utils.utils import configure_logger, random, re, requests, sys
 
 logger = configure_logger(__name__)
 
 
-def crawl_files(url, s, req_main, domain, custom_header, authent, human):
+def crawl_files(url: str, s: requests.Session, req_main: requests.Response, domain: str, custom_header: dict, authent: tuple[str, str] | None, human: str) -> None:
     try:
         regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|svg))(?=")'
         regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|svg))(?=")'
@@ -50,11 +44,8 @@ def crawl_files(url, s, req_main, domain, custom_header, authent, human):
         logger.exception(e)
 
 
-def run_cpdos_modules(url, s, req_main, domain, custom_header, authent, human):
+def run_cpdos_modules(url: str, s: requests.Session, req_main: requests.Response, domain: str, custom_header: dict, authent: tuple[str, str] | None, human: str) -> None:
     uri = f"{url}?CPDoS={random.randint(1, 100)}"
-    headers = {
-        "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
-    }
     try:
         req_main = s.get(
             uri,
@@ -81,11 +72,10 @@ def run_cpdos_modules(url, s, req_main, domain, custom_header, authent, human):
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")
         sys.exit()
     except Exception as e:
-        print(e)
         logger.exception(e)
 
 
-def check_CPDoS(url, s, req_main, domain, custom_header, authent, human):
+def check_CPDoS(url: str, s: requests.Session, req_main: requests.Response, domain: str, custom_header: dict, authent: tuple[str, str] | None, human: str) -> None:
     if req_main.status_code in [301, 302]:
         url = (
             req_main.headers["location"]
@@ -93,7 +83,7 @@ def check_CPDoS(url, s, req_main, domain, custom_header, authent, human):
             else f'{url}{req_main.headers["location"]}'
         )
 
-    print("\033[36m ├ CPDoS analysis\033[0m")
+    print(f"{Colors.CYAN} ├ CPDoS analysis{Colors.RESET}")
 
     run_cpdos_modules(url, s, req_main, domain, custom_header, authent, human)
     crawl_files(url, s, req_main, domain, custom_header, authent, human)

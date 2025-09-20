@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 
 all_payload_keys = [ 
 	{'Accept': 'xxx'},

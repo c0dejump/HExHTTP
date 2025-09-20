@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Enhanced server error analysis focused on server-side errors with improved pattern detection
 """
 import re
 import time
-import json
-from typing import List, Optional, Tuple, Dict, Any, Set
-from utils.utils import requests, configure_logger
+from typing import Any
+
+from utils.utils import configure_logger, requests
 
 logger = configure_logger(__name__)
 
 class ServerErrorAnalyzer:
     
-    def __init__(self):
+    def __init__(self) -> None:
         # Payloads plus variés et ciblés
         self.payloads_error = [
             "%2a", "%EXT%", "%ff", "%0A", "..%3B/", "..%3B", "%2e", "~", ".bak", ".old", ".tmp", 
@@ -184,7 +183,7 @@ class ServerErrorAnalyzer:
         self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         self.timeout = 10
     
-    def _make_request(self, url: str, authent: Optional[Any] = None) -> Optional[Tuple[requests.Response, float]]:
+    def _make_request(self, url: str, authent: Any | None = None) -> tuple[requests.Response, float] | None:
         try:
             start_time = time.time()
             headers = {
@@ -206,7 +205,7 @@ class ServerErrorAnalyzer:
             logger.debug(f"Request failed for {url}: {e}")
             return None
     
-    def _find_error_patterns(self, content: str, headers: Dict[str, str]) -> Dict[str, Dict[str, Any]]:
+    def _find_error_patterns(self, content: str, headers: dict[str, str]) -> dict[str, dict[str, Any]]:
         """Recherche améliorée des patterns avec scoring et contexte"""
         findings = {}
         
@@ -255,7 +254,7 @@ class ServerErrorAnalyzer:
         
         return findings
     
-    def _calculate_confidence(self, pattern: str, matches: List[Any], category: str) -> float:
+    def _calculate_confidence(self, pattern: str, matches: list[Any], category: str) -> float:
         """Calcule un score de confiance pour un match"""
         base_confidence = 0.7
         
@@ -277,11 +276,9 @@ class ServerErrorAnalyzer:
             
         return min(1.0, max(0.1, base_confidence))
     
-    def _get_severity_emoji(self, severity: str) -> str:
-        """Retourne l'emoji approprié pour le niveau de sévérité"""
-    
+
     def _analyze_error_response(self, payload: str, response: requests.Response, 
-                              response_time: float) -> Dict[str, Any]:
+                              response_time: float) -> dict[str, Any]:
         """Analyse améliorée de la réponse d'erreur"""
         content = ""
         headers = {}
@@ -345,7 +342,7 @@ class ServerErrorAnalyzer:
         if content_length > 10000:
             print(f"   📊 Réponse volumineuse ({content_length:,} chars)")
         elif content_length == 0:
-            print(f"   🕳️  Réponse vide")
+            print("   🕳️  Réponse vide")
         
         # Détection de redirections suspectes
         if 300 <= response.status_code < 400:
@@ -355,12 +352,12 @@ class ServerErrorAnalyzer:
         
 
     
-    def analyze_server_errors(self, url: str, base_headers: List[str], 
-                            authent: Optional[Any] = None, url_file: bool = False) -> Dict[str, Any]:
+    def analyze_server_errors(self, url: str, base_headers: list[str], 
+                            authent: Any | None = None, url_file: bool = False) -> dict[str, Any]:
         """Analyse principale des erreurs serveur"""
         print("\033[36m ├ Server error analysis \033[0m")
         
-        results = {
+        results: dict = {
             'total_tests': len(self.payloads_error),
             'errors_found': 0,
             'findings_by_category': {},
@@ -399,8 +396,8 @@ class ServerErrorAnalyzer:
         
         return results
 
-def get_server_error(url: str, base_header: List[str], authent: Optional[Any] = None, 
-                    url_file: bool = False) -> Dict[str, Any]:
+def get_server_error(url: str, base_header: list[str], authent: Any | None = None, 
+                    url_file: bool = False) -> dict[str, Any]:
     """Function wrapper pour compatibilité"""
     analyzer = ServerErrorAnalyzer()
     return analyzer.analyze_server_errors(url, base_header, authent, url_file)

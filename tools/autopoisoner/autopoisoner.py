@@ -1,17 +1,17 @@
-import requests
-import argparse
+import os
 import random
-import re, os, sys
-import time
+import re
+import sys
 import threading
-import traceback
+
 from tools.autopoisoner.headerfuzz import headersToFuzz
-from utils.utils import human_time
+from tools.autopoisoner.print_utils import (
+    behavior_or_confirmed_message,
+    potential_verbose_message,
+)
+from utils.utils import human_time, requests
 
 currentPath = os.path.dirname(__file__)
-
-from tools.autopoisoner.print_utils import *
-
 
 LOCK = threading.Lock()
 TIMEOUT_DELAY = 10
@@ -19,9 +19,12 @@ TIMEOUT_DELAY = 10
 CANARY = "ndvyepenbvtidpvyzh.com"
 CANARY_2 = "31337"
 
-def splitURLS(threadsSize): #Multithreading
+# Global behavior flag for verbose output
+behavior: bool = False
 
-    splitted = []
+def splitURLS(allURLs: list[str], threadsSize: int) -> list[list[str]]:  # Multithreading
+
+    splitted: list[list[str]] = []
     URLSsize = len(allURLs)
     width = int(URLSsize/threadsSize)
     if width == 0:
@@ -42,7 +45,7 @@ def splitURLS(threadsSize): #Multithreading
 
     return splitted
 
-def canary_in_response(response : requests.Response):
+def canary_in_response(response: requests.Response) -> bool:
     for val in response.headers.values():
         if CANARY in val or CANARY_2 in val:
             return True
@@ -51,7 +54,7 @@ def canary_in_response(response : requests.Response):
 
     return False
 
-def crawl_files(URL, response : requests.Response):
+def crawl_files(URL: str, response: requests.Response) -> list[str]:
     responseText = response.text
     regexp1 = r'(?<=src=")(\/[^\/].+?)(?=")'
     regexp2 = r'(?<=href=")(\/[^\/].+?)(?=")'
@@ -73,24 +76,24 @@ def crawl_files(URL, response : requests.Response):
 
     return selectedFiles
 
-def use_caching(headers):
+def use_caching(headers: dict[str, str]) -> bool:
     if headers.get("X-Cache-Hits") or headers.get("X-Age") or headers.get("X-Nextjs-Cache") or headers.get("x-nextjs-cache") or headers.get("X-Vercel-Cache") or headers.get("x-vercel-cache") or headers.get("X-Cache") \
     or headers.get("x-drupal-cache") or headers.get("X-HS-CF-Cache-Status") or headers.get("Age") or headers.get("x-vanilla-cache-control") or headers.get("Cf-Cache-Status") \
     or headers.get("X-Proxy-Cache") or headers.get("X-TZLA-EDGE-Cache-Hit") or headers.get("X-nananana") or headers.get("x-spip-cache") or headers.get("CDN-Cache") \
     or headers.get("x-pangle-cache-from") or headers.get("X-Deploy-Web-Server-Cache-Hit") or headers.get("X-Micro-Cache") or headers.get("X-Deploy-Web-Server-Cache-Hit") \
-    or (headers.get("Cache-Control") and ("public" in headers.get("Cache-Control"))):
+    or (headers.get("Cache-Control") and "public" in str(headers.get("Cache-Control"))):
         return True
     else:
         return False
 
-def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum, buster, custom_header):
+def vulnerability_confirmed(responseCandidate: requests.Response, url: str, randNum: str, buster: str, custom_header: dict[str, str] | None) -> bool:
     try:
         confirmationResponse = requests.get(f"{url}?cacheBusterX{randNum}={buster}", allow_redirects=False, verify=False, timeout=TIMEOUT_DELAY, headers=custom_header)
     except requests.Timeout:
         if behavior:
             print(f"Request timeout with {url} URL with {custom_header}")
         return False
-    except Exception as e:
+    except Exception:
         #print(f"Error 95 line: {e}")
         ##traceback.print_exc()
         return False
@@ -105,20 +108,20 @@ def vulnerability_confirmed(responseCandidate : requests.Response, url, randNum,
     else:
         return False
 
-def base_request(url, custom_header):
+def base_request(url: str, custom_header: dict[str, str] | None) -> requests.Response | int:
     randNum = str(random.randrange(999))
     buster = str(random.randrange(999))
     try:
         response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY, headers=custom_header)
         #print(response)
         return response
-    except Exception as e:
+    except Exception:
         #print(f"Error line 117 : {e}")
         #traceback.print_exc()
         return 1337
 
 
-def port_poisoning_check(url, initialResponse, custom_header, human):
+def port_poisoning_check(url: str, initialResponse: requests.Response, custom_header: dict[str, str] | None, human: str) -> str | None:
     randNum = str(random.randrange(999))
     buster = str(random.randrange(999))
     findingState = 0
@@ -130,11 +133,11 @@ def port_poisoning_check(url, initialResponse, custom_header, human):
             }
     uri = f"{url}?cacheBusterX{randNum}={buster}"
     if custom_header:
-        custom_head = custom_head.update(custom_header)
+        custom_head.update(custom_header)
     try:
         response = requests.get(f"{url}?cacheBusterX{randNum}={buster}", headers=custom_head, verify=False, allow_redirects=False, timeout=TIMEOUT_DELAY)
         human_time(human)
-        explicitCache = str(use_caching(response.headers)).upper()
+        explicitCache = str(use_caching(dict(response.headers))).upper()
 
         if response.status_code != initialResponse.status_code and response.status_code != 429:
             status_codes = f"{initialResponse.status_code} → {response.status_code}"
@@ -142,39 +145,40 @@ def port_poisoning_check(url, initialResponse, custom_header, human):
             potential_verbose_message("STATUS_CODE", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=custom_head, LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=str(custom_head))
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
                 if behavior:
-                    behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=custom_head)
+                    behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=str(custom_head))
 
         elif abs(len(response.text) - len(initialResponse.text)) > 0.85 * len(initialResponse.text):
             findingState = 1
             potential_verbose_message("LENGTH", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=custom_head, LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=str(custom_head))
 
         else:
             potential_verbose_message("UNSUCCESSFUL",  url)
             if behavior:
-                behavior_or_confirmed_message(uri, "BEHAVIOR", "LENGTH", explicitCache, url, header=custom_head)
+                behavior_or_confirmed_message(uri, "BEHAVIOR", "LENGTH", explicitCache, url, header=str(custom_head))
 
         if findingState == 1:
             return "UNCONFIRMED"
     except requests.Timeout:
         if behavior:
             print(f"Request timeout with {uri} URL with {custom_head}")
-    except:
-        print(f" └── Error with Host: {host}:8888 header")
+    except Exception as e:
+        print(f" └── Error with Host: {host}:8888 header: {e}")
         #traceback.print_exc()
         return None
     
+    return None
 
-def headers_poisoning_check(url, initialResponse, custom_header, human):
+def headers_poisoning_check(url: str, initialResponse: requests.Response, custom_header: dict[str, str] | None, human: str) -> str | None:
     findingState = 0
-    for header in headersToFuzz.keys():
-        payload = {header: headersToFuzz[header]}
+    for header, value in headersToFuzz:
+        payload = {header: value}
         pp = payload.copy()
         pp.update({"user-agent": "xxxxxxxx"})
         randNum = str(random.randrange(999))
@@ -192,14 +196,18 @@ def headers_poisoning_check(url, initialResponse, custom_header, human):
             continue
         except requests.ConnectionError:
             continue
-        except:
+        except Exception:
             if behavior:
                 potential_verbose_message("ERROR", url)
                 print(f"Request error with {uri} URL with {payload}")
                 print("Error on the 179 Lines")
                 #traceback.print_exc()
             continue
-        explicitCache = str(use_caching(response.headers)).upper()
+        
+        if response is None:
+            continue
+            
+        explicitCache = str(use_caching(dict(response.headers))).upper()
         sys.stdout.write(f"\033[34m  {header}\033[0m\r")
         sys.stdout.write("\033[K")
 
@@ -208,12 +216,12 @@ def headers_poisoning_check(url, initialResponse, custom_header, human):
             potential_verbose_message("CANARY", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "REFLECTION", explicitCache, url, header=payload, LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "REFLECTION", explicitCache, url, header=str(payload))
 
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
                 if behavior:
-                    behavior_or_confirmed_message(uri, "BEHAVIOR", "REFLECTION", explicitCache, url, header=payload)
+                    behavior_or_confirmed_message(uri, "BEHAVIOR", "REFLECTION", explicitCache, url, header=str(payload))
 
         elif response.status_code != initialResponse.status_code and response.status_code != 429:
             if response.status_code == 403:
@@ -224,11 +232,11 @@ def headers_poisoning_check(url, initialResponse, custom_header, human):
                     potential_verbose_message("STATUS_CODE", url)
                     if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                         findingState = 2
-                        behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=payload,LOCK = LOCK)
+                        behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=str(payload))
                     else:
                         potential_verbose_message("UNSUCCESSFUL", url)
                         if behavior:
-                            behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=payload)
+                            behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=str(payload))
                 else:
                     pass
             else:        
@@ -237,45 +245,48 @@ def headers_poisoning_check(url, initialResponse, custom_header, human):
                 potential_verbose_message("STATUS_CODE", url)
                 if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                     findingState = 2
-                    behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=payload,LOCK = LOCK)
+                    behavior_or_confirmed_message(uri, "CONFIRMED", "STATUS", explicitCache, url, status_codes=status_codes, header=str(payload))
                 else:
                     potential_verbose_message("UNSUCCESSFUL", url)
                     if behavior:
-                        behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=payload)
+                        behavior_or_confirmed_message(uri, "BEHAVIOR", "STATUS", explicitCache, url, status_codes=status_codes, header=str(payload))
 
         elif abs(len(response.text) - len(initialResponse.text)) > 0.85 * len(initialResponse.text):
             findingState = 1
             potential_verbose_message("LENGTH", url)
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
-                behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=payload, LOCK = LOCK)
+                behavior_or_confirmed_message(uri, "CONFIRMED", "LENGTH", explicitCache, url, header=str(payload))
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
                 if behavior:
-                    behavior_or_confirmed_message(uri, "BEHAVIOR", "LENGTH", explicitCache, url, header=payload)
+                    behavior_or_confirmed_message(uri, "BEHAVIOR", "LENGTH", explicitCache, url, header=str(payload))
 
     if findingState == 1:
         return "UNCONFIRMED"
+    
+    return None
 
-def crawl_and_scan(url, initialResponse, custom_header, human):
+def crawl_and_scan(url: str, initialResponse: requests.Response, custom_header: dict[str, str] | None, human: str) -> None:
     selectedURLS = crawl_files(url, initialResponse)
     for url in selectedURLS:
         potential_verbose_message("CRAWLING", url)
         initResponse = base_request(url, custom_header)
-        port_poisoning_check(url, initResponse, custom_header, human)
-        headers_poisoning_check(url, initResponse, custom_header, human)
+        if isinstance(initResponse, requests.Response):
+            port_poisoning_check(url, initResponse, custom_header, human)
+            headers_poisoning_check(url, initResponse, custom_header, human)
 
 
-def cache_poisoning_check(url, custom_header, human):
+def cache_poisoning_check(url: str, custom_header: dict[str, str] | None, human: str) -> None:
     initialResponse = base_request(url, custom_header)
 
-    if initialResponse != 1337:
+    if isinstance(initialResponse, requests.Response):
         if initialResponse.status_code in (200, 206, 301, 302, 303, 304, 307, 308, 400, 401, 402, 403, 404, 405, 406, 416, 500, 502, 503, 505, 520):
             resultPort = port_poisoning_check(url, initialResponse, custom_header, human)
             resultHeaders = headers_poisoning_check(url, initialResponse, custom_header, human)
             if resultHeaders == "UNCONFIRMED" or resultPort == "UNCONFIRMED":
                 crawl_and_scan(url, initialResponse, custom_header, human)
-        elif initialResponse and initialResponse.status_code == 429:
+        elif initialResponse.status_code == 429:
             pass
         else:
             print(f"Error 261: {initialResponse}")
@@ -284,7 +295,7 @@ def cache_poisoning_check(url, custom_header, human):
             #return "ERROR"
 
 
-def check_cache_poisoning(url, custom_header, behavior_, authent, human):
+def check_cache_poisoning(url: str, custom_header: dict, behavior_: bool, authent: bool, human: str) -> None:
     print("\033[36m ├ Cache poisoning analysis\033[0m")
 
     global behavior

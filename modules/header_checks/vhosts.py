@@ -1,39 +1,40 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-import socket
-import ssl
 import hashlib
 import secrets
+import socket
+import ssl
+from typing import Any
 from urllib.parse import urlparse
-from utils.utils import requests, configure_logger, string, re
+
 from utils.style import Colors
+from utils.utils import configure_logger, re, requests, string
 
 logger = configure_logger(__name__)
 
-def normalize_html(body):
+def normalize_html(body: str | bytes) -> bytes:
     if isinstance(body, str):
         body = body.encode('utf-8')
     text = re.sub(rb"\s+", b" ", body)
     return text.strip()
 
-def body_hash(body):
+def body_hash(body: str | bytes) -> str:
     """Generates a blake2 hash of the normalized body"""
     return hashlib.blake2b(normalize_html(body), digest_size=16).hexdigest()
 
-def diff_headers(h1, h2, keys=("server","via","x-cache","set-cookie","location","cf-cache-status","x-powered-by")):
+def diff_headers(h1: Any, h2: Any, keys: tuple[str, ...] = ("server","via","x-cache","set-cookie","location","cf-cache-status","x-powered-by")) -> dict[str, tuple[Any, Any]]:
     """Compare important headers between two responses"""
     k = [x.title() for x in keys]
-    diffs = {}
+    diffs: dict[str, tuple[Any, Any]] = {}
     for key in k:
         val1, val2 = h1.get(key), h2.get(key)
         if val1 != val2:
             diffs[key] = (val1, val2)
     return diffs
 
-def extract_signals(html):
+def extract_signals(html: str) -> dict[str, str]:
     """Extract important signals from HTML (title, canonical, etc.)"""
-    signals = {}
+    signals: dict[str, str] = {}
     if not html:
         return signals
     
@@ -55,13 +56,13 @@ def extract_signals(html):
     
     return signals
 
-def get_origin_ip(host):
+def get_origin_ip(host: str) -> str | None:
     try:
         return socket.gethostbyname(host)
     except socket.gaierror:
         return None
 
-def get_vhost_via_ip(host, scheme="http", path="/"):
+def get_vhost_via_ip(host: str, scheme: str = "http", path: str = "/") -> Any:
     """Access the vhost via IP with Host header"""
     ip = get_origin_ip(host)
     if not ip:
@@ -80,7 +81,7 @@ def get_vhost_via_ip(host, scheme="http", path="/"):
         logger.debug(f"Error accessing {url_ip}: {e}")
         return None
 
-def rand_host(base):
+def rand_host(base: str) -> str:
     """Generates a random host in the same apex domain"""
     label = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(10))
     parts = base.split(".")
@@ -90,7 +91,7 @@ def rand_host(base):
     else:
         return f"{label}.{base}"
 
-def probe_random_host(url):
+def probe_random_host(url: str) -> Any:
     """Test with a random host to detect wildcards"""
     parsed = urlparse(url)
     host = parsed.netloc
@@ -103,7 +104,7 @@ def probe_random_host(url):
         logger.debug(f"Error with random host {rnd}: {e}")
         return rnd, None
 
-def get_cert_san(host, port=443):
+def get_cert_san(host: str, port: int = 443) -> dict[str, Any] | None:
     try:
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
@@ -113,23 +114,44 @@ def get_cert_san(host, port=443):
             with ctx.wrap_socket(sock, server_hostname=host) as ssock:
                 cert = ssock.getpeercert()
                 
-        san = []
-        for typ, names in cert.get("subjectAltName", []):
-            if typ == "DNS":
-                san.append(names)
+        if not cert:
+            return None
                 
-        subject = dict(x[0] for x in cert.get("subject", []))
+        san = []
+        subject_alt_name: Any = cert.get("subjectAltName", [])
+        if subject_alt_name and isinstance(subject_alt_name, (list, tuple)):
+            for entry in subject_alt_name:
+                if isinstance(entry, tuple) and len(entry) == 2:
+                    typ, names = entry
+                    if typ == "DNS":
+                        san.append(names)
+                
+        subject_info: Any = cert.get("subject", [])
+        subject = {}
+        if subject_info and isinstance(subject_info, (list, tuple)):
+            for item in subject_info:
+                if isinstance(item, tuple) and len(item) == 1 and isinstance(item[0], tuple):
+                    key, value = item[0]
+                    subject[key] = value
+        
+        issuer_info: Any = cert.get("issuer", [])
+        issuer = {}
+        if issuer_info and isinstance(issuer_info, (list, tuple)):
+            for item in issuer_info:
+                if isinstance(item, tuple) and len(item) == 1 and isinstance(item[0], tuple):
+                    key, value = item[0]
+                    issuer[key] = value
         
         return {
             "subject_cn": subject.get("commonName"),
             "san": san,
-            "issuer": dict(x[0] for x in cert.get("issuer", []))
+            "issuer": issuer
         }
     except Exception as e:
         logger.debug(f"Error getting cert for {host}: {e}")
         return None
 
-def compare_responses(resp1, resp2, url1, url2):
+def compare_responses(resp1: Any, resp2: Any, url1: str, url2: str) -> dict[str, Any] | None:
     if not resp1 or not resp2:
         return None
     
@@ -169,8 +191,8 @@ def compare_responses(resp1, resp2, url1, url2):
     
     return None
 
-def check_vhost_enhanced(domain, url):
-    print("\033[36m ├ Vhosts misconfiguration analysis \033[0m")
+def check_vhost_enhanced(domain: str, url: str) -> None:
+    print(f"{Colors.CYAN} ├ Vhosts misconfiguration analysis {Colors.RESET}")
     
     parsed_url = urlparse(url)
     host = parsed_url.netloc
@@ -182,9 +204,6 @@ def check_vhost_enhanced(domain, url):
     
     try:        
         baseline_resp = requests.get(url, verify=False, timeout=10)
-        baseline_content = baseline_resp.content.decode('utf-8', errors='ignore')
-        baseline_hash = body_hash(baseline_resp.content)
-        baseline_signals = extract_signals(baseline_content)
         
         print(" ├─ Testing IP + Host header access...")
         for path in test_paths:            
@@ -204,7 +223,7 @@ def check_vhost_enhanced(domain, url):
                 ip_test_url = f"{scheme}://{get_origin_ip(host)}{path}"
                 comparison = compare_responses(original_resp, ip_resp, test_url_original, ip_test_url)
                 if comparison:
-                    print(f" │  └─ \033[33m[IP+HOST]\033[0m {comparison['url1']} <> {comparison['url2']}")
+                    print(f" │  └─ {Colors.YELLOW}[IP+HOST]{Colors.RESET} {comparison['url1']} <> {comparison['url2']}")
                     print(f" │      Status: {comparison['status1']} <> {comparison['status2']}, Size: {comparison['size1']}b vs {comparison['size2']}b")
                     #if comparison['header_diffs']:
                         #print(f" │      Header diffs: {comparison['header_diffs']}")
@@ -226,14 +245,14 @@ def check_vhost_enhanced(domain, url):
             try:
                 req_vh = requests.get(vh, verify=False, timeout=10)
                 if req_vh.status_code not in [404, 403, 425, 503, 500, 400] and len(req_vh.content) not in range(len(baseline_resp.content) - 100, len(baseline_resp.content) + 100):
-                    print(f" │  └─ \033[32m[ORIGINAL]\033[0m {url} [{len(baseline_resp.content)}b] <> {vh} [{len(req_vh.content)}b]")
+                    print(f" │  └─ {Colors.GREEN}[ORIGINAL]{Colors.RESET} {url} [{len(baseline_resp.content)}b] <> {vh} [{len(req_vh.content)}b]")
                     
                     comparison = compare_responses(baseline_resp, req_vh, url, vh)
                     if comparison:
                         if comparison['signals1'].get('title') != comparison['signals2'].get('title'):
                             print(f" │      Titles: '{comparison['signals1'].get('title', 'N/A')}' vs '{comparison['signals2'].get('title', 'N/A')}'")
                         results.append(comparison)
-            except Exception as e:
+            except Exception:
                 continue
         
         
@@ -242,7 +261,7 @@ def check_vhost_enhanced(domain, url):
         if rand_resp:
             comparison = compare_responses(baseline_resp, rand_resp, url, f"http://{rand_host_name}/")
             if comparison:
-                print(f" │  └─ {Colors.YELLOW}[WILDCARD]\033[0m Wildcard detected with random host: {rand_host_name}")
+                print(f" │  └─ {Colors.YELLOW}[WILDCARD]{Colors.RESET} Wildcard detected with random host: {rand_host_name}")
                 print(f" │      Status: {comparison['status2']}, Size: {comparison['size2']}b")
                 results.append(comparison)
             else:
@@ -263,7 +282,7 @@ def check_vhost_enhanced(domain, url):
                                 san_resp = requests.get(san_url, verify=False, timeout=10)
                                 comparison = compare_responses(baseline_resp, san_resp, url, san_url)
                                 if comparison:
-                                    print(f" │      \033[34m[SAN]\033[0m Different content on SAN: {san}")
+                                    print(f" │      {Colors.BLUE}[SAN]{Colors.RESET} Different content on SAN: {san}")
                                     results.append(comparison)
                             except Exception:
                                 continue
@@ -271,5 +290,5 @@ def check_vhost_enhanced(domain, url):
     except Exception as e:
         logger.exception("Exception in vhost checker: %s", e)
 
-def check_vhost(domain, url):
+def check_vhost(domain: str, url: str) -> None:
     check_vhost_enhanced(domain, url)

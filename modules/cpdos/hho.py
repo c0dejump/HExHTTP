@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Attempts to find Cache Poisoning with HTTP Header Oversize (HHO)
 https://cpdos.org/#HHO
 """
 
-from utils.utils import requests, configure_logger, human_time
-from utils.style import Identify, Colors
 import utils.proxy as proxy
+from utils.style import Colors, Identify
+from utils.utils import configure_logger, human_time, requests
 
 logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Header Oversize"
 
-def HHO(url, s, main_response, authent, human):
+def HHO(url: str, s: requests.Session, main_response: requests.Response, authent: tuple[str, str] | None, human: str) -> None:
     """
     Perform a Header Oversize Denial of Service (HHO DOS) attack on the given URL.
 
@@ -23,10 +22,11 @@ def HHO(url, s, main_response, authent, human):
     is detected, it indicates a potential vulnerability.
 
     Args:
-        url (str): The target URL to test.
-        s (requests.Session): The session object to use for making requests.
-        main_response (requests.Response): The initial response from the target URL.
-        authent (tuple): Authentication credentials (username, password) for the target URL.
+        url: The target URL to test.
+        s: The session object to use for making requests.
+        main_response: The initial response from the target URL.
+        authent: Authentication credentials (username, password) for the target URL.
+        human: Human-readable timing parameter.
 
     Returns:
         None
@@ -68,7 +68,7 @@ def HHO(url, s, main_response, authent, human):
             human_time(human)
 
             print(
-                f" \033[34m {VULN_NAME} : X-Oversized-Header-{iteration}\033[0m\r",
+                f" {Colors.BLUE} {VULN_NAME} : X-Oversized-Header-{iteration}{Colors.RESET}\r",
                 end="",
             )
             print("\033[K", end="")
@@ -91,7 +91,7 @@ def HHO(url, s, main_response, authent, human):
                 reason = f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code}"
                 status = f"{Identify.behavior}"
                 severity = "behavior"
-            print(f" {status} | HHO DOS | \033[34m{url}\033[0m | {reason} | PAYLOAD: {Colors.THISTLE}X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}{Colors.RESET}")
+            print(f" {status} | HHO DOS | {Colors.BLUE}{url}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}{Colors.RESET}")
             if proxy.proxy_enabled:
                 from utils.proxy import proxy_request
                 proxy_request(s, "GET", url, headers=h, data=None, severity=severity)

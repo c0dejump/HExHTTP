@@ -50,11 +50,22 @@ dev = [
     "ruff",
     "mypy",
     "bandit",
-    "pytest",
+    "pytest>=7.0.0",
+    "pytest-cov",
+    "flask>=2.0.0",
     "pre-commit",
     "types-setuptools",
     "types-requests",
-    "types-urllib3"
+    "types-urllib3",
+    "types-flask"
+]
+
+# Test dependencies (installed via `pip install .[test]`)
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov",
+    "flask>=2.0.0",
+    "types-flask"
 ]
 
 # setuptools package discovery
@@ -74,9 +85,11 @@ skip-string-normalization = false  # Enforce double quotes unless you set true
 
 [tool.ruff]
 line-length = 88
+fix = true
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 ignore = ["E501"]  # Let Black handle line length instead of Ruff
-fix = true
 
 [tool.mypy]
 python_version = "3.11"

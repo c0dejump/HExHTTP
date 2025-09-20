@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+from utils.utils import requests
 
 
-def vercel(url, s):
+def vercel(url: str, s: requests.Session) -> None:
     """
     https://vercel.com/docs/edge-network/headers
     """
@@ -15,9 +16,9 @@ def vercel(url, s):
     ]
     for vhl in vercel_header_list:
         try:
-            headers = {vhl: "1"}
+            headers = {key: value for key, value in vhl.items()}
             req = s.get(url, headers=headers, verify=False, timeout=10)
             print(f"   └── {vhl}{'→':^3} {req.status_code:>3} [{len(req.content)} bytes]")
-        except:
+        except Exception:
             pass
     

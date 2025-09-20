@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 
 """
 This module defines a list of payloads with various HTTP headers and their corresponding values.

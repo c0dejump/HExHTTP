@@ -1,9 +1,11 @@
 import argparse
-from static.banner import print_banner
-from modules.logging_config import valid_log_level
 import sys
 
-def args():
+from modules.logging_config import valid_log_level
+from static.banner import print_banner
+
+
+def args() -> argparse.Namespace:
     """
     Parses command-line arguments and returns them.
 

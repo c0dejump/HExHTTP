@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 from utils.style import Colors
 
 
@@ -26,8 +27,7 @@ def behavior_or_confirmed_message(
     url: str,
     status_codes: str = "default",
     header: str = "default",
-    outputFile: str = "default",
-    LOCK: str = "default"
+    outputFile: str = "default"
 ) -> None:
 
     explicitCache = f"{Colors.RED}{explicitCache}{Colors.RESET}" if explicitCache == "FALSE" else f"{Colors.GREEN}{explicitCache}{Colors.RESET}"
