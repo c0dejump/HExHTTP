@@ -41,7 +41,7 @@ class TestPriority1:
     def test_apache_detection(self, hexhttp_command: Any, test_urls: Any) -> None:
         """Test that Apache server is correctly detected."""
         # Use shorter timeout and only-cp flag for faster testing
-        result = hexhttp_command("-u", test_urls["apache"], "--ocp", timeout=10)
+        result = hexhttp_command("-u", test_urls["apache"], "--ocp", timeout=30)
 
         # Command should complete successfully
         assert result["success"], f"Command failed: {result['stderr']}"
@@ -56,7 +56,7 @@ class TestPriority1:
     def test_nginx_detection(self, hexhttp_command: Any, test_urls: Any) -> None:
         """Test that Nginx server is correctly detected."""
         # Use shorter timeout and only-cp flag for faster testing
-        result = hexhttp_command("-u", test_urls["nginx"], "--ocp", timeout=10)
+        result = hexhttp_command("-u", test_urls["nginx"], "--ocp", timeout=30)
 
         # Command should complete successfully
         assert result["success"], f"Command failed: {result['stderr']}"
@@ -71,7 +71,7 @@ class TestPriority1:
     def test_cloudflare_detection(self, hexhttp_command: Any, test_urls: Any) -> None:
         """Test that Cloudflare protection is correctly detected."""
         # Use shorter timeout and only-cp flag for faster testing
-        result = hexhttp_command("-u", test_urls["cloudflare"], "--ocp", timeout=10)
+        result = hexhttp_command("-u", test_urls["cloudflare"], "--ocp", timeout=30)
 
         # Command should complete successfully
         assert result["success"], f"Command failed: {result['stderr']}"
@@ -103,7 +103,7 @@ class TestPriority1:
     def test_basic_url_processing(self, hexhttp_command: Any, test_urls: Any) -> None:
         """Test that basic URL processing works without crashes."""
         # Test with a simple, safe URL using quick mode
-        result = hexhttp_command("-u", test_urls["safe"], "--ocp", timeout=10)
+        result = hexhttp_command("-u", test_urls["safe"], "--ocp", timeout=30)
 
         # Should not crash
         assert result["returncode"] != -1, "Command crashed or timed out"
@@ -121,8 +121,8 @@ class TestPriority2:
         self, hexhttp_command: Any, temp_url_file: Any
     ) -> None:
         """Test that file input with multiple URLs works."""
-        # Use quick mode for faster testing
-        result = hexhttp_command("-f", temp_url_file, "--ocp", timeout=15)
+        # Use cache poisoning only mode for faster testing in CI
+        result = hexhttp_command("-f", temp_url_file, "--ocp", timeout=45)
 
         # Command should complete successfully
         assert result["success"], f"Command failed: {result['stderr']}"
@@ -140,8 +140,8 @@ class TestPriority2:
         self, hexhttp_command: Any, temp_url_file: Any
     ) -> None:
         """Test that multi-threaded processing doesn't crash."""
-        # Test with threading enabled and quick mode
-        result = hexhttp_command("-f", temp_url_file, "-t", "2", "--ocp", timeout=15)
+        # Test with threading enabled and cache poisoning only mode
+        result = hexhttp_command("-f", temp_url_file, "-t", "2", "--ocp", timeout=45)
 
         # Should not crash
         assert result["returncode"] != -1, "Command crashed or timed out with threading"
@@ -157,7 +157,7 @@ class TestPriority2:
         """Test that header analysis functionality works."""
         # Use quick mode for faster testing
         result = hexhttp_command(
-            "-u", test_urls["uncommon_headers"], "--ocp", timeout=10
+            "-u", test_urls["uncommon_headers"], "--ocp", timeout=30
         )
 
         # Command should complete successfully
@@ -176,7 +176,7 @@ class TestPriority2:
     def test_cache_file_detection(self, hexhttp_command: Any, test_urls: Any) -> None:
         """Test that cacheable resources are properly analyzed."""
         # Use quick mode for faster testing
-        result = hexhttp_command("-u", test_urls["cacheable_css"], "--ocp", timeout=10)
+        result = hexhttp_command("-u", test_urls["cacheable_css"], "--ocp", timeout=30)
 
         # Command should complete successfully
         assert result["success"], f"Command failed: {result['stderr']}"
@@ -219,7 +219,7 @@ class TestPriority3:
             "-H",
             "X-Test-Header: test-value",
             "--ocp",
-            timeout=10,
+            timeout=30,
         )
 
         # Should not crash with custom headers
@@ -235,11 +235,11 @@ class TestPriority3:
     def test_verbose_output(self, hexhttp_command: Any, test_urls: Any) -> None:
         """Test that verbose mode provides additional output."""
         # Run without verbose using quick mode
-        result_normal = hexhttp_command("-u", test_urls["safe"], "--ocp", timeout=10)
+        result_normal = hexhttp_command("-u", test_urls["safe"], "--ocp", timeout=30)
 
         # Run with verbose using quick mode
         result_verbose = hexhttp_command(
-            "-u", test_urls["safe"], "-v", "--ocp", timeout=10
+            "-u", test_urls["safe"], "-v", "--ocp", timeout=30
         )
 
         # Both should complete
@@ -259,7 +259,7 @@ class TestPriority3:
     ) -> None:
         """Test that HHO cache poisoning vulnerability can be detected."""
         # Use quick mode for faster testing
-        result = hexhttp_command("-u", test_urls["hho_vulnerable"], "--ocp", timeout=10)
+        result = hexhttp_command("-u", test_urls["hho_vulnerable"], "--ocp", timeout=30)
 
         # Command should complete
         assert result["returncode"] != -1, "Command crashed on HHO test"
@@ -280,7 +280,7 @@ class TestIntegration:
     @pytest.mark.integration
     def test_complete_scan_workflow(self, hexhttp_command: Any, test_urls: Any) -> None:
         """Test a complete scan workflow with multiple features."""
-        # Use quick mode for faster testing
+        # Use cache poisoning only mode for faster testing in CI environments
         result = hexhttp_command(
             "-u",
             test_urls["apache"],
@@ -288,7 +288,7 @@ class TestIntegration:
             "-H",
             "X-Test: integration-test",  # custom header
             "--ocp",
-            timeout=15,
+            timeout=45,
         )
 
         # Should complete the full workflow
