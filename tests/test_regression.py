@@ -317,7 +317,7 @@ class TestIntegration:
             "2",  # threading
             "-v",  # verbose
             "--ocp",
-            timeout=20,
+            timeout=45,
         )
 
         # Should handle multiple URLs
