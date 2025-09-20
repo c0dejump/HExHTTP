@@ -123,13 +123,13 @@ def process_modules(url: str, s: Any, a_tech: Any) -> None:
         if not only_cp:
             check_cachetag_header(resp_main_headers)
             get_server_error(url, authent)
-            check_vhost(domain, url)
+            check_vhost(url)
             check_localhost(url, s, domain, authent)
             check_methods(url, custom_header, authent, human is not None)
             check_http_version(url)
             get_technos(a_tech, req_main, url, s)
 
-        get_http_headers(url, s, main_status_code, main_len, main_head, authent is not None)
+        get_http_headers(url, s, main_status_code, main_len, main_head, authent)
         check_cpcve(url, s, req_main, domain, parse_headers(custom_header), authent, human or "")
         check_CPDoS(url, s, req_main, domain, parse_headers(custom_header), authent, human or "")
         check_methods_poisoning(url, s, parse_headers(custom_header), authent)
