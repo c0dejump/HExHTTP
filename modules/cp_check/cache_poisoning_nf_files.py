@@ -12,12 +12,13 @@ from utils.utils import configure_logger, random, requests, sys
 
 logger = configure_logger(__name__)
 
+
 def valid_reflection(
     uri: str,
     s: requests.Session,
     pk: dict,
-    authent: tuple[str, str] | requests.auth.AuthBase | None,
-    matching_forward: str
+    authent: tuple[str, str] | None,
+    matching_forward: str,
 ) -> None:
     for _ in range(0, 10):
         s.get(
@@ -41,6 +42,7 @@ def valid_reflection(
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
+
             proxy_request(s, "GET", uri, headers=pk, data=None)
     elif matching_forward in req_valid.headers:
         print(
@@ -48,14 +50,15 @@ def valid_reflection(
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
+
             proxy_request(s, "GET", uri, headers=pk, data=None)
 
 
 def check_reflection(
     url: str,
     s: requests.Session,
-    authent: tuple[str, str] | requests.auth.AuthBase | None,
-    matching_forward: str
+    authent: tuple[str, str] | None,
+    matching_forward: str,
 ) -> None:
     for hl in header_list:
         uri = f"{url}?cb={random.randrange(9999)}"
@@ -74,6 +77,7 @@ def check_reflection(
             )
             if proxy.proxy_enabled:
                 from utils.proxy import proxy_request
+
                 proxy_request(s, "GET", uri, headers=pk, data=None)
             valid_reflection(uri, s, pk, authent, matching_forward)
         elif matching_forward in req.headers:
@@ -82,6 +86,7 @@ def check_reflection(
             )
             if proxy.proxy_enabled:
                 from utils.proxy import proxy_request
+
                 proxy_request(s, "GET", uri, headers=pk, data=None)
             valid_reflection(uri, s, pk, authent, matching_forward)
         else:
@@ -91,12 +96,11 @@ def check_reflection(
             sys.stdout.write("\033[K")
 
 
-
 def check_cache_files(
     uri: str,
     s: requests.Session,
     custom_header: dict,
-    authent: tuple[str, str] | requests.auth.AuthBase | None
+    authent: tuple[str, str] | None,
 ) -> None:
 
     matching_forward = "ndvyepenbvtidpvyzh"
