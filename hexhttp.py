@@ -91,7 +91,7 @@ def fuzz_x_header(url):
 
 def process_modules(url: str, s: Any, a_tech: Any) -> None:
     domain = get_domain_from_url(url)
-    base_header = []
+    resp_main_headers = []
 
     try:
         req_main = s.get(
@@ -118,11 +118,11 @@ def process_modules(url: str, s: Any, a_tech: Any) -> None:
             if choice not in ["y", "Y"]:
                 sys.exit()
         for k in req_main.headers:
-            base_header.append(f"{k}: {req_main.headers[k]}")
+            resp_main_headers.append(f"{k}: {req_main.headers[k]}")
 
         if not only_cp:
-            check_cachetag_header(url, req_main, base_header)
-            get_server_error(url, base_header, authent, url_file is not None)
+            check_cachetag_header(resp_main_headers)
+            get_server_error(url, resp_main_headers, authent, url_file is not None)
             check_vhost(domain, url)
             check_localhost(url, s, domain, authent)
             check_methods(url, custom_header, authent, human is not None)
@@ -132,7 +132,7 @@ def process_modules(url: str, s: Any, a_tech: Any) -> None:
         get_http_headers(url, s, main_status_code, main_len, main_head, authent is not None)
         check_cpcve(url, s, req_main, domain, parse_headers(custom_header), authent, human or "")
         check_CPDoS(url, s, req_main, domain, parse_headers(custom_header), authent, human or "")
-        check_methods_poisoning(url, s, custom_header, authent)
+        check_methods_poisoning(url, s, parse_headers(custom_header), authent)
         check_cache_poisoning(url, parse_headers(custom_header), behavior or False, authent is not None, human or "")
         check_cache_files(url, s, parse_headers(custom_header), authent)
         #fuzz_x_header(url) #TODO
