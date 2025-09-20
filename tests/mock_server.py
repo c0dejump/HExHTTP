@@ -15,20 +15,20 @@ from flask import Flask, Response, jsonify, request
 class MockServer:
     """Mock HTTP server for testing HExHTTP."""
     
-    def __init__(self, host='127.0.0.1', port=8888):
+    def __init__(self, host: str = '127.0.0.1', port: int = 8888) -> None:
         self.host = host
         self.port = port
         self.app = Flask(__name__)
-        self.server_thread = None
+        self.server_thread: threading.Thread | None = None
         self._setup_routes()
     
-    def _setup_routes(self):
+    def _setup_routes(self) -> None:
         """Set up all mock endpoints."""
         
         # Apache simulation
         @self.app.route('/apache/')
         @self.app.route('/apache/<path:path>')
-        def apache_endpoint(path=''):
+        def apache_endpoint(path: str = '') -> Response:
             """Simulate Apache server responses."""
             headers = {
                 'Server': 'Apache/2.4.41 (Ubuntu)',
@@ -53,7 +53,7 @@ class MockServer:
         # Nginx simulation
         @self.app.route('/nginx/')
         @self.app.route('/nginx/<path:path>')
-        def nginx_endpoint(path=''):
+        def nginx_endpoint(path: str = '') -> Response:
             """Simulate Nginx server responses."""
             headers = {
                 'Server': 'nginx/1.18.0',
@@ -77,7 +77,7 @@ class MockServer:
         # Cloudflare simulation
         @self.app.route('/cloudflare/')
         @self.app.route('/cloudflare/<path:path>')
-        def cloudflare_endpoint(path=''):
+        def cloudflare_endpoint(path: str = '') -> Response:
             """Simulate Cloudflare-protected responses."""
             headers = {
                 'Server': 'cloudflare',
@@ -101,7 +101,7 @@ class MockServer:
         
         # HHO (HTTP Header Oversize) vulnerability simulation
         @self.app.route('/vulnerable/hho')
-        def hho_vulnerable():
+        def hho_vulnerable() -> Response:
             """Simulate HHO cache poisoning vulnerability."""
             # Check for oversized headers that might indicate HHO attack
             oversized_header = None
@@ -147,7 +147,7 @@ class MockServer:
         # Safe endpoint (should not trigger any alerts)
         @self.app.route('/safe/')
         @self.app.route('/safe/<path:path>')
-        def safe_endpoint(path=''):
+        def safe_endpoint(path: str = '') -> Response:
             """Safe endpoint that should not trigger any vulnerability alerts."""
             headers = {
                 'Server': 'TestServer/1.0',
@@ -170,7 +170,7 @@ class MockServer:
         
         # Cacheable resources for cache file detection
         @self.app.route('/cache/static.css')
-        def cacheable_css():
+        def cacheable_css() -> Response:
             """Simulate cacheable CSS resource."""
             headers = {
                 'Content-Type': 'text/css',
@@ -182,7 +182,7 @@ class MockServer:
             return Response(content, headers=headers)
         
         @self.app.route('/cache/script.js')
-        def cacheable_js():
+        def cacheable_js() -> Response:
             """Simulate cacheable JavaScript resource."""
             headers = {
                 'Content-Type': 'application/javascript',
@@ -194,7 +194,7 @@ class MockServer:
         
         # Uncommon headers endpoint
         @self.app.route('/headers/uncommon')
-        def uncommon_headers():
+        def uncommon_headers() -> Response:
             """Endpoint with uncommon/interesting headers."""
             headers = {
                 'Server': 'CustomServer/1.0',
@@ -219,23 +219,23 @@ class MockServer:
         
         # Error simulation endpoints
         @self.app.route('/errors/500')
-        def server_error():
+        def server_error() -> Response:
             """Simulate server error."""
             return Response("Internal Server Error", status=500)
         
         @self.app.route('/errors/404')
-        def not_found():
+        def not_found() -> Response:
             """Simulate not found error."""
             return Response("Not Found", status=404)
         
         @self.app.route('/errors/403')
-        def forbidden():
+        def forbidden() -> Response:
             """Simulate forbidden error."""
             return Response("Forbidden", status=403)
         
         # Health check endpoint
         @self.app.route('/health')
-        def health_check():
+        def health_check() -> Response:
             """Health check endpoint for testing server availability."""
             return jsonify({
                 'status': 'healthy',
@@ -248,7 +248,7 @@ class MockServer:
                 ]
             })
     
-    def start(self):
+    def start(self) -> None:
         """Start the mock server in a separate thread."""
         if self.server_thread and self.server_thread.is_alive():
             return
@@ -273,14 +273,14 @@ class MockServer:
         else:
             raise RuntimeError("Failed to start mock server")
     
-    def stop(self):
+    def stop(self) -> None:
         """Stop the mock server."""
         if self.server_thread and self.server_thread.is_alive():
             # Flask doesn't have a clean shutdown method in development mode
             # In a real scenario, you'd use a production WSGI server
             pass
     
-    def _run_server(self):
+    def _run_server(self) -> None:
         """Run the Flask server."""
         self.app.run(
             host=self.host,
@@ -291,13 +291,13 @@ class MockServer:
         )
     
     @property
-    def base_url(self):
+    def base_url(self) -> str:
         """Get the base URL of the mock server."""
         return f'http://{self.host}:{self.port}'
 
 
 # Convenience function for tests
-def create_mock_server(host='127.0.0.1', port=8888):
+def create_mock_server(host: str = '127.0.0.1', port: int = 8888) -> MockServer:
     """Create and return a mock server instance."""
     return MockServer(host, port)
 
