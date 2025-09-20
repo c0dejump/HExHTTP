@@ -122,7 +122,7 @@ def process_modules(url: str, s: Any, a_tech: Any) -> None:
 
         if not only_cp:
             check_cachetag_header(resp_main_headers)
-            get_server_error(url, resp_main_headers, authent, url_file is not None)
+            get_server_error(url, authent)
             check_vhost(domain, url)
             check_localhost(url, s, domain, authent)
             check_methods(url, custom_header, authent, human is not None)
