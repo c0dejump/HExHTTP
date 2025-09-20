@@ -1,6 +1,10 @@
-from bs4 import BeautifulSoup
-from utils.utils import requests, re 
 from urllib.parse import urljoin
+
+from bs4 import BeautifulSoup
+from bs4.element import Tag
+from requests.models import Response
+
+from utils.utils import re, requests
 
 COMMON_PATHS = [
     "accessibilite", "mentions-legales", "mentions", "legal", "cgu", "terms", "conditions",
@@ -12,21 +16,25 @@ COMMON_REGEX = re.compile(
     re.IGNORECASE
 )
 
-def get_unrisk_page(base_url, response):
+
+def get_unrisk_page(base_url: str, response: Response) -> str | None:
     soup = BeautifulSoup(response.text, "html.parser")
 
     for link in soup.find_all("a", href=True):
-        href = link["href"].lower()
-        if any(keyword in href for keyword in COMMON_PATHS):
-            legal_url = urljoin(base_url, href)
-            return legal_url
+        if isinstance(link, Tag):
+            href_attr = link.get("href")
+            if isinstance(href_attr, str):
+                href = href_attr.lower()
+                if any(keyword in href for keyword in COMMON_PATHS):
+                    legal_url = urljoin(base_url, href)
+                    return legal_url
 
     for path in COMMON_PATHS:
         test_url = urljoin(base_url, "/" + path)
         try:
-            response = requests.get(test_url, timeout=5)
-            if response.status_code == 200:
-                if COMMON_REGEX.search(response.text):
+            resp = requests.get(test_url, timeout=5)
+            if resp.status_code == 200:
+                if COMMON_REGEX.search(resp.text):
                     return test_url
         except requests.RequestException:
             continue

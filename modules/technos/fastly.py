@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-from utils.utils import *
+from utils.utils import requests
 
-def fastly(url, s):
+
+def fastly(url: str, s: requests.Session) -> None:
     """
     https://docs.fastly.com/en/guides/checking-cache
     """

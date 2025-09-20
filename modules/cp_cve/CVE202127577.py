@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 CVE-2021-27577 Detection Script
@@ -8,26 +7,26 @@ Affects: Apache Traffic Server 7.0.0-7.1.12, 8.0.0-8.1.1, 9.0.0-9.0.1
 youst.in/posts/cache-poisoning-at-scale/
 """
 
-import hashlib
-from urllib.parse import urlparse
-from utils.utils import configure_logger, requests, time, random, string
+from typing import Any
+
 from utils.style import Colors
+from utils.utils import configure_logger, random, requests, string, time
 
 logger = configure_logger(__name__)
 
 class CVE202127577Checker:
-    def __init__(self):
+    def __init__(self) -> None:
         self.session = requests.Session()
         self.session.verify = False
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
         
-    def generate_random_string(self, length=8):
+    def generate_random_string(self, length: int = 8) -> str:
         """Generate random string for unique identifiers"""
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
     
-    def detect_apache_traffic_server(self, url):
+    def detect_apache_traffic_server(self, url: str) -> tuple[bool, str]:
         """Detect if target is using Apache Traffic Server"""
         try:
             response = self.session.get(url, timeout=10)
@@ -57,7 +56,7 @@ class CVE202127577Checker:
         except Exception as e:
             return False, f"Error detecting ATS: {e}"
     
-    def test_fragment_cache_poisoning(self, url):
+    def test_fragment_cache_poisoning(self, url: str) -> list[dict[str, Any]]:
         """
         Test for CVE-2021-27577 URL fragment cache poisoning
         """
@@ -102,13 +101,13 @@ class CVE202127577Checker:
             try:
                 result = self.execute_fragment_test(test_case)
                 results.append(result)
-                time.sleep(0.5)  # Rate limiting
+                time.sleep(0.5)
             except Exception as e:
                 logger.error(f"Error in test {test_case['name']}: {e}")
                 
         return results
     
-    def execute_fragment_test(self, test_case):
+    def execute_fragment_test(self, test_case: dict[str, str]) -> dict[str, Any]:
         """Execute individual fragment cache poisoning test"""
         
         # Step 1: Prime cache with first URL
@@ -134,32 +133,33 @@ class CVE202127577Checker:
                 'error': str(e),
                 'description': test_case['description']
             }
-    
-    def analyze_fragment_responses(self, resp1, resp2, resp3, test_case):
+
+    def analyze_fragment_responses(self, resp1: requests.Response, resp2: requests.Response, resp3: requests.Response, test_case: dict[str, str]) -> dict[str, Any]:
         """Analyze responses for cache poisoning indicators"""
         
-        result = {
+        details: dict[str, Any] = {}
+        result: dict[str, Any] = {
             'test_name': test_case['name'],
             'vulnerable': False,
             'confidence': 'Low',
-            'details': {},
+            'details': details,
             'description': test_case['description']
         }
         
         # Check status codes
         statuses = [resp1.status_code, resp2.status_code, resp3.status_code]
-        result['details']['status_codes'] = statuses
+        details['status_codes'] = statuses
         
         # Check content lengths
         lengths = [len(resp1.content), len(resp2.content), len(resp3.content)]
-        result['details']['content_lengths'] = lengths
+        details['content_lengths'] = lengths
         
         # Check cache headers
         cache_headers_1 = self.extract_cache_headers(resp1)
         cache_headers_2 = self.extract_cache_headers(resp2)
         cache_headers_3 = self.extract_cache_headers(resp3)
         
-        result['details']['cache_headers'] = {
+        details['cache_headers'] = {
             'resp1': cache_headers_1,
             'resp2': cache_headers_2,
             'resp3': cache_headers_3
@@ -222,7 +222,7 @@ class CVE202127577Checker:
             
         return result
     
-    def extract_cache_headers(self, response):
+    def extract_cache_headers(self, response: Any) -> dict[str, Any]:
         """Extract cache-related headers from response"""
         cache_info = {}
         
@@ -255,7 +255,7 @@ class CVE202127577Checker:
             
         return cache_info
     
-    def test_version_fingerprinting(self, url):
+    def test_version_fingerprinting(self, url: str) -> list[str]:
         """Attempt to fingerprint Apache Traffic Server version"""
         try:
             # Test with malformed requests that might reveal version info
@@ -283,7 +283,7 @@ class CVE202127577Checker:
         except Exception as e:
             return [f"Version detection error: {e}"]
 
-def apache_cp(url, authent=None):
+def apache_cp(url: str, authent: Any = None) -> bool:
     """
     Main function to check for CVE-2021-27577
     """
@@ -303,12 +303,12 @@ def apache_cp(url, authent=None):
     # Step 2: Version fingerprinting
     version_info = checker.test_version_fingerprinting(url)
     if version_info:
-        print(f" ├── Version indicators:")
+        print(" ├── Version indicators:")
         for info in version_info:
             print(f" │   └─ {info}")
     
     # Step 3: Test for URL fragment cache poisoning
-    print(f" ├── Testing URL fragment cache poisoning...")
+    print(" ├── Testing URL fragment cache poisoning...")
     
     test_results = checker.test_fragment_cache_poisoning(url)
     
@@ -336,4 +336,4 @@ if __name__ == "__main__":
         sys.exit(1)
     
     target_url = sys.argv[1]
-    check_cve_2021_27577(target_url)
+    apache_cp(target_url)

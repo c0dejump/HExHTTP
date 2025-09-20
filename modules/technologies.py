@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-from modules.technos.apache import apache
-from modules.technos.nginx import nginx
-from modules.technos.envoy import envoy
+
 from modules.technos.akamai import akamai
-from modules.technos.fastly import fastly
+from modules.technos.apache import apache
 from modules.technos.cloudflare import cloudflare
+from modules.technos.envoy import envoy
+from modules.technos.fastly import fastly
 from modules.technos.imperva import imperva
+from modules.technos.nginx import nginx
 from modules.technos.vercel import vercel
+from utils.style import Colors
+from utils.utils import requests
+
 
 class technology:
     """
@@ -27,35 +30,35 @@ class technology:
         .NET: /(A(xyz))/
     """
 
-    def apache(self, url, s):
-        print("\033[36m ├── Apache analysis\033[0m")
+    def apache(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── Apache analysis{Colors.RESET}")
         apache(url, s)
 
-    def nginx(self, url, s):
+    def nginx(self, url: str, s: requests.Session) -> None:
         # Unkeyed Query Exploitation:
-        print("\033[36m ├── Nginx analysis\033[0m")
+        print(f"{Colors.CYAN} ├── Nginx analysis{Colors.RESET}")
         nginx(url, s)
 
-    def envoy(self, url, s):
-        print("\033[36m ├── Envoy analysis\033[0m")
+    def envoy(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── Envoy analysis{Colors.RESET}")
         envoy(url, s)
 
-    def akamai(self, url, s):
-        print("\033[36m ├── Akamai analysis\033[0m")
+    def akamai(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── Akamai analysis{Colors.RESET}")
         akamai(url, s)
 
-    def fastly(self, url, s):
-        print("\033[36m ├── Fastly analysis\033[0m")
+    def fastly(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── Fastly analysis{Colors.RESET}")
         fastly(url, s)
 
-    def cloudflare(self, url, s):
-        print("\033[36m ├── Cloudflare analysis\033[0m")
+    def cloudflare(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── Cloudflare analysis{Colors.RESET}")
         cloudflare(url, s)
 
-    def imperva(self, url, s):
-        print("\033[36m ├── Imperva analysis\033[0m")
+    def imperva(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── Imperva analysis{Colors.RESET}")
         imperva(url, s)
 
-    def vercel(self, url, s):
-        print("\033[36m ├── Vercel analysis\033[0m")
+    def vercel(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── Vercel analysis{Colors.RESET}")
         vercel(url, s)

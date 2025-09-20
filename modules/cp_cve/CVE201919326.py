@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 https://www.silverstripe.org/download/security-releases/cve-2019-19326/
@@ -7,19 +6,40 @@ https://docs.silverstripe.org/en/3/changelogs/3.7.5/
 """
 
 
-from utils.utils import requests, random, sys, configure_logger, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
+from requests.auth import AuthBase
+
 from utils.style import Identify
+from utils.utils import (
+    BIG_CONTENT_DELTA_RANGE,
+    CONTENT_DELTA_RANGE,
+    configure_logger,
+    requests,
+    sys,
+)
 
 logger = configure_logger(__name__)
 
 
-def confirm_vuln(url, s, authent, headers):
+
+
+def confirm_vuln(
+    url: str,
+    s: requests.Session,
+    authent:tuple[str, str] | AuthBase | None,
+    headers: dict
+) -> None:
     for _ in range(5):
-        req_verify = s.get(url, verify=False, auth=authent, headers=headers, timeout=10, allow_redirects=False)
-    req_confirm = s.get(url, verify=False, auth=authent, timeout=10, allow_redirects=False)
+        s.get(url, verify=False, auth=authent, headers=headers, timeout=10, allow_redirects=False)
+    s.get(url, verify=False, auth=authent, timeout=10, allow_redirects=False)
 
 
-def silverstripe(url, s, req_main, custom_header, authent):
+def silverstripe(
+    url: str,
+    s: requests.Session,
+    req_main: requests.Response,
+    custom_header: dict,
+    authent:tuple[str, str] | AuthBase | None
+) -> None:
 
     main_len = len(req_main.content)
     headers = {

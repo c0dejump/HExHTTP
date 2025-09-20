@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-from utils.utils import *
-
+from utils.utils import requests
 
 """
 Origin CORS DoS poisoning
@@ -25,7 +23,7 @@ def requestUriTooLongNoCacheParamTest(url, ip):
                     debugRequests(baselineRequest, poisonnedRequest, resultRequest)
 """
 
-def apache(url, s):
+def apache(url: str, s: requests.Session) -> None:
     """
     Unkeyed Query Exploitation: // | //?"><script>
         X-Forwarded-Server
@@ -36,8 +34,8 @@ def apache(url, s):
     """
     try:
         #CVE-2024-21733
-        res_post_without_data = requests.post(url, verify=False, timeout=10)
-        res_post = requests.post(url, data="X", verify=False, timeout=10)
+        res_post_without_data = s.post(url, verify=False, timeout=10)
+        res_post = s.post(url, data="X", verify=False, timeout=10)
 
         len_pwd = len(res_post_without_data.content)
         len_p = len(res_post.content)
@@ -54,7 +52,7 @@ def apache(url, s):
         pass
     except requests.Timeout:
         pass
-    except Exception as e:
+    except Exception:
         pass
         #print(f"Error {url} : {str(e)}")
     uqe_url = f'{url}/?"><u>plop123</u>'

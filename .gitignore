@@ -1,10 +1,12 @@
 __pycache__
-.mypy_cache
+.vscode/
+*_cache/
+.venv/
 dist
 dev/
-.venv/
 logs/*.log
 *.txt
 todo.md
 *.egg-info
 .py3
+.coverage

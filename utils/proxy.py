@@ -1,13 +1,21 @@
-import requests
+#!/usr/bin/env python3
+
 import json
-import base64
-from urllib.parse import urlparse
+
+import requests
 
 proxy_enabled = False
 
 proxy_url = "http://127.0.0.1:8080"
 
-def create_burp_issue(s, url, title, description, severity, headers):
+def create_burp_issue(
+    s: requests.Session,
+    url: str,
+    title: str,
+    description: str,
+    severity: str,
+    headers: dict
+) -> bool:
     try:        
         issue_data = json.dumps({
             "title": title,
@@ -17,7 +25,7 @@ def create_burp_issue(s, url, title, description, severity, headers):
         
         headers.update({"X-Create-Burp-Issue": issue_data})
         
-        response = s.get(url, headers=headers, timeout=10)
+        s.get(url, headers=headers, timeout=10)
         return True
         
     except Exception as e:
@@ -25,7 +33,14 @@ def create_burp_issue(s, url, title, description, severity, headers):
         return False
 
 
-def proxy_request(s, method, url, headers=None, data=None, severity=None):
+def proxy_request(
+    s: requests.Session,
+    url: str,
+    method: str,
+    headers: dict[str,str] = dict(),
+    data: str | None = None,
+    severity: str = ""
+) -> None:
 
     headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"})
     s.proxies = {
@@ -36,7 +51,7 @@ def proxy_request(s, method, url, headers=None, data=None, severity=None):
     s.verify = False
 
     try:
-        response = s.request(method, url, headers=headers, data=data)
+        s.request(method, url, headers=headers, data=data)
         if severity == "behavior":
             create_burp_issue(
                 s,
@@ -59,13 +74,13 @@ def proxy_request(s, method, url, headers=None, data=None, severity=None):
         print(f"Error : {e}")
 
 
-def test_proxy_connection():
+def test_proxy_connection() -> bool:
     proxies = {
         "http": proxy_url,
         "https": proxy_url,
     }
     try:
-        response = requests.get("http://httpbin.org/ip", proxies=proxies, timeout=5, verify=False)
+        requests.get("http://httpbin.org/ip", proxies=proxies, timeout=5, verify=False)
         return True
-    except:
+    except Exception:
         return False

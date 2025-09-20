@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Attempts to find Cache Poisoning with HTTP Method Override (HMO)
 https://cpdos.org/#HMO
 """
 
-from utils.utils import requests, random, configure_logger, human_time
-from utils.style import Identify, Colors
 import utils.proxy as proxy
+from utils.style import Colors, Identify
+from utils.utils import configure_logger, human_time, random, requests
 
 logger = configure_logger(__name__)
 
@@ -17,7 +16,7 @@ VULN_NAME = "HTTP Method Override"
 CONTENT_DELTA_RANGE = 500
 BIG_CONTENT_DELTA_RANGE = 5000
 
-def HMO(url, s, initial_response, authent, human):
+def HMO(url: str, s: requests.Session, initial_response: requests.Response, authent: tuple[str, str] | None, human: str) -> None:
     """Function to test for HTTP Method Override vulnerabilities"""
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
@@ -208,7 +207,7 @@ def HMO(url, s, initial_response, authent, human):
         reason = ""
         try:
             probe_headers = {header: method}
-            print(f" \033[34m {VULN_NAME} : {probe_headers}\033[0m\r", end="")
+            print(f" {Colors.BLUE} {VULN_NAME} : {probe_headers}{Colors.RESET}\r", end="")
             print("\033[K", end="")
             probe = s.get(
                 uri,
@@ -221,7 +220,7 @@ def HMO(url, s, initial_response, authent, human):
             human_time(human)
 
             range_exlusion = range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE) if main_len < 10000 else range(main_len - BIG_CONTENT_DELTA_RANGE, main_len + BIG_CONTENT_DELTA_RANGE)
-            #print(range_exlusion)
+            logger.debug(range_exlusion)
 
             if probe.status_code != main_status_code and probe.status_code not in [
                 main_status_code, 429, 403
@@ -237,7 +236,7 @@ def HMO(url, s, initial_response, authent, human):
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(probe.content)}b"
                 )
-                #print(probe.content)
+                logger.debug(probe.content)
                 status = f"{Identify.behavior}"
                 severity = "behavior"
             elif probe.status_code == main_status_code and len(probe.content) in range_exlusion:
@@ -274,7 +273,7 @@ def HMO(url, s, initial_response, authent, human):
 
             if reason:
                 print(
-                    f" {status} | HMO DOS | \033[34m{uri}\033[0m | {reason} | PAYLOAD: {Colors.THISTLE}{probe_headers}{Colors.RESET}"
+                    f" {status} | HMO DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{probe_headers}{Colors.RESET}"
                 )
                 if proxy.proxy_enabled:
                     from utils.proxy import proxy_request

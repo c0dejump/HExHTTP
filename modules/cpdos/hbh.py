@@ -1,15 +1,21 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 
 """
 Attempts to find Hop-By-Hop Header abuse
 https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
-from utils.utils import requests, generate_cache_buster, configure_logger, human_time, cache_tag_verify, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
-from utils.style import Identify, Colors
 import utils.proxy as proxy
 from modules.lists import header_list
+from utils.style import Colors, Identify
+from utils.utils import (
+    BIG_CONTENT_DELTA_RANGE,
+    CONTENT_DELTA_RANGE,
+    configure_logger,
+    generate_cache_buster,
+    human_time,
+    requests,
+)
 
 logger = configure_logger(__name__)
 
@@ -21,8 +27,8 @@ MAX_SAMPLE_CONTENT = 3
 
 
 def cache_poisoning(
-    url, s, parameters, response_1, response_2, authentication, headers
-):
+    url: str, s: requests.Session, parameters: dict[str, str], response_1: requests.Response, response_2: requests.Response, authentication: tuple[str, str] | None, headers: dict[str, str]
+) -> None:
     """Function to test for cache poisoning"""
 
     response_3 = s.get(
@@ -55,7 +61,7 @@ def cache_poisoning(
     if reason:
         payload = f"Connection: {headers['Connection']}"
         print(
-            f" {Identify.confirmed} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
+            f" {Identify.confirmed} | {VULN_NAME} | {Colors.BLUE}{response_2.url}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
@@ -65,14 +71,14 @@ def cache_poisoning(
 
 
 def HBH(
-    url,
-    s,
-    initial_response,
-    authent,
-    human,
-    max_sample_status=MAX_SAMPLE_STATUS,
-    max_sample_content=MAX_SAMPLE_CONTENT,
-):
+    url: str,
+    s: requests.Session,
+    initial_response: requests.Response,
+    authent: tuple[str, str] | None,
+    human: str,
+    max_sample_status: int = MAX_SAMPLE_STATUS,
+    max_sample_content: int = MAX_SAMPLE_CONTENT,
+) -> None:
     """Function to test for Hop by Hop vulnerabilities"""
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
@@ -144,7 +150,7 @@ def HBH(
             if behavior:
                 payload = f"Connection: {headers['Connection']}"
                 print(
-                    f" {Identify.behavior} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
+                    f" {Identify.behavior} | {VULN_NAME} | {Colors.BLUE}{response_2.url}{Colors.RESET} | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
                 if proxy.proxy_enabled:
                     from utils.proxy import proxy_request
@@ -167,5 +173,5 @@ def HBH(
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)
 
-        print(f" \033[34m {VULN_NAME} : {headers}\033[0m\r", end="")
+        print(f" {Colors.BLUE} {VULN_NAME} : {headers}{Colors.RESET}\r", end="")
         print("\033[K", end="")

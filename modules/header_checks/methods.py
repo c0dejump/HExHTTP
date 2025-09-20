@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Check support for different HTTP methods (NOT DELETE & PATCH)
 Improved version with deduplication and CONNECT verification
 """
 
-import urllib3
-from urllib3 import Timeout, PoolManager
-from utils.utils import requests, configure_logger, human_time, get_ip_from_url, socket
-from utils.style import Colors
 from collections import defaultdict
+from typing import Any
+
+import urllib3
+from urllib3 import PoolManager, Timeout
+
+from utils.style import Colors
+from utils.utils import configure_logger, get_ip_from_url, human_time, requests
 
 logger = configure_logger(__name__)
 
@@ -23,7 +25,7 @@ desc_method = {
     405: f"\033[33m405 Method Not Allowed{Colors.RESET}",
     406: f"\033[33m406 Not Acceptable{Colors.RESET}",
     409: f"\033[33m409 Conflict{Colors.RESET}",
-    410: f"410 Gone",
+    410: "410 Gone",
     412: f"\033[33m412 Precondition Failed{Colors.RESET}",
     500: f"\033[31m500 Internal Server Error{Colors.RESET}",
     501: f"\033[31m501 Not Implemented{Colors.RESET}",
@@ -37,21 +39,21 @@ header = {
 }
 
 
-def get(url):
+def get(url: str) -> tuple[int, Any, str, int, bytes]:
     req_g = requests.get(
         url, verify=False, allow_redirects=False, headers=header, timeout=120
     )
     return req_g.status_code, req_g.headers, "GET", len(req_g.content), req_g.content
 
 
-def post(url):
+def post(url: str) -> tuple[int, Any, str, int, bytes]:
     req_p = requests.post(
         url, verify=False, allow_redirects=False, headers=header, timeout=120
     )
     return req_p.status_code, req_p.headers, "POST", len(req_p.content), req_p.content
 
 
-def put(url):
+def put(url: str) -> tuple[int, Any, str, int, bytes]:
     req_pt = requests.put(
         url, verify=False, allow_redirects=False, headers=header, timeout=120
     )
@@ -64,7 +66,7 @@ def put(url):
     )
 
 
-def patch(url):
+def patch(url: str) -> tuple[int, Any, str, int, bytes]:
     req_ptch = requests.patch(
         url, verify=False, allow_redirects=False, headers=header, timeout=120
     )
@@ -77,7 +79,7 @@ def patch(url):
     )
 
 
-def options(url):
+def options(url: str) -> tuple[int, Any, str, int, bytes]:
     req_o = requests.options(
         url, verify=False, allow_redirects=False, headers=header, timeout=120
     )
@@ -90,9 +92,9 @@ def options(url):
     )
 
 
-def verify_connect_method(url, http):
+def verify_connect_method(url: str, http: PoolManager) -> tuple[bool, str]:
     target_ip = get_ip_from_url(url)
-    vulnerabilities = []
+    vulnerabilities: list[str] = []
     
     security_tests = [
         ("google.com:80", "External HTTP tunneling"),
@@ -182,7 +184,7 @@ def verify_connect_method(url, http):
     return False, ""
 
 
-def check_other_methods(ml, url, http, pad, results_tracker):
+def check_other_methods(ml: str, url: str, http: PoolManager, pad: int, results_tracker: dict[tuple, list[dict]]) -> None:
     try:
         test_url = url
         if ml == "DELETE":
@@ -249,8 +251,8 @@ def check_other_methods(ml, url, http, pad, results_tracker):
         })
 
 
-def display_deduplicated_results(results_tracker, pad, url, http):
-    displayed_groups = set()
+def display_deduplicated_results(results_tracker: dict[tuple, list[dict]], pad: int, url: str, http: PoolManager) -> None:
+    displayed_groups: set[tuple] = set()
     
     for result_key, methods_list in results_tracker.items():
         if len(methods_list) >= 3:
@@ -277,12 +279,12 @@ def display_deduplicated_results(results_tracker, pad, url, http):
                       f"[{method_result['length']} bytes]{'':<2} {connect_info}")
 
 
-def check_methods(url, custom_header, authent, human):
+def check_methods(url: str, custom_header: Any, authent: Any, human: bool) -> None:
     htimeout = Timeout(connect=7.0, read=7.0)
     http = PoolManager(timeout=htimeout)
 
     print("\033[36m ├ Methods analysis\033[0m")
-    result_list = []
+    result_list: list[tuple[int, Any, str, int, bytes]] = []
     for funct in [get, post, put, patch, options]:
         try:
             result_list.append(funct(url))
@@ -297,13 +299,6 @@ def check_methods(url, custom_header, authent, human):
             rs_display = str(rs)
             logger.debug("No descriptions available for status %s", rs)
 
-        cache_status = False
-        cache_res = ""
-
-        for rh in req_head:
-            if "cache" in rh.lower():
-                cache_status = True
-                cache_res = rh
         print(f" ├── {type_r:<10} {rs_display:<3} [{len_req} bytes] ")
         if type_r == "OPTIONS":
             for x in req_head:
@@ -312,15 +307,16 @@ def check_methods(url, custom_header, authent, human):
 
     list_path = "modules/lists/methods_list.lst"
     try:
-        with open(list_path, "r") as method_list:
-            method_list = method_list.read().splitlines()
+        with open(list_path) as method_file:
+            method_list = method_file.read().splitlines()
             pad = max(len(m) for m in method_list)
             
-            results_tracker = defaultdict(list)
+            results_tracker: dict[tuple, list[dict]] = defaultdict(list)
             
             for ml in method_list:
                 check_other_methods(ml, url, http, pad, results_tracker)
-                human_time(human)
+                if human:
+                    human_time("1")
             
             display_deduplicated_results(results_tracker, pad, url, http)
             
