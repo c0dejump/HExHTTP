@@ -8,6 +8,7 @@ __version__ = "v2.2.1"
 OWNER = "c0dejump"
 REPO = "HExHTTP"
 
+
 def get_latest_version() -> str:
     url = f"https://api.github.com/repos/{OWNER}/{REPO}/releases/latest"
     try:
@@ -18,16 +19,21 @@ def get_latest_version() -> str:
     except requests.RequestException:
         return ""
 
+
 def check_for_update(version: str) -> None:
     latest_version = get_latest_version()
     if latest_version:
         if latest_version > version:
-            print(f"{Colors.YELLOW}🚨 New version available: {latest_version} (current: {version}) {Colors.RESET}")
+            print(
+                f"{Colors.YELLOW}🚨 New version available: {latest_version} (current: {version}) {Colors.RESET}"
+            )
         elif latest_version < version:
-            print(f"{Colors.SALMON}🚧 You are using a beta version: {version} (latest version: {latest_version}) {Colors.RESET}")
+            print(
+                f"{Colors.SALMON}🚧 You are using a beta version: {version} (latest version: {latest_version}) {Colors.RESET}"
+            )
         else:
             print(f"{Colors.GREEN}✅ You are using the latest version {Colors.RESET}")
 
+
 if __name__ == "__main__":
     check_for_update(__version__)
-
