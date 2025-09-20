@@ -27,7 +27,13 @@ MAX_SAMPLE_CONTENT = 3
 
 
 def cache_poisoning(
-    url: str, s: requests.Session, parameters: dict[str, str], response_1: requests.Response, response_2: requests.Response, authentication: tuple[str, str] | None, headers: dict[str, str]
+    url: str,
+    s: requests.Session,
+    parameters: dict[str, str],
+    response_1: requests.Response,
+    response_2: requests.Response,
+    authentication: tuple[str, str] | None,
+    headers: dict[str, str],
 ) -> None:
     """Function to test for cache poisoning"""
 
@@ -65,9 +71,12 @@ def cache_poisoning(
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-            proxy_request(s, "GET", url, headers=headers, data=None, severity="confirmed")
-        #print(response_3.headers)
-        #print(response_3.text)
+
+            proxy_request(
+                s, "GET", url, headers=headers, data=None, severity="confirmed"
+            )
+        # print(response_3.headers)
+        # print(response_3.text)
 
 
 def HBH(
@@ -137,8 +146,15 @@ def HBH(
                 behavior = f"DIFFERENT STATUS-CODE  {response_1.status_code} > {response_2.status_code}"
 
             len_main = len(response_1.content)
-            range_exlusion = range(len_main - CONTENT_DELTA_RANGE, len_main + CONTENT_DELTA_RANGE) if len_main < 10000 else range(len_main - BIG_CONTENT_DELTA_RANGE, len_main + BIG_CONTENT_DELTA_RANGE)
-           
+            range_exlusion = (
+                range(len_main - CONTENT_DELTA_RANGE, len_main + CONTENT_DELTA_RANGE)
+                if len_main < 10000
+                else range(
+                    len_main - BIG_CONTENT_DELTA_RANGE,
+                    len_main + BIG_CONTENT_DELTA_RANGE,
+                )
+            )
+
             if (
                 len(response_1.content) not in range_exlusion
                 and response_2.status_code not in [429, 403]
@@ -154,7 +170,10 @@ def HBH(
                 )
                 if proxy.proxy_enabled:
                     from utils.proxy import proxy_request
-                    proxy_request(s, "GET", url, headers=headers, data=None, severity="behavior")
+
+                    proxy_request(
+                        s, "GET", url, headers=headers, data=None, severity="behavior"
+                    )
                 for _ in range(0, 5):
                     response_2 = s.get(
                         url,
