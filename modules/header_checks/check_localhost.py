@@ -51,6 +51,8 @@ def check_localhost(url: str, s: requests.Session, domain: str, authent: tuple[s
             else:
                 normal_key = (req.status_code, len(req.content))
                 results_tracker[normal_key].append(lt)
+            print(f" ├─ {Colors.BLUE}{lt}:{req.status_code}{Colors.RESET}\r", end="")
+            print("\033[K", end="")
         except Exception:
             pass
     
