@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 
-import sys
 from datetime import datetime
 from queue import Empty, Queue
 from threading import Thread
 from typing import Any
 
-#utils
+# utils
 import utils.proxy as proxy
 from cli import args
 
-#cp & cpdos
+# cp & cpdos
 from modules.cp_check.cache_poisoning_nf_files import check_cache_files
 from modules.cp_check.methods_poisoning import check_methods_poisoning
 from modules.CPDoS import check_CPDoS
 from modules.CVE import check_cpcve
 from modules.header_checks.cachetag_header import check_cachetag_header
 
-#header checks
+# header checks
 from modules.header_checks.check_localhost import check_localhost
 from modules.header_checks.http_version import check_http_version
 from modules.header_checks.methods import check_methods
@@ -25,12 +24,12 @@ from modules.header_checks.server_error import get_server_error
 from modules.header_checks.uncommon_header import get_http_headers
 from modules.header_checks.vhosts import check_vhost
 
-#others
+# others
 from modules.logging_config import configure_logging
 from modules.technologies import technology
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 from utils.style import Colors
-from utils.utils import get_domain_from_url, requests
+from utils.utils import get_domain_from_url, requests, sys, time
 
 # Global queue for multi-threaded processing
 enclosure_queue: Queue[str] = Queue()
@@ -44,17 +43,25 @@ only_cp: bool | None = None
 threads: int | None = None
 authent: tuple[str, str] | None = None
 
+
 def get_technos(a_tech: Any, req_main: Any, url: str, s: Any) -> None:
     """
     Check what is the reverse proxy/WAF/cached server... and test based on the result.
     #TODO Cloudfoundry => https://hackerone.com/reports/728664
     """
-    print("\033[36m ├ Techno analysis\033[0m")
+    print(f"{Colors.CYAN} ├ Techno analysis{Colors.RESET}")
     technos = {
         "apache": ["apache", "tomcat"],
         "nginx": ["nginx"],
         "envoy": ["envoy"],
-        "akamai": ["akamai", "x-akamai", "x-akamai-transformed", "akamaighost", "akamaiedge", "edgesuite"],
+        "akamai": [
+            "akamai",
+            "x-akamai",
+            "x-akamai-transformed",
+            "akamaighost",
+            "akamaiedge",
+            "edgesuite",
+        ],
         "imperva": ["imperva"],
         "fastly": ["fastly"],
         "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"],
@@ -102,18 +109,22 @@ def process_modules(url: str, s: Any, a_tech: Any) -> None:
         main_head = req_main.headers
         main_len = len(req_main.content)
 
-        print("\033[34m⟙\033[0m")
-        #print(s.headers)
+        print(f"{Colors.BLUE}⟙{Colors.RESET}")
+        # print(s.headers)
         start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"{Colors.SALMON}[STARTED]{Colors.RESET} {start_time}")
         print(f" URL: {url}")
         print(f" URL response: {req_main.status_code}")
         print(f" URL response size: {main_len} bytes")
-        print(f" Proxy: {Colors.RED}OFF{Colors.RESET}" if not proxy.proxy_enabled else f" Proxy: {Colors.GREEN}ON{Colors.RESET}")
-        print("\033[34m⟘\033[0m")
+        print(
+            f" Proxy: {Colors.RED}OFF{Colors.RESET}"
+            if not proxy.proxy_enabled
+            else f" Proxy: {Colors.GREEN}ON{Colors.RESET}"
+        )
+        print(f"{Colors.BLUE}⟘{Colors.RESET}")
         if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
             choice = input(
-                " \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]"
+                f" {Colors.YELLOW}The url does not seem to answer correctly, continue anyway ?{Colors.RESET} [y/n]"
             )
             if choice not in ["y", "Y"]:
                 sys.exit()
@@ -130,12 +141,22 @@ def process_modules(url: str, s: Any, a_tech: Any) -> None:
             get_technos(a_tech, req_main, url, s)
 
         get_http_headers(url, s, main_status_code, main_len, main_head, authent)
-        check_cpcve(url, s, req_main, parse_headers(custom_header), authent, human or "")
-        check_CPDoS(url, s, req_main, parse_headers(custom_header), authent, human or "")
+        check_cpcve(
+            url, s, req_main, parse_headers(custom_header), authent, human or ""
+        )
+        check_CPDoS(
+            url, s, req_main, parse_headers(custom_header), authent, human or ""
+        )
         check_methods_poisoning(url, s, parse_headers(custom_header), authent)
-        check_cache_poisoning(url, parse_headers(custom_header), behavior or False, authent is not None, human or "")
+        check_cache_poisoning(
+            url,
+            parse_headers(custom_header),
+            behavior or False,
+            authent is not None,
+            human or "",
+        )
         check_cache_files(url, s, parse_headers(custom_header), authent)
-        #fuzz_x_header(url) #TODO
+        # fuzz_x_header(url) #TODO
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
         pass
@@ -161,6 +182,7 @@ def main(urli: Any, s: Any, auth: str | None) -> None:
 
     if auth:
         from utils.utils import check_auth
+
         authent = check_auth(auth, urli)
     else:
         authent = None
@@ -176,7 +198,7 @@ def main(urli: Any, s: Any, auth: str | None) -> None:
                     process_modules(url, s, a_tech)
                 except Exception as e:
                     # Log the error but continue processing
-                    if hasattr(e, '__str__'):
+                    if hasattr(e, "__str__"):
                         print(f"Error processing URL {url}: {e}")
                 finally:
                     urli.task_done()
@@ -228,19 +250,9 @@ def cli_main() -> None:
         s.headers.update(
             {
                 "User-Agent": user_agent,
-                #"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                #"Accept-Language": "en-US,en;q=0.5",
-                #"Accept-Encoding": "gzip, deflate, br",
-                #"Connection": "keep-alive",
-                #"Upgrade-Insecure-Requests": "1",
-                #"Sec-Fetch-Dest": "document",
-                #"Sec-Fetch-Mode": "navigate",
-                #"Sec-Fetch-Site": "none",
-                #"Sec-Fetch-User": "?1",
-                #"Priority": "u=4",
             }
         )
-        
+
         if custom_header:
             try:
                 custom_headers = parse_headers(custom_header)
@@ -267,16 +279,15 @@ def cli_main() -> None:
                     worker.start()
                     worker_threads.append(worker)
                 # Add a timeout to prevent infinite waiting
-                import time
                 start_time = time.time()
                 timeout = 300  # 5 minutes maximum
-                
+
                 while not enclosure_queue.empty():
                     if time.time() - start_time > timeout:
                         print("Warning: Queue processing timeout reached, forcing exit")
                         break
                     time.sleep(0.1)
-                
+
                 # Wait for worker threads to finish with timeout
                 for worker in worker_threads:
                     worker.join(timeout=30)  # 30 second timeout per worker
