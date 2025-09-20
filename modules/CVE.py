@@ -37,7 +37,7 @@ def run_cve_modules(url: str, s: requests.Session, req_main: requests.Response, 
         drupaljsonapi(url, custom_header)
         nuxt_check(url, s, req_main, custom_header, authent)
         middleware(url, s, custom_header)
-        nextjs_204(url)
+        nextjs_204(url, s)
         apache_cp(url, authent)
 
         #TODO:https://labs.withsecure.com/advisories/plone-cms-cache-poisoning-xss-vulnerability
