@@ -1113,7 +1113,7 @@ payloads_keys = [
     {"Region": "coucou"},
     {"X-ORDS-Media-Type": "invalid/type"},
     {"X-APEX-STATUS-CODE": "999"},
-    {"WL-Proxy-Client-IP": "0.0.0.0"},
+    {"WL-Proxy-Client-IP": "0.0.0.0"},  # nosec B104 - Test payload for proxy bypass testing
     {"Oracle-ECID": "INVALID-ECID"},
     {"Oracle-DMS-ECID": "ERROR-ECID"},
     {"X-DB-Content-Length": "-1"},

@@ -21,7 +21,7 @@ def check_localhost(
         "127.0.0.2",
         "127.0.0.1",
         "127.0.0.1:22",
-        "0.0.0.0",
+        "0.0.0.0",  # nosec B104 - Test payload for localhost bypass testing
         "0.0.0.0:443",
         "[::]:80",
         "127.0.0.1.nip.io",
