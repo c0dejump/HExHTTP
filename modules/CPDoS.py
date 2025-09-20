@@ -12,19 +12,25 @@ from utils.utils import configure_logger, random, re, requests, sys
 logger = configure_logger(__name__)
 
 
-def crawl_files(url: str, s: requests.Session, req_main: requests.Response, domain: str, custom_header: dict, authent: tuple[str, str] | None, human: str) -> None:
+def crawl_files(
+    url: str,
+    s: requests.Session,
+    req_main: requests.Response,
+    authent: tuple[str, str] | None,
+    human: str,
+) -> None:
     try:
         regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|svg))(?=")'
         regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|svg))(?=")'
-        #regexp3 = r'(?<=src=")(\/[^\/].+?)(?=")'
-        #regexp4 = r'(?<=href=")(\/[^\/].+?)(?=")'
+        # regexp3 = r'(?<=src=")(\/[^\/].+?)(?=")'
+        # regexp4 = r'(?<=href=")(\/[^\/].+?)(?=")'
 
         responseText = req_main.text
 
         filesURL = re.findall(regexp1, responseText)
         filesURL += re.findall(regexp2, responseText)
-        #filesURL = re.findall(regexp3, responseText)
-        #filesURL += re.findall(regexp4, responseText)
+        # filesURL = re.findall(regexp3, responseText)
+        # filesURL += re.findall(regexp4, responseText)
 
         for fu in filesURL:
             if "<" not in fu[0]:
@@ -36,33 +42,32 @@ def crawl_files(url: str, s: requests.Session, req_main: requests.Response, doma
                 elif uri.startswith("http://"):
                     uri = f"https://{uri[7:].replace('//', '/')}"
 
-                #print(uri)
-                run_cpdos_modules(uri, s, req_main, domain, custom_header, authent, human)
+                # print(uri)
+                run_cpdos_modules(
+                    uri, s, req_main, authent, human
+                )
                 backslash_poisoning(uri, s)
 
     except Exception as e:
         logger.exception(e)
 
 
-def run_cpdos_modules(url: str, s: requests.Session, req_main: requests.Response, domain: str, custom_header: dict, authent: tuple[str, str] | None, human: str) -> None:
+def run_cpdos_modules(
+    url: str,
+    s: requests.Session,
+    req_main: requests.Response,
+    authent: tuple[str, str] | None,
+    human: str,
+) -> None:
     uri = f"{url}?CPDoS={random.randint(1, 100)}"
     try:
-        req_main = s.get(
-            uri,
-            #headers=headers,
-            verify=False,
-            allow_redirects=False,
-            timeout=15,
-            auth=authent,
-        )
-        #print(req_main.status_code)
         logger.debug(req_main.content)
 
-        #HHO(uri, s, req_main, authent, human)
-        #HMC(uri, s, req_main, authent, human)
-        #HMO(uri, s, req_main, authent, human)
-        #HHCN(uri, s, req_main, authent)
-        #HBH(url, s, req_main, authent, human)
+        # HHO(uri, s, req_main, authent, human)
+        # HMC(uri, s, req_main, authent, human)
+        # HMO(uri, s, req_main, authent, human)
+        # HHCN(uri, s, req_main, authent)
+        # HBH(url, s, req_main, authent, human)
         MHC(url, req_main, authent, human)
         OCD(url, authent)
         path_traversal_check(url, s, req_main, authent)
@@ -75,7 +80,14 @@ def run_cpdos_modules(url: str, s: requests.Session, req_main: requests.Response
         logger.exception(e)
 
 
-def check_CPDoS(url: str, s: requests.Session, req_main: requests.Response, domain: str, custom_header: dict, authent: tuple[str, str] | None, human: str) -> None:
+def check_CPDoS(
+    url: str,
+    s: requests.Session,
+    req_main: requests.Response,
+    custom_header: dict,
+    authent: tuple[str, str] | None,
+    human: str,
+) -> None:
     if req_main.status_code in [301, 302]:
         url = (
             req_main.headers["location"]
@@ -85,5 +97,5 @@ def check_CPDoS(url: str, s: requests.Session, req_main: requests.Response, doma
 
     print(f"{Colors.CYAN} ├ CPDoS analysis{Colors.RESET}")
 
-    run_cpdos_modules(url, s, req_main, domain, custom_header, authent, human)
-    crawl_files(url, s, req_main, domain, custom_header, authent, human)
+    run_cpdos_modules(url, s, req_main, authent, human)
+    crawl_files(url, s, req_main, authent, human)
