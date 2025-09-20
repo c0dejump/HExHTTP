@@ -6,7 +6,7 @@ import socket
 import string
 import sys
 import time
-import traceback
+import traceback  # noqa: F401
 from urllib.parse import (
     urljoin,  # noqa: F401
     urlparse,
@@ -20,6 +20,8 @@ from utils.style import Colors
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+logger = configure_logger(__name__)
+
 CONTENT_DELTA_RANGE = 500
 BIG_CONTENT_DELTA_RANGE = 5000
 
@@ -28,10 +30,12 @@ def get_domain_from_url(url: str) -> str:
     domain = urlparse(url).netloc
     return domain
 
+
 def get_ip_from_url(url: str) -> str:
     domain = get_domain_from_url(url)
     ip = socket.gethostbyname(domain)
     return ip
+
 
 def generate_cache_buster(length: int | None = 12) -> str:
     if not isinstance(length, int) or length <= 0:
@@ -40,13 +44,13 @@ def generate_cache_buster(length: int | None = 12) -> str:
 
 
 def human_time(human: str) -> None:
-    #print(human)
     if human.isdigit():
         time.sleep(int(human))
     elif human.lower() == "r" or human.lower() == "random":
-            time.sleep(random.randrange(6))
+        time.sleep(random.randrange(6))
     else:
         pass
+
 
 def cache_tag_verify(req: requests.Response) -> str:
     cachetag = False
@@ -55,7 +59,9 @@ def cache_tag_verify(req: requests.Response) -> str:
             cachetag = True
         else:
             pass
-    colored_cachetag = (f"{Colors.GREEN}" if cachetag else f"{Colors.RED}") + f"{str(cachetag)}{Colors.RESET}" 
+    colored_cachetag = (
+        f"{Colors.GREEN}" if cachetag else f"{Colors.RED}"
+    ) + f"{str(cachetag)}{Colors.RESET}"
     return colored_cachetag
 
 
@@ -70,15 +76,13 @@ def check_auth(auth: str, url: str) -> tuple[str, str] | None:
             return authent
         else:
             print("\nAuthentication error")
-            continue_error = input(
-                "The authentication seems bad, continue ? [y/N]"
-            )
+            continue_error = input("The authentication seems bad, continue ? [y/N]")
             if continue_error not in ["y", "Y"]:
                 print("Exiting")
                 sys.exit()
             else:
                 return None
-    except Exception:
-        traceback.print_exc()
+    except Exception as e:
         print('Error, the authentication format need to be "user:pass"')
+        logger.exception(e)
         sys.exit()
