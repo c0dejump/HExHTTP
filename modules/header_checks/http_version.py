@@ -301,8 +301,9 @@ def probe_http_09(url: str) -> tuple[bool, bytes]:
 
     if len(positive_results) >= 2:
         response_hashes = [
-            hashlib.md5(r[1]).hexdigest() for r in positive_results
-        ]  # nosec B324 - MD5 used for response comparison, not security
+            hashlib.md5(r[1]).hexdigest()
+            for r in positive_results  # nosec B324 - MD5 used for response comparison, not security
+        ]
         if len(set(response_hashes)) <= 2:
             return True, positive_results[0][1]
 
