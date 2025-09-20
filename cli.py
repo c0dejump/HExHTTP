@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
+
 import argparse
-import sys
 
 from modules.logging_config import valid_log_level
 from static.banner import print_banner
+from utils.style import Colors
+from utils.utils import sys
 
 
 def args() -> argparse.Namespace:
@@ -38,9 +41,9 @@ def args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description=print_banner())
 
-    group = parser.add_argument_group('\033[34m> General\033[0m')
+    group = parser.add_argument_group(Colors.BLUE + "> General" + Colors.RESET)
     group.add_argument(
-        "-u", "--url", dest="url", help="URL to test \033[31m[required]\033[0m"
+        "-u", "--url", dest="url", help="URL to test " + Colors.RED + "[required]" + Colors.RESET
     )
     group.add_argument(
         "-f", "--file", dest="url_file", help="File of URLs", required=False
@@ -54,7 +57,7 @@ def args() -> argparse.Namespace:
         action="store_true",
     )
 
-    group = parser.add_argument_group('\033[34m> Request Settings\033[0m')
+    group = parser.add_argument_group(Colors.BLUE + "> Request Settings" + Colors.RESET)
     group.add_argument(
         "-H",
         "--header",
@@ -68,13 +71,13 @@ def args() -> argparse.Namespace:
         "--user-agent",
         dest="user_agent",
         help="Add a custom User Agent",
-        default = "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0",
+        default="Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0",
     )
     group.add_argument(
         "-a",
         "--auth",
         dest="auth",
-        help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m",
+        help="Add an HTTP authentication. " + Colors.YELLOW + "Ex: --auth admin:admin" + Colors.RESET,
         required=False,
     )
     group.add_argument(
@@ -89,13 +92,13 @@ def args() -> argparse.Namespace:
         "-t",
         "--threads",
         dest="threads",
-        help="Threads numbers for multiple URLs. \033[32mDefault: 10\033[0m",
+        help="Threads numbers for multiple URLs. " + Colors.GREEN + "Default: 10" + Colors.RESET,
         type=int,
         default=10,
         required=False,
     )
 
-    group = parser.add_argument_group('\033[34m> Log settings\033[0m')
+    group = parser.add_argument_group(Colors.BLUE + "> Log settings" + Colors.RESET)
     group.add_argument(
         "-l",
         "--log",
@@ -108,7 +111,7 @@ def args() -> argparse.Namespace:
         "--log-file",
         dest="log_file",
         default="./logs/%Y%m%d_%H%M.log",
-        help="The file path pattern for the log file. \033[32mDefault: logs/\033[0m",
+        help="The file path pattern for the log file. " + Colors.GREEN + "Default: logs/" + Colors.RESET,
         required=False,
     )
     group.add_argument(
@@ -119,14 +122,14 @@ def args() -> argparse.Namespace:
         help="Increase verbosity (can be used multiple times)",
     )
 
-    group = parser.add_argument_group('\033[34m> Tips\033[0m')
+    group = parser.add_argument_group(Colors.BLUE + "> Tips" + Colors.RESET)
     group.add_argument(
         "-p",
         "--proxy",
         dest="custom_proxy",
         help="proxy activation, can be modified in utils/proxy.py",
         required=False,
-        action="store_true"
+        action="store_true",
     )
     group.add_argument(
         "--ocp",
@@ -134,9 +137,8 @@ def args() -> argparse.Namespace:
         dest="only_cp",
         help="Only cache poisoning modules",
         required=False,
-        action="store_true"
+        action="store_true",
     )
-
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
