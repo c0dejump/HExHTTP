@@ -48,7 +48,7 @@ def datareq_check(
 
     uri = f"{url}?__nextDataReq=1"
     try:
-        req = requests.get(
+        req = s.get(
             uri,
             verify=False,
             headers=custom_header,
@@ -67,7 +67,7 @@ def datareq_check(
                 proxy_request(
                     s, "GET", uri, headers={"x-now-route-matches": "1"}, data=None
                 )
-            unrisk_page = get_unrisk_page(url, req)
+            unrisk_page = get_unrisk_page(url, s, req)
             if unrisk_page:
                 uri = f"{unrisk_page}?__nextDataReq=1"
                 nextjsdos(unrisk_page, uri, s)
