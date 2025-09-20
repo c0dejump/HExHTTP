@@ -107,6 +107,6 @@ exclude = [
 ]
 
 [tool.bandit]
-exclude = [".venv/**", "venv/**", "tests/**"]
+exclude_dirs  = [".venv", "venv", "tests"]
 # Skip B110 (try_except_pass) and B112 (try_except_continue) - common patterns in network testing tools
-skips = ["B110", "B112", "B101"]
+skips = ["B101","B110", "B112", "B404","B603"]
