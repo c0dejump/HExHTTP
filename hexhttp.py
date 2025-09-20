@@ -1,49 +1,50 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-import sys, argparse, re
+import sys
 from datetime import datetime
-
-from cli import args
+from queue import Empty, Queue
+from threading import Thread
+from typing import Any
 
 #utils
 import utils.proxy as proxy
-from utils.style import Colors
-from utils.utils import *
-
-#header checks
-from modules.header_checks.check_localhost import check_localhost
-from modules.header_checks.methods import check_methods
-from modules.header_checks.http_version import check_http_version
-from modules.header_checks.vhosts import check_vhost
-from modules.header_checks.cachetag_header import check_cachetag_header
-from modules.header_checks.server_error import get_server_error
-from modules.header_checks.uncommon_header import get_http_headers
+from cli import args
 
 #cp & cpdos
 from modules.cp_check.cache_poisoning_nf_files import check_cache_files
 from modules.cp_check.methods_poisoning import check_methods_poisoning
 from modules.CPDoS import check_CPDoS
 from modules.CVE import check_cpcve
-from tools.autopoisoner.autopoisoner import check_cache_poisoning
+from modules.header_checks.cachetag_header import check_cachetag_header
+
+#header checks
+from modules.header_checks.check_localhost import check_localhost
+from modules.header_checks.http_version import check_http_version
+from modules.header_checks.methods import check_methods
+from modules.header_checks.server_error import get_server_error
+from modules.header_checks.uncommon_header import get_http_headers
+from modules.header_checks.vhosts import check_vhost
 
 #others
 from modules.logging_config import configure_logging
 from modules.technologies import technology
+from tools.autopoisoner.autopoisoner import check_cache_poisoning
+from utils.style import Colors
+from utils.utils import get_domain_from_url, requests
 
+# Global queue for multi-threaded processing
+enclosure_queue: Queue[str] = Queue()
 
-#threading
-from queue import Queue, Empty
+# Global variables for CLI arguments
+human: str | None = None
+url_file: str | None = None
+custom_header: list[str] | None = None
+behavior: bool | None = None
+only_cp: bool | None = None
+threads: int | None = None
+authent: tuple[str, str] | None = None
 
-try:
-    enclosure_queue = Queue()
-except:
-    enclosure_queue = Queue.Queue()
-
-from threading import Thread
-
-
-def get_technos(a_tech, req_main, url, s):
+def get_technos(a_tech: Any, req_main: Any, url: str, s: Any) -> None:
     """
     Check what is the reverse proxy/WAF/cached server... and test based on the result.
     #TODO Cloudfoundry => https://hackerone.com/reports/728664
@@ -62,7 +63,7 @@ def get_technos(a_tech, req_main, url, s):
     }
 
     for t in technos:
-        tech_hit = False
+        tech_hit: str | bool = False
         for v in technos[t]:
             for rt in req_main.headers:
                 # case-insensitive comparison
@@ -72,8 +73,8 @@ def get_technos(a_tech, req_main, url, s):
                     or v.lower() in rt.lower()
                 ):
                     tech_hit = t
-        if tech_hit:
-            techno_result = getattr(a_tech, tech_hit)(url, s)
+        if tech_hit and isinstance(tech_hit, str):
+            getattr(a_tech, tech_hit)(url, s)
             tech_hit = False
 
 
@@ -88,7 +89,7 @@ def fuzz_x_header(url):
 """
 
 
-def process_modules(url, s, a_tech):
+def process_modules(url: str, s: Any, a_tech: Any) -> None:
     domain = get_domain_from_url(url)
     base_header = []
 
@@ -121,19 +122,19 @@ def process_modules(url, s, a_tech):
 
         if not only_cp:
             check_cachetag_header(url, req_main, base_header)
-            get_server_error(url, base_header, authent, url_file)
+            get_server_error(url, base_header, authent, url_file is not None)
             check_vhost(domain, url)
             check_localhost(url, s, domain, authent)
-            check_methods(url, custom_header, authent, human)
+            check_methods(url, custom_header, authent, human is not None)
             check_http_version(url)
-            techno = get_technos(a_tech, req_main, url, s)
+            get_technos(a_tech, req_main, url, s)
 
-        get_http_headers(url, s, main_status_code, main_len, main_head, authent)
-        check_cpcve(url, s, req_main, domain, custom_header, authent, human)
-        check_CPDoS(url, s, req_main, domain, custom_header, authent, human)
+        get_http_headers(url, s, main_status_code, main_len, main_head, authent is not None)
+        check_cpcve(url, s, req_main, domain, parse_headers(custom_header), authent, human or "")
+        check_CPDoS(url, s, req_main, domain, parse_headers(custom_header), authent, human or "")
         check_methods_poisoning(url, s, custom_header, authent)
-        check_cache_poisoning(url, custom_header, behavior, authent, human)
-        check_cache_files(url, s, custom_header, authent)
+        check_cache_poisoning(url, parse_headers(custom_header), behavior or False, authent is not None, human or "")
+        check_cache_files(url, s, parse_headers(custom_header), authent)
         #fuzz_x_header(url) #TODO
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
@@ -141,7 +142,7 @@ def process_modules(url, s, a_tech):
         # print(f"Error in processing {url}: {e}")
 
 
-def parse_headers(header_list):
+def parse_headers(header_list: list[str] | None) -> dict[str, str]:
     headers = {}
     if header_list:
         for header in header_list:
@@ -151,7 +152,7 @@ def parse_headers(header_list):
     return headers
 
 
-def main(urli, s, auth):
+def main(urli: Any, s: Any, auth: str | None) -> None:
     global authent
 
     # DEBUG global completed_tasks
@@ -162,7 +163,7 @@ def main(urli, s, auth):
         from utils.utils import check_auth
         authent = check_auth(auth, urli)
     else:
-        authent = False
+        authent = None
 
     if url_file and threads != 1337:
         try:
@@ -173,16 +174,19 @@ def main(urli, s, auth):
                     break
                 try:
                     process_modules(url, s, a_tech)
+                except Exception as e:
+                    # Log the error but continue processing
+                    if hasattr(e, '__str__'):
+                        print(f"Error processing URL {url}: {e}")
                 finally:
                     urli.task_done()
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-            urli.task_done()
+            # Don't call task_done() here as it was already called in the finally block
             sys.exit()
         except Exception as e:
-            pass
-            # print(f"Error : {e}")
-            urli.task_done()
+            print(f"Worker thread error: {e}")
+            # Don't call task_done() here as it should be handled in the finally block
     else:
         try:
             process_modules(urli, s, a_tech)
@@ -193,10 +197,13 @@ def main(urli, s, auth):
             print(f"Error : {e}")
 
 
-def cli_main():
+def cli_main() -> None:
     """Entry point for the CLI command."""
     # Parse arguments
     results = args()
+
+    # Make variables global so they can be accessed by process_modules
+    global human, url_file, custom_header, behavior, only_cp, threads, authent
 
     url = results.url
     url_file = results.url_file
@@ -211,7 +218,6 @@ def cli_main():
 
     configure_logging(results.verbose, results.log, results.log_file)
 
-    global human
     human = humans
 
     try:
@@ -249,20 +255,31 @@ def cli_main():
                 proxy.proxy_enabled = custom_proxy
 
         if url_file and threads != 1337:
-            with open(url_file, "r") as urls:
-                urls = urls.read().splitlines()
+            with open(url_file) as url_file_handle:
+                urls = url_file_handle.read().splitlines()
             try:
                 for url in urls:
                     enclosure_queue.put(url)
                 worker_threads = []
-                for _ in range(threads):
+                for _ in range(threads or 1):
                     worker = Thread(target=main, args=(enclosure_queue, s, auth))
                     worker.daemon = True
                     worker.start()
                     worker_threads.append(worker)
-                enclosure_queue.join()
+                # Add a timeout to prevent infinite waiting
+                import time
+                start_time = time.time()
+                timeout = 300  # 5 minutes maximum
+                
+                while not enclosure_queue.empty():
+                    if time.time() - start_time > timeout:
+                        print("Warning: Queue processing timeout reached, forcing exit")
+                        break
+                    time.sleep(0.1)
+                
+                # Wait for worker threads to finish with timeout
                 for worker in worker_threads:
-                    worker.join()
+                    worker.join(timeout=30)  # 30 second timeout per worker
             except KeyboardInterrupt:
                 print("Exiting")
                 sys.exit()
@@ -273,8 +290,8 @@ def cli_main():
                 print(f"Error : {e}")
             print("Scan finish")
         elif url_file and threads == 1337:
-            with open(url_file, "r") as urls:
-                urls = urls.read().splitlines()
+            with open(url_file) as url_file_handle:
+                urls = url_file_handle.read().splitlines()
                 for url in urls:
                     main(url, s, auth)
         else:
