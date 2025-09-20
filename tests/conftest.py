@@ -3,6 +3,7 @@
 Pytest configuration and fixtures for HExHTTP tests.
 """
 
+import os
 import subprocess
 import sys
 import time
@@ -13,6 +14,20 @@ import pytest
 import requests
 
 from tests.mock_server import MockServer, create_mock_server
+
+
+def is_ci_environment() -> bool:
+    """Check if tests are running in a CI environment."""
+    ci_indicators = [
+        "CI",
+        "CONTINUOUS_INTEGRATION",
+        "GITHUB_ACTIONS",
+        "TRAVIS",
+        "CIRCLECI",
+        "JENKINS_URL",
+        "GITLAB_CI",
+    ]
+    return any(os.getenv(var) for var in ci_indicators)
 
 
 @pytest.fixture(scope="session")
@@ -93,6 +108,23 @@ def hexhttp_command() -> Callable[..., dict[str, Any]]:
             return {"returncode": -1, "stdout": "", "stderr": str(e), "success": False}
 
     return run_hexhttp
+
+
+@pytest.fixture
+def ci_timeout_config() -> dict[str, int]:
+    """Fixture that provides CI-aware timeout configurations."""
+    if is_ci_environment():
+        return {
+            "short": 45,  # For single URL tests
+            "medium": 60,  # For multi-URL tests
+            "long": 90,  # For integration tests
+        }
+    else:
+        return {
+            "short": 30,  # For single URL tests
+            "medium": 45,  # For multi-URL tests
+            "long": 60,  # For integration tests
+        }
 
 
 @pytest.fixture
