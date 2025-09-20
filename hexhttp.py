@@ -130,7 +130,7 @@ def process_modules(url: str, s: Any, a_tech: Any) -> None:
             get_technos(a_tech, req_main, url, s)
 
         get_http_headers(url, s, main_status_code, main_len, main_head, authent)
-        check_cpcve(url, s, req_main, domain, parse_headers(custom_header), authent, human or "")
+        check_cpcve(url, s, req_main, parse_headers(custom_header), authent, human or "")
         check_CPDoS(url, s, req_main, domain, parse_headers(custom_header), authent, human or "")
         check_methods_poisoning(url, s, parse_headers(custom_header), authent)
         check_cache_poisoning(url, parse_headers(custom_header), behavior or False, authent is not None, human or "")

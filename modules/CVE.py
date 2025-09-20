@@ -15,7 +15,13 @@ from utils.utils import configure_logger, random, requests, sys
 logger = configure_logger(__name__)
 
 
-def run_cve_modules(url: str, s: requests.Session, req_main: requests.Response, domain: str, custom_header: dict, authent: tuple[str, str] | None, human: str) -> None:
+def run_cve_modules(
+    url: str,
+    s: requests.Session,
+    req_main: requests.Response,
+    custom_header: dict,
+    authent: tuple[str, str] | None,
+) -> None:
     uri = f"{url}?cve={random.randint(1, 999)}"
     headers = {
         "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
@@ -40,8 +46,8 @@ def run_cve_modules(url: str, s: requests.Session, req_main: requests.Response, 
         nextjs_204(url, s)
         apache_cp(url, authent)
 
-        #TODO:https://labs.withsecure.com/advisories/plone-cms-cache-poisoning-xss-vulnerability
-        #TODO:https://github.com/ZephrFish/F5-CVE-2022-1388-Exploit/tree/main
+        # TODO:https://labs.withsecure.com/advisories/plone-cms-cache-poisoning-xss-vulnerability
+        # TODO:https://github.com/ZephrFish/F5-CVE-2022-1388-Exploit/tree/main
 
     except requests.Timeout as t:
         logger.error(f"Timeout Error: {t}")
@@ -52,7 +58,14 @@ def run_cve_modules(url: str, s: requests.Session, req_main: requests.Response, 
         logger.exception(e)
 
 
-def check_cpcve(url: str, s: requests.Session, req_main: requests.Response, domain: str, custom_header: dict, authent: tuple[str, str] | None, human: str) -> None:
+def check_cpcve(
+    url: str,
+    s: requests.Session,
+    req_main: requests.Response,
+    custom_header: dict,
+    authent: tuple[str, str] | None,
+    human: str,
+) -> None:
     if req_main.status_code in [301, 302]:
         url = (
             req_main.headers["location"]
@@ -62,4 +75,4 @@ def check_cpcve(url: str, s: requests.Session, req_main: requests.Response, doma
 
     print(f"{Colors.CYAN} ├ Cache CVE analysis{Colors.RESET}")
 
-    run_cve_modules(url, s, req_main, domain, custom_header, authent, human)
+    run_cve_modules(url, s, req_main, custom_header, authent)
