@@ -43,7 +43,10 @@ def args() -> argparse.Namespace:
 
     group = parser.add_argument_group(Colors.BLUE + "> General" + Colors.RESET)
     group.add_argument(
-        "-u", "--url", dest="url", help="URL to test " + Colors.RED + "[required]" + Colors.RESET
+        "-u",
+        "--url",
+        dest="url",
+        help="URL to test " + Colors.RED + "[required]" + Colors.RESET,
     )
     group.add_argument(
         "-f", "--file", dest="url_file", help="File of URLs", required=False
@@ -77,7 +80,10 @@ def args() -> argparse.Namespace:
         "-a",
         "--auth",
         dest="auth",
-        help="Add an HTTP authentication. " + Colors.YELLOW + "Ex: --auth admin:admin" + Colors.RESET,
+        help="Add an HTTP authentication. "
+        + Colors.YELLOW
+        + "Ex: --auth admin:admin"
+        + Colors.RESET,
         required=False,
     )
     group.add_argument(
@@ -92,7 +98,10 @@ def args() -> argparse.Namespace:
         "-t",
         "--threads",
         dest="threads",
-        help="Threads numbers for multiple URLs. " + Colors.GREEN + "Default: 10" + Colors.RESET,
+        help="Threads numbers for multiple URLs. "
+        + Colors.GREEN
+        + "Default: 10"
+        + Colors.RESET,
         type=int,
         default=10,
         required=False,
@@ -111,7 +120,10 @@ def args() -> argparse.Namespace:
         "--log-file",
         dest="log_file",
         default="./logs/%Y%m%d_%H%M.log",
-        help="The file path pattern for the log file. " + Colors.GREEN + "Default: logs/" + Colors.RESET,
+        help="The file path pattern for the log file. "
+        + Colors.GREEN
+        + "Default: logs/"
+        + Colors.RESET,
         required=False,
     )
     group.add_argument(
