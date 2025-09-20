@@ -64,7 +64,7 @@ def run_cpdos_modules(url: str, s: requests.Session, req_main: requests.Response
         #HHCN(uri, s, req_main, authent)
         #HBH(url, s, req_main, authent, human)
         MHC(url, req_main, authent, human)
-        OCD(url, req_main, authent)
+        OCD(url, authent)
         path_traversal_check(url, s, req_main, authent)
         cpdos_main(uri, s, req_main, authent, human)
         # waf_rules(url, s, req_main, authent)
