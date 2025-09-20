@@ -28,7 +28,7 @@ def nuxt_check(
             timeout=10,
             allow_redirects=False,
         )
-        unrisk_page = get_unrisk_page(url, req_main)
+        unrisk_page = get_unrisk_page(url, s, req_main)
         if unrisk_page:
             poison_url = (
                 f"{unrisk_page}_payload.json"

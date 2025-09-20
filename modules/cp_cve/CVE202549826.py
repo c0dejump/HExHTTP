@@ -54,7 +54,7 @@ def nextjs_204(url: str, s: requests.Session) -> None:
     }
     try:
         req = s.get(url, verify=False, allow_redirects=False, timeout=10)
-        unrisk_page = get_unrisk_page(url, req)
+        unrisk_page = get_unrisk_page(url, s, req)
         if unrisk_page:
             uri = f"{unrisk_page}?cve={random.randrange(999)}"
             req_h = s.get(

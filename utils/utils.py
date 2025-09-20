@@ -7,7 +7,10 @@ import string
 import sys
 import time
 import traceback
-from urllib.parse import urlparse
+from urllib.parse import (
+    urljoin,  # noqa: F401
+    urlparse,
+)
 
 import requests
 import urllib3
