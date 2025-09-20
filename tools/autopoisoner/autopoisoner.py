@@ -215,7 +215,6 @@ def port_poisoning_check(
                     "CONFIRMED",
                     "STATUS",
                     explicitCache,
-                    url,
                     status_codes=status_codes,
                     header=str(custom_head),
                 )
@@ -227,7 +226,6 @@ def port_poisoning_check(
                         "BEHAVIOR",
                         "STATUS",
                         explicitCache,
-                        url,
                         status_codes=status_codes,
                         header=str(custom_head),
                     )
@@ -244,7 +242,6 @@ def port_poisoning_check(
                     "CONFIRMED",
                     "LENGTH",
                     explicitCache,
-                    url,
                     header=str(custom_head),
                 )
 
@@ -256,7 +253,6 @@ def port_poisoning_check(
                     "BEHAVIOR",
                     "LENGTH",
                     explicitCache,
-                    url,
                     header=str(custom_head),
                 )
 
@@ -330,7 +326,6 @@ def headers_poisoning_check(
                     "CONFIRMED",
                     "REFLECTION",
                     explicitCache,
-                    url,
                     header=str(payload),
                 )
 
@@ -342,7 +337,6 @@ def headers_poisoning_check(
                         "BEHAVIOR",
                         "REFLECTION",
                         explicitCache,
-                        url,
                         header=str(payload),
                     )
 
@@ -373,7 +367,6 @@ def headers_poisoning_check(
                             "CONFIRMED",
                             "STATUS",
                             explicitCache,
-                            url,
                             status_codes=status_codes,
                             header=str(payload),
                         )
@@ -385,7 +378,6 @@ def headers_poisoning_check(
                                 "BEHAVIOR",
                                 "STATUS",
                                 explicitCache,
-                                url,
                                 status_codes=status_codes,
                                 header=str(payload),
                             )
@@ -404,7 +396,6 @@ def headers_poisoning_check(
                         "CONFIRMED",
                         "STATUS",
                         explicitCache,
-                        url,
                         status_codes=status_codes,
                         header=str(payload),
                     )
@@ -416,7 +407,6 @@ def headers_poisoning_check(
                             "BEHAVIOR",
                             "STATUS",
                             explicitCache,
-                            url,
                             status_codes=status_codes,
                             header=str(payload),
                         )
@@ -429,7 +419,7 @@ def headers_poisoning_check(
             if vulnerability_confirmed(response, url, randNum, buster, custom_header):
                 findingState = 2
                 behavior_or_confirmed_message(
-                    uri, "CONFIRMED", "LENGTH", explicitCache, url, header=str(payload)
+                    uri, "CONFIRMED", "LENGTH", explicitCache, header=str(payload)
                 )
             else:
                 potential_verbose_message("UNSUCCESSFUL", url)
@@ -439,7 +429,6 @@ def headers_poisoning_check(
                         "BEHAVIOR",
                         "LENGTH",
                         explicitCache,
-                        url,
                         header=str(payload),
                     )
 
