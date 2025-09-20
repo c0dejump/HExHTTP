@@ -13,7 +13,15 @@ logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Meta Character"
 
-def check_meta_character(url: str, s: requests.Session, main_status_code: int, authent: tuple[str, str] | None, meta_character: str, human: str) -> None:
+
+def check_meta_character(
+    url: str,
+    s: requests.Session,
+    main_status_code: int,
+    authent: tuple[str, str] | None,
+    meta_character: str,
+    human: str,
+) -> None:
     """Probe and Verify the server for a meta character vulnerability"""
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
@@ -36,7 +44,9 @@ def check_meta_character(url: str, s: requests.Session, main_status_code: int, a
             control.status_code == probe.status_code
             and control.status_code != main_status_code
         ):
-            reason = f"{Colors.BLUE}{main_status_code} > {control.status_code}{Colors.RESET}"
+            reason = (
+                f"{Colors.BLUE}{main_status_code} > {control.status_code}{Colors.RESET}"
+            )
 
     if reason:
         payload = f"PAYLOAD: {headers}"
@@ -45,11 +55,20 @@ def check_meta_character(url: str, s: requests.Session, main_status_code: int, a
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-            proxy_request(s, "GET", url, headers=headers, data=None, severity="confirmed")
+
+            proxy_request(
+                s, "GET", url, headers=headers, data=None, severity="confirmed"
+            )
     human_time(human)
 
 
-def HMC(url: str, s: requests.Session, req_main: requests.Response, authent: tuple[str, str] | None, human: str) -> None: # pylint: disable=invalid-name
+def HMC(
+    url: str,
+    s: requests.Session,
+    req_main: requests.Response,
+    authent: tuple[str, str] | None,
+    human: str,
+) -> None:  # pylint: disable=invalid-name
     """Prepare the list of meta characters to check for"""
     main_status_code = req_main.status_code
 
@@ -67,7 +86,9 @@ def HMC(url: str, s: requests.Session, req_main: requests.Response, authent: tup
     ]
     for meta_character in meta_characters:
         try:
-            check_meta_character(url, s, main_status_code, authent, meta_character, human)
+            check_meta_character(
+                url, s, main_status_code, authent, meta_character, human
+            )
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)
