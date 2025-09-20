@@ -25,7 +25,9 @@ COMMON_REGEX = re.compile(
 )
 
 
-def get_unrisk_page(base_url: str, s: requests.Session, response: requests.Response) -> str | None:
+def get_unrisk_page(
+    base_url: str, s: requests.Session, response: requests.Response
+) -> str | None:
     soup = BeautifulSoup(response.text, "html.parser")
 
     for link in soup.find_all("a", href=True):
