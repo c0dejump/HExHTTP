@@ -26,7 +26,10 @@ def cloudflare(url: str, s: requests.Session) -> None:
     headers = {"X-Forwarded-Proto": "nohttps"}
     cf_loop = s.get(url, headers=headers, verify=False, timeout=6)
     if cf_loop.status_code in [301, 302, 303]:
-        if "CF-Cache-Status" in cf_loop.headers and cf_loop.headers["CF-Cache-Status"] == "HIT":
+        if (
+            "CF-Cache-Status" in cf_loop.headers
+            and cf_loop.headers["CF-Cache-Status"] == "HIT"
+        ):
             print(
                 f"{Colors.GREEN}   └──{Colors.RESET} Potential redirect loop exploit possible with {Colors.GREEN}{headers}{Colors.RESET} payload"
             )
