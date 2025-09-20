@@ -41,8 +41,8 @@ def generate_cache_buster(length: int | None = 12) -> str:
     if not isinstance(length, int) or length <= 0:
         raise ValueError("[!] Lenght of cacheBuster be a positive integer")
     return "".join(
-        random.choice(string.ascii_lowercase) for i in range(length)
-    )  # nosec B311
+        random.choice(string.ascii_lowercase) for i in range(length)  # nosec B311
+    )
 
 
 def human_time(human: str) -> None:
