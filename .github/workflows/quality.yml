@@ -38,7 +38,7 @@ jobs:
         run: mypy .
 
       - name: Run Bandit
-        run: bandit -r .
+        run: bandit -r . -c pyproject.toml
 
       - name: Run Tests with Coverage (HTML + summary)
         run: pytest --cov=. --cov-report=term-missing --cov-report=html
