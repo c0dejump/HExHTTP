@@ -33,9 +33,9 @@ def valid_log_level(level: str) -> str:
     Raises:
         ValueError: If the provided log level is invalid.
     """
-    valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+    valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
     level_upper = level.upper()
-    
+
     if level_upper in valid_levels:
         return level_upper
     else:
@@ -59,7 +59,9 @@ def configure_logger(module_name: str) -> logging.Logger:
     return logger
 
 
-def configure_logging(verbose: int, log: int, log_file: str = "./logs/%Y%m%d_%H%M.log") -> None:
+def configure_logging(
+    verbose: int, log: int, log_file: str = "./logs/%Y%m%d_%H%M.log"
+) -> None:
     """
     Configures the logging level for the root logger.
 
