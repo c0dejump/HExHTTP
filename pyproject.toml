@@ -102,7 +102,7 @@ ignore_missing_imports = true
 exclude = [
     "build/",
     "dist/",
-    "*.egg-info/",
+    ".*?\.egg-info/",
     "__pycache__/",
 ]
 
