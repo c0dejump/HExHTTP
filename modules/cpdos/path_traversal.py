@@ -41,7 +41,9 @@ def verify(
         logger.debug(url_with_raw_path)
 
         for _ in range(5):
-            with httpx.Client(http2=False, verify=False) as client:  # nosec B501 - Intentional SSL bypass for penetration testing
+            with httpx.Client(
+                http2=False, verify=False
+            ) as client:  # nosec B501 - Intentional SSL bypass for penetration testing
                 req_verify = client.get(url_with_raw_path)
 
         req_cb = s.get(url_cb, verify=False, timeout=10, allow_redirects=False)
