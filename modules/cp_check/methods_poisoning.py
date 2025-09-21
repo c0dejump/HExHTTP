@@ -325,8 +325,8 @@ def check_methods_poisoning(
         else:
             pass
     except requests.ConnectionError as ce:
-        logger.error("Error, cannot connect to target", ce)
+        logger.error(f"Error, cannot connect to target: {ce}")
     except requests.Timeout as t:
-        logger.error("Error, request timeout (10s)", t)
+        logger.error(f"Error, request timeout (10s): {t}")
     except Exception as e:
         logger.exception(e)

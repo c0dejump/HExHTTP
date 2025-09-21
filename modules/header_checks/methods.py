@@ -320,7 +320,7 @@ def check_methods(url: str, custom_header: Any, authent: Any, human: bool) -> No
             result_list.append(funct(url))
         except Exception as e:
             print(f" ├── Error with {funct} method: {e}")
-            logger.exception("Error with %s method", funct, exc_info=True)
+            logger.exception(f"Error with {funct} method")
 
     for rs, req_head, type_r, len_req, req_content in result_list:
         try:

@@ -18,8 +18,8 @@ def nginx(url: str, s: requests.Session) -> None:
             if "plop123" in uqe_req.text:
                 # print("coucou")
                 pass
-    except Exception as e:
-        logger.exception(f"Error with UQE check on {url}", e)
+    except Exception:
+        logger.exception(f"Error with UQE check on {url}")
 
     nginx_headers = [{"X-Real-IP": "plop123"}, {"Forwarded": "plop123"}]
     for ngh in nginx_headers:
@@ -30,6 +30,6 @@ def nginx(url: str, s: requests.Session) -> None:
             )
             if "plop123" in x_req.text:
                 print("plop123 reflected in text with {ngh} payload")
-        except Exception as e:
+        except Exception:
             print(f"   └── Error with {ngh} payload")
-            logger.exception(f"Error with UQE check on {url}", e)
+            logger.exception(f"Error with UQE check on {url}")

@@ -30,6 +30,6 @@ def drupaljsonapi(url: str, headers: dict) -> None:
                     f" {Identify.behavior} | CVE-2023-5256 | {Colors.BLUE}{uri}{Colors.RESET} | {req.status_code}"
                 )
     except requests.Timeout as t:
-        logger.error(f"request timeout {uri}", t)
-    except Exception as e:
-        logger.exception(f"request error {uri}", e)
+        logger.error(f"request timeout {uri}: {t}")
+    except Exception:
+        logger.exception(f"request error {uri}")
