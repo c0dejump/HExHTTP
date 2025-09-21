@@ -11,6 +11,10 @@ from utils.utils import configure_logger, random, re, requests, sys, urlparse
 
 logger = configure_logger(__name__)
 
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
+)
+
 
 middleware_names = [
     "middleware",
@@ -66,7 +70,7 @@ def follow_redirects(url: str, s: requests.Session) -> bool:
 def bypass_auth(url_p: str, s: requests.Session, req: requests.Response) -> None:
     for middleware_name in middleware_names:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko",
+            "User-Agent": DEFAULT_USER_AGENT,
             "x-middleware-subrequest": middleware_name,
         }
         try:
@@ -121,7 +125,7 @@ def cache_p(url: str, s: requests.Session, headers: dict) -> None:
         if req_cb.status_code in [307, 308, 304, 301, 302]:
             for middleware_name in middleware_names:
                 headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko",
+                    "User-Agent": DEFAULT_USER_AGENT,
                     "x-middleware-subrequest": middleware_name,
                 }
                 url_cp = f"{url}?cb={random.randrange(999)}"
@@ -173,13 +177,13 @@ def middleware(url: str, s: requests.Session, headers: dict) -> None:
 
 def main(url: str) -> None:
     s = requests.Session()
-    headers = {"User-Agent": "Mozilla/5.0", "Accept-Encoding": "gzip"}
+    headers = {"User-Agent": DEFAULT_USER_AGENT, "Accept-Encoding": "gzip"}
     middleware(url, s, headers)
 
 
 if __name__ == "__main__":
     # file => python3 file.py f file.txt | single url => python3 file.py url.com
-    headers = {"User-Agent": "Mozilla/5.0", "Accept-Encoding": "gzip"}
+    headers = {"User-Agent": DEFAULT_USER_AGENT, "Accept-Encoding": "gzip"}
 
     if len(sys.argv) == 2:
         url = sys.argv[1]

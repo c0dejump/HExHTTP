@@ -14,6 +14,10 @@ from utils.utils import configure_logger, random, requests, sys
 
 logger = configure_logger(__name__)
 
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
+)
+
 
 def run_cve_modules(
     url: str,
@@ -23,13 +27,12 @@ def run_cve_modules(
     authent: tuple[str, str] | None,
 ) -> None:
     uri = f"{url}?cve={random.randint(1, 999)}"
-    headers = {
-        "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
-    }
+    s.headers.update({"User-Agent": DEFAULT_USER_AGENT})
+
     try:
         req_main = s.get(
             uri,
-            headers=headers,
+            headers=custom_header,
             verify=False,
             allow_redirects=False,
             timeout=15,

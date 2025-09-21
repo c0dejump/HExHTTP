@@ -172,10 +172,9 @@ def waf_rules(
 
     if main_status_code not in [403, 401]:
         for bua in bad_ua:
-            headers = {"user-agent": bua}
             req_ua = s.get(
                 url,
-                headers=headers,
+                headers={"User-Agent": bua},
                 verify=False,
                 timeout=10,
                 auth=authent,
@@ -208,8 +207,4 @@ def waf_rules(
                     f"{url} cached the 403 response with {len(list_cache_block_ua)} {list_cache_block_ua[1]}"
                 )
             else:
-                print(
-                    f"{url} cached the 403 response with {list_cache_block_ua}".format(
-                        url,
-                    )
-                )
+                print(f"{url} cached the 403 response with {list_cache_block_ua}")

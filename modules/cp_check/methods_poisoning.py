@@ -163,7 +163,13 @@ def fat_methods_poisoning(
             if behavior_check and proxy.proxy_enabled:
                 from utils.proxy import proxy_request
 
-                proxy_request(s, "GET", url, headers={"User-Agent": "hexhttp"}, data=d)
+                proxy_request(
+                    s,
+                    "GET",
+                    url,
+                    headers={"User-Agent": "hexhttp v2.0 security scan"},
+                    data=d,
+                )
 
 
 def cp_mix(
