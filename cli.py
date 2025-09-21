@@ -46,7 +46,7 @@ def args() -> argparse.Namespace:
         "-u",
         "--url",
         dest="url",
-        help=f"URL to test {Colors.RED}[required]{Colors.RESET}",
+        help=f"URL to test {Colors.RED}[required]{Colors.RESET} if no -f/--file provided",
     )
     group.add_argument(
         "-f",
@@ -129,7 +129,7 @@ def args() -> argparse.Namespace:
         help="Increase verbosity (can be used multiple times)",
     )
 
-    group = parser.add_argument_group(f"{Colors.BLUE}> Tips{Colors.RESET}")
+    group = parser.add_argument_group(f"{Colors.BLUE}> Other{Colors.RESET}")
     group.add_argument(
         "-p",
         "--proxy",
