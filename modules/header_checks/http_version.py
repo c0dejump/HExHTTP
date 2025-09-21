@@ -25,6 +25,8 @@ PROXY_PROBE_MARKERS = [
     "JSON",
 ]
 
+DEFAULT_USER_AGENT = "python-requests/2.28.1"
+
 
 def parse_target(url: str) -> tuple[str, str | None, int, str]:
     u = urlparse(url)
@@ -516,10 +518,15 @@ def probe_weird_versions(url: str, versions: list[str]) -> list[dict[str, Any]]:
             else:
                 s = socket.create_connection((host, port), timeout=10)
 
-            if v == "":
-                req = f"GET {path}\r\nHost: {host}\r\nUser-Agent: python-requests/2.28.1\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: close\r\n\r\n".encode()
-            else:
-                req = f"GET {path} {v}\r\nHost: {host}\r\nUser-Agent: python-requests/2.28.1\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: close\r\n\r\n".encode()
+            version_str = f" {v}" if v else ""
+            req = (
+                f"GET {path}{version_str}\r\n"
+                f"Host: {host}\r\n"
+                f"User-Agent: {DEFAULT_USER_AGENT}\r\n"
+                f"Accept-Encoding: gzip, deflate\r\n"
+                f"Accept: */*\r\n"
+                f"Connection: close\r\n\r\n"
+            ).encode()
 
             resp = send_recv(s, req, read_timeout=15)
             s.close()

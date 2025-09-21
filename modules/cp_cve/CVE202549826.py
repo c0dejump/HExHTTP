@@ -13,6 +13,10 @@ from utils.utils import configure_logger, random, requests, sys
 
 logger = configure_logger(__name__)
 
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"
+)
+
 
 def valid_cache(
     uri: str, req: requests.Response, req_h: requests.Response, headers: dict
@@ -47,7 +51,7 @@ def nextjs_204(url: str, s: requests.Session) -> None:
     url = f"{url}?cve={random.randrange(99)}"
 
     headers = {
-        "User-agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0",
+        "User-Agent": DEFAULT_USER_AGENT,
         "Rsc": "1",
         "Next-Router-Prefetch": "1",
         "Next-Router-Segment-Prefetch": "/nonexistent_segment",

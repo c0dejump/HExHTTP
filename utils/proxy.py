@@ -8,6 +8,10 @@ proxy_enabled = False
 
 proxy_url = "http://127.0.0.1:8080"
 
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"
+)
+
 
 def create_burp_issue(
     s: requests.Session,
@@ -21,9 +25,7 @@ def create_burp_issue(
         issue_data = json.dumps(
             {"title": title, "description": description, "severity": severity}
         )
-
         headers.update({"X-Create-Burp-Issue": issue_data})
-
         s.get(url, headers=headers, timeout=10)
         return True
 
@@ -41,13 +43,8 @@ def proxy_request(
     severity: str = "",
 ) -> None:
 
-    headers.update(
-        {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"
-        }
-    )
+    s.headers.update({"User-Agent": DEFAULT_USER_AGENT})
     s.proxies = {"http": proxy_url, "https": proxy_url}
-
     s.verify = False
 
     try:

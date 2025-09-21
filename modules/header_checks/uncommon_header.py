@@ -9,6 +9,10 @@ from utils.utils import configure_logger, random, requests, sys
 
 logger = configure_logger(__name__)
 
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
+)
+
 reflect_word = "bycodejump"
 
 common_header = [
@@ -104,9 +108,7 @@ def verify_cp(
 
     req_verify = requests.get(
         uri,
-        headers={
-            "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
-        },
+        headers={"User-Agent": DEFAULT_USER_AGENT},
         verify=False,
         allow_redirects=False,
         timeout=10,
@@ -250,7 +252,7 @@ if __name__ == "__main__":
     s = requests.Session()
     s.headers.update(
         {
-            "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko",
+            "User-Agent": DEFAULT_USER_AGENT,
         }
     )
 

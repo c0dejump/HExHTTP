@@ -246,7 +246,6 @@ def cli_main() -> None:
         s = requests.Session()
         s.verify = False
         s.max_redirects = 60
-
         s.headers.update(
             {
                 "User-Agent": user_agent,

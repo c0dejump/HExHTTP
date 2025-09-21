@@ -15,6 +15,12 @@ from utils.utils import configure_logger, get_ip_from_url, human_time, requests,
 
 logger = configure_logger(__name__)
 
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
+)
+
+header = {"User-Agent": DEFAULT_USER_AGENT}
+
 desc_method = {
     200: f"{Colors.GREEN}200 OK{Colors.RESET}",
     204: f"{Colors.GREEN}204 No Content{Colors.RESET}",
@@ -31,10 +37,6 @@ desc_method = {
     502: f"{Colors.RED}502 Bad Gateway{Colors.RESET}",
     301: f"{Colors.REDIR}301 Moved Permanently{Colors.RESET}",
     302: f"{Colors.REDIR}302 Moved Temporarily{Colors.RESET}",
-}
-
-header = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
 }
 
 

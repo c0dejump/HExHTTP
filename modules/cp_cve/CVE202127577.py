@@ -13,17 +13,14 @@ from utils.style import Colors
 from utils.utils import configure_logger, random, requests, string, time
 
 logger = configure_logger(__name__)
+DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
 
 class CVE202127577Checker:
     def __init__(self) -> None:
         self.session = requests.Session()
         self.session.verify = False
-        self.session.headers.update(
-            {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
-        )
+        self.session.headers.update({"User-Agent": DEFAULT_USER_AGENT})
 
     def generate_random_string(self, length: int = 8) -> str:
         """Generate random string for unique identifiers"""

@@ -114,7 +114,7 @@ options:
 » ./hexhttp.py -u 'https://target.tld/' -hu r
 
 # Add custom User-Agent
-» ./hexhttp.py -u 'https://target.tld/' --user-agent "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/123.0-BugBounty"
+» ./hexhttp.py -u 'https://target.tld/' --user-agent "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/123.0-BugBounty"
 
 # Use a custom Header and authentication
 » ./hexhttp.py --header 'Foo: bar' --auth 'user:passwd' -u 'https://target.tld/' 
