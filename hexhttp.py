@@ -3,7 +3,6 @@
 from datetime import datetime
 from queue import Empty, Queue
 from threading import Thread
-from typing import Any
 
 # utils
 import utils.proxy as proxy
@@ -26,10 +25,19 @@ from modules.header_checks.vhosts import check_vhost
 
 # others
 from modules.logging_config import configure_logging
-from modules.technologies import technology
+from modules.Technology import Technology
 from tools.autopoisoner.autopoisoner import check_cache_poisoning
 from utils.style import Colors
-from utils.utils import get_domain_from_url, requests, sys, time
+from utils.utils import (
+    check_auth,
+    configure_logger,
+    get_domain_from_url,
+    requests,
+    sys,
+    time,
+)
+
+logger = configure_logger(__name__)
 
 # Global queue for multi-threaded processing
 enclosure_queue: Queue[str] = Queue()
@@ -44,7 +52,7 @@ threads: int | None = None
 authent: tuple[str, str] | None = None
 
 
-def get_technos(a_tech: Any, req_main: Any, url: str, s: Any) -> None:
+def get_technos(url: str, s: requests.Session, req_main: requests.Response, a_tech: Technology) -> None:
     """
     Check what is the reverse proxy/WAF/cached server... and test based on the result.
     #TODO Cloudfoundry => https://hackerone.com/reports/728664
@@ -96,7 +104,7 @@ def fuzz_x_header(url):
 """
 
 
-def process_modules(url: str, s: Any, a_tech: Any) -> None:
+def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
     domain = get_domain_from_url(url)
     resp_main_headers = []
 
@@ -138,9 +146,9 @@ def process_modules(url: str, s: Any, a_tech: Any) -> None:
             check_localhost(url, s, domain, authent)
             check_methods(url, custom_header, authent, human is not None)
             check_http_version(url)
-            get_technos(a_tech, req_main, url, s)
+            get_technos(url, s, req_main, a_tech)
 
-        get_http_headers(url, s, main_status_code, main_len, main_head, authent)
+        get_http_headers(url, s, main_status_code, main_len, dict(main_head), authent)
         check_cpcve(
             url, s, req_main, parse_headers(custom_header), authent, human or ""
         )
@@ -173,16 +181,12 @@ def parse_headers(header_list: list[str] | None) -> dict[str, str]:
     return headers
 
 
-def main(urli: Any, s: Any, auth: str | None) -> None:
+def main(urli: str, s: requests.Session, auth: str | None) -> None:
     global authent
 
-    # DEBUG global completed_tasks
-
-    a_tech = technology()
+    a_tech = Technology()
 
     if auth:
-        from utils.utils import check_auth
-
         authent = check_auth(auth, urli)
     else:
         authent = None
@@ -191,24 +195,28 @@ def main(urli: Any, s: Any, auth: str | None) -> None:
         try:
             while True:
                 try:
-                    url = urli.get_nowait()
+                    if isinstance(urli, Queue):
+                        url = urli.get_nowait()
+                    else:
+                        url = urli
+                        # For single URL, break after processing
+                        process_modules(url, s, a_tech)
+                        break
                 except Empty:
                     break
                 try:
                     process_modules(url, s, a_tech)
                 except Exception as e:
-                    # Log the error but continue processing
-                    if hasattr(e, "__str__"):
-                        print(f"Error processing URL {url}: {e}")
+                    logger.exception(f"Error processing URL {url}:", e)
                 finally:
-                    urli.task_done()
+                    if isinstance(urli, Queue):
+                        urli.task_done()
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-            # Don't call task_done() here as it was already called in the finally block
             sys.exit()
         except Exception as e:
             print(f"Worker thread error: {e}")
-            # Don't call task_done() here as it should be handled in the finally block
+            logger.exception(e)
     else:
         try:
             process_modules(urli, s, a_tech)
@@ -217,6 +225,7 @@ def main(urli: Any, s: Any, auth: str | None) -> None:
             sys.exit()
         except Exception as e:
             print(f"Error : {e}")
+            logger.exception(e)
 
 
 def cli_main() -> None:

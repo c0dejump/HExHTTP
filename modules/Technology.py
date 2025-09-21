@@ -13,7 +13,7 @@ from utils.style import Colors
 from utils.utils import requests
 
 
-class technology:
+class Technology:
     """
     forwarded:
         nginx:
