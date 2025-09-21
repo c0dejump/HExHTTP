@@ -41,15 +41,19 @@ def args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description=print_banner())
 
-    group = parser.add_argument_group(Colors.BLUE + "> General" + Colors.RESET)
+    group = parser.add_argument_group(f"{Colors.BLUE}> General{Colors.RESET}")
     group.add_argument(
         "-u",
         "--url",
         dest="url",
-        help="URL to test " + Colors.RED + "[required]" + Colors.RESET,
+        help=f"URL to test {Colors.RED}[required]{Colors.RESET}",
     )
     group.add_argument(
-        "-f", "--file", dest="url_file", help="File of URLs", required=False
+        "-f",
+        "--file",
+        dest="url_file",
+        help="File of URLs",
+        required=False,
     )
     group.add_argument(
         "-b",
@@ -60,7 +64,7 @@ def args() -> argparse.Namespace:
         action="store_true",
     )
 
-    group = parser.add_argument_group(Colors.BLUE + "> Request Settings" + Colors.RESET)
+    group = parser.add_argument_group(f"{Colors.BLUE}> Request Settings{Colors.RESET}")
     group.add_argument(
         "-H",
         "--header",
@@ -80,10 +84,7 @@ def args() -> argparse.Namespace:
         "-a",
         "--auth",
         dest="auth",
-        help="Add an HTTP authentication. "
-        + Colors.YELLOW
-        + "Ex: --auth admin:admin"
-        + Colors.RESET,
+        help=f"Add an HTTP authentication.{Colors.YELLOW} Ex: --auth admin:admin{Colors.RESET}",
         required=False,
     )
     group.add_argument(
@@ -98,16 +99,13 @@ def args() -> argparse.Namespace:
         "-t",
         "--threads",
         dest="threads",
-        help="Threads numbers for multiple URLs. "
-        + Colors.GREEN
-        + "Default: 10"
-        + Colors.RESET,
+        help=f"Threads numbers for multiple URLs. {Colors.GREEN}Default: 10{Colors.RESET}",
         type=int,
         default=10,
         required=False,
     )
 
-    group = parser.add_argument_group(Colors.BLUE + "> Log settings" + Colors.RESET)
+    group = parser.add_argument_group(f"{Colors.BLUE}> Log settings{Colors.RESET}")
     group.add_argument(
         "-l",
         "--log",
@@ -120,10 +118,7 @@ def args() -> argparse.Namespace:
         "--log-file",
         dest="log_file",
         default="./logs/%Y%m%d_%H%M.log",
-        help="The file path pattern for the log file. "
-        + Colors.GREEN
-        + "Default: logs/"
-        + Colors.RESET,
+        help=f"The file path pattern for the log file. {Colors.GREEN}Default: logs/{Colors.RESET}",
         required=False,
     )
     group.add_argument(
@@ -134,26 +129,32 @@ def args() -> argparse.Namespace:
         help="Increase verbosity (can be used multiple times)",
     )
 
-    group = parser.add_argument_group(Colors.BLUE + "> Tips" + Colors.RESET)
+    group = parser.add_argument_group(f"{Colors.BLUE}> Tips{Colors.RESET}")
     group.add_argument(
         "-p",
         "--proxy",
+        action="store_true",
         dest="custom_proxy",
         help="proxy activation, can be modified in utils/proxy.py",
         required=False,
-        action="store_true",
     )
     group.add_argument(
         "--ocp",
         "--only-cp",
+        action="store_true",
         dest="only_cp",
         help="Only cache poisoning modules",
         required=False,
-        action="store_true",
     )
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # Validate that either URL or file is provided
+    if not args.url and not args.url_file:
+        parser.error("Either -u/--url or -f/--file must be provided.")
+
+    return args
