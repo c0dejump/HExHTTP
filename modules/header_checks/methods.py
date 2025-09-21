@@ -17,14 +17,14 @@ logger = configure_logger(__name__)
 
 desc_method = {
     200: f"{Colors.GREEN}200 OK{Colors.RESET}",
-    204: f"204 No Content{Colors.RESET}",
+    204: f"{Colors.GREEN}204 No Content{Colors.RESET}",
     400: f"{Colors.YELLOW}400 Bad Request{Colors.RESET}",
     401: f"{Colors.RED}401 HTTP Authent{Colors.RESET}",
     403: f"{Colors.RED}403 Forbidden{Colors.RESET}",
     405: f"{Colors.YELLOW}405 Method Not Allowed{Colors.RESET}",
     406: f"{Colors.YELLOW}406 Not Acceptable{Colors.RESET}",
     409: f"{Colors.YELLOW}409 Conflict{Colors.RESET}",
-    410: "410 Gone",
+    410: f"{Colors.YELLOW}410 Gone{Colors.RESET}",
     412: f"{Colors.YELLOW}412 Precondition Failed{Colors.RESET}",
     500: f"{Colors.RED}500 Internal Server Error{Colors.RESET}",
     501: f"{Colors.RED}501 Not Implemented{Colors.RESET}",
@@ -34,7 +34,7 @@ desc_method = {
 }
 
 header = {
-    "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
+    "User-Agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko"
 }
 
 
