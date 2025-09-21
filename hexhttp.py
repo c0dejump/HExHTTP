@@ -52,7 +52,9 @@ threads: int | None = None
 authent: tuple[str, str] | None = None
 
 
-def get_technos(url: str, s: requests.Session, req_main: requests.Response, a_tech: Technology) -> None:
+def get_technos(
+    url: str, s: requests.Session, req_main: requests.Response, a_tech: Technology
+) -> None:
     """
     Check what is the reverse proxy/WAF/cached server... and test based on the result.
     #TODO Cloudfoundry => https://hackerone.com/reports/728664
