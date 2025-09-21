@@ -76,9 +76,9 @@ def datareq_check(
                     " CVE-2024-46982 | [i] No risk-free pages have been found. Please do a manual check."
                 )
     except requests.Timeout as t:
-        logger.error(f"request timeout {uri}", t)
+        logger.error(f"request timeout {uri}: {t}")
     except KeyboardInterrupt:
         print("Exiting")
         sys.exit()
-    except Exception as e:
-        logger.exception(f"request error {uri}", e)
+    except Exception:
+        logger.exception(f"request error {uri}")

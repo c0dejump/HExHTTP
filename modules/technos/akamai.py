@@ -132,8 +132,8 @@ def req_smuggling(url: str, s: requests.Session) -> None:
             print(
                 f"  {Colors.YELLOW} └── [INTERESTING BEHAVIOR]{Colors.RESET} | {url} [{res_main.status_code} > {response.status_code}]\n     └── H {headers}\n     └── B {body}"
             )
-    except Exception as e:
-        logger.exception("req_smuggling", e)
+    except Exception:
+        logger.exception("req_smuggling")
 
 
 """
@@ -158,8 +158,8 @@ def xss_akamai(url: str, s: requests.Session) -> None:
                 print(
                     f"  {Colors.YELLOW} └── [INTERESTING BEHAVIOR]{Colors.RESET} | {url} \n   └── H {headers}\n  "
                 )
-    except Exception as e:
-        logger.exception("XSS Akamai", e)
+    except Exception:
+        logger.exception("XSS Akamai")
 
 
 """

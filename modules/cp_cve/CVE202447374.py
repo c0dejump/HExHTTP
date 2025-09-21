@@ -33,9 +33,9 @@ def litespeed(base_url: str) -> None:
                     f" {Identify.confirmed} | CVE-2024-47374| {Colors.BLUE}{target_url}{Colors.RESET} | PAYLOAD: {headers}"
                 )
         except requests.Timeout as t:
-            logger.error(f"request timeout {base_url}", t)
+            logger.error(f"request timeout {base_url}: {t}")
         except KeyboardInterrupt:
             print("Exiting")
             sys.exit()
-        except Exception as e:
-            logger.exception(f"request error {base_url}", e)
+        except Exception:
+            logger.exception(f"request error {base_url}")

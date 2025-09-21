@@ -89,7 +89,7 @@ def silverstripe(
             )
             confirm_vuln(url, s, headers, authent)
     except requests.Timeout as t:
-        logger.error(f"request timeout {url}", t)
+        logger.error(f"request timeout {url}: {t}")
     except KeyboardInterrupt:
         print("Exiting")
         sys.exit()

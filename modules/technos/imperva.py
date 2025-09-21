@@ -21,5 +21,5 @@ def imperva(url: str, s: requests.Session) -> None:
             print(
                 f"   └── {il}{'→':^3} {req.status_code:>3} [{len(req.content)} bytes]"
             )
-        except Exception as e:
-            logger.exception(f"Error with Imperva check on {url}", e)
+        except Exception:
+            logger.exception(f"Error with Imperva check on {url}")

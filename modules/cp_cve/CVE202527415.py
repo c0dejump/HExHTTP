@@ -93,7 +93,7 @@ def nuxt_check(
             )
 
     except requests.Timeout as t:
-        logger.error("request timeout", t)
+        logger.error(f"request timeout: {t}")
     except KeyboardInterrupt:
         print("Exiting")
         sys.exit()

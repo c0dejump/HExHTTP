@@ -208,8 +208,8 @@ def main(urli: str, s: requests.Session, auth: str | None) -> None:
                     break
                 try:
                     process_modules(url, s, a_tech)
-                except Exception as e:
-                    logger.exception(f"Error processing URL {url}:", e)
+                except Exception:
+                    logger.exception(f"Error processing URL {url}")
                 finally:
                     if isinstance(urli, Queue):
                         urli.task_done()
