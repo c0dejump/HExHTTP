@@ -220,7 +220,7 @@ def get_http_headers(
     main_head: dict,
     authent: tuple[str, str] | None = None,
 ) -> None:
-    print(f"\n{Colors.CYAN} ├ Uncommon header analysis{Colors.RESET}")
+    print(f"{Colors.CYAN} ├ Uncommon header analysis{Colors.RESET}")
     url = f"{url}?cb={random.randrange(9999)}"
 
     uncommon_header = []
