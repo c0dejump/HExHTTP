@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
-import argparse
-
 from modules.logging_config import valid_log_level
 from static.banner import print_banner
 from utils.style import Colors
-from utils.utils import sys
+from utils.utils import argparse, sys
+
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"
+)
 
 
 def args() -> argparse.Namespace:
@@ -78,7 +80,7 @@ def args() -> argparse.Namespace:
         "--user-agent",
         dest="user_agent",
         help="Add a custom User Agent",
-        default="Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0",
+        default=DEFAULT_USER_AGENT,
     )
     group.add_argument(
         "-a",

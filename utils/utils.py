@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse  # noqa: F401
 import random
 import re  # noqa: F401
 import socket
