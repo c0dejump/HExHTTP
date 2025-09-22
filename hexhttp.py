@@ -75,10 +75,12 @@ def get_technos(
         "imperva": ["imperva"],
         "fastly": ["fastly"],
         "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"],
+        "cloudfront": ["x-amz-cf", "cloudfront", "x-amz-request-id"],
         "vercel": ["vercel"],
         # "cloudfoundry": ["cf-app"]
     }
 
+    technologies_detected = False
     for t in technos:
         tech_hit: str | bool = False
         for v in technos[t]:
@@ -90,9 +92,18 @@ def get_technos(
                     or v.lower() in rt.lower()
                 ):
                     tech_hit = t
+                    break  # Exit inner loops once we find a match
+            if tech_hit:
+                break
         if tech_hit and isinstance(tech_hit, str):
             getattr(a_tech, tech_hit)(url, s)
+            technologies_detected = True
             tech_hit = False
+
+    if not technologies_detected:
+        print(
+            f"{Colors.YELLOW} │   └── No specific technologies detected{Colors.RESET}"
+        )
 
 
 """

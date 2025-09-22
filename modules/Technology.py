@@ -4,6 +4,7 @@
 from modules.technos.akamai import akamai
 from modules.technos.apache import apache
 from modules.technos.cloudflare import cloudflare
+from modules.technos.cloudfront import cloudfront
 from modules.technos.envoy import envoy
 from modules.technos.fastly import fastly
 from modules.technos.imperva import imperva
@@ -54,6 +55,10 @@ class Technology:
     def cloudflare(self, url: str, s: requests.Session) -> None:
         print(f"{Colors.CYAN} ├── Cloudflare analysis{Colors.RESET}")
         cloudflare(url, s)
+
+    def cloudfront(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── CloudFront analysis{Colors.RESET}")
+        cloudfront(url, s)
 
     def imperva(self, url: str, s: requests.Session) -> None:
         print(f"{Colors.CYAN} ├── Imperva analysis{Colors.RESET}")
