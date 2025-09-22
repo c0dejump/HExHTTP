@@ -4,7 +4,9 @@ Attemps to check if localhost can be scanned with Host Header
 """
 
 from utils.style import Colors
-from utils.utils import requests
+from utils.utils import configure_logger, requests
+
+logger = configure_logger(__name__)
 
 
 def check_localhost(
@@ -78,49 +80,40 @@ def check_localhost(
 
     results_tracker: dict[tuple, list] = {}
 
+    def add_result(key: tuple, host: str) -> None:
+        if key not in results_tracker:
+            results_tracker[key] = []
+        results_tracker[key].append(host)
+
     for lt in list_test:
         headers = {"Host": lt}
         try:
             req = s.get(
                 url, headers=headers, verify=False, allow_redirects=False, timeout=10
             )
+
             if req.status_code in [301, 302, 303, 307, 308]:
-                try:
-                    s.get(
-                        url,
-                        headers=headers,
-                        verify=False,
-                        allow_redirects=True,
-                        timeout=10,
-                        auth=authent,
-                    )
-                    location = req.headers.get("location", "No location")
-                    redirect_key = (req.status_code, "redirect", location)
-                    results_tracker[redirect_key].append(lt)
-                except Exception:
-                    location = req.headers.get("location", "No location")
-                    redirect_key = (req.status_code, "redirect", location)
-                    results_tracker[redirect_key].append(lt)
+                location = req.headers.get("location", "No location")
+                result_key = (req.status_code, "redirect", location)
             else:
-                normal_key = (req.status_code, len(req.content))
-                results_tracker[normal_key].append(lt)
+                result_key = (req.status_code, "normal", str(len(req.content)))
+            add_result(result_key, lt)
+
             print(f" ├─ {Colors.BLUE}{lt}:{req.status_code}{Colors.RESET}\r", end="")
             print("\033[K", end="")
         except Exception:
-            pass
+            logger.exception(f"Request error with Host header: {lt}")
 
     # Display deduplicated results
     displayed_groups: set[tuple] = set()
 
     for result_key, hosts_list in results_tracker.items():
-        # Unpack result_key once and determine format
-        is_redirect = len(result_key) == 3
-        if is_redirect:
-            status_code, _, location = result_key
-            result_info = f"{status_code:>3}{'→':^3}{location}"
-        else:
-            status_code, content_length = result_key
-            result_info = f"{status_code:>3} [{content_length} bytes]"
+        # Unpack result_key and determine format based on middle element
+        status_code, result_type, value = result_key
+        if result_type == "redirect":
+            result_info = f"{status_code:>3}{'→':^3}{value}"
+        else:  # result_type == "normal"
+            result_info = f"{status_code:>3} [{value} bytes]"
 
         # Handle grouped results (3+ similar hosts)
         if len(hosts_list) >= 3 and result_key not in displayed_groups:
