@@ -268,7 +268,8 @@ def cli_main() -> None:
                 custom_headers = parse_headers(custom_header)
                 s.headers.update(custom_headers)
             except Exception as e:
-                print(e)
+                logger.exception(e)
+                print(f" Error in custom header format: {e}")
                 sys.exit()
 
         if custom_proxy:
