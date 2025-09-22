@@ -5,7 +5,7 @@ pour identifier des comportements d'erreur potentiels et détecter les réflexio
 """
 
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, random, requests, sys
+from utils.utils import configure_logger, format_payload, random, requests, sys
 
 logger = configure_logger(__name__)
 
@@ -14,6 +14,7 @@ DEFAULT_USER_AGENT = (
 )
 
 reflect_word = "bycodejump"
+
 
 common_header = [
     "content-type",
@@ -117,11 +118,11 @@ def verify_cp(
 
     if req_verify.status_code != main_status_code:
         print(
-            f"{Identify.confirmed} | CPDoSError {main_status_code} > {req_verify.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {payload}"
+            f"{Identify.confirmed} | CPDoSError {main_status_code} > {req_verify.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(payload)}"
         )
     elif len(req_verify.content) not in range(main_len - 200, main_len + 200):
         print(
-            f"{Identify.confirmed} | CPDoSError {main_len}b > {len(req_verify.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {payload}"
+            f"{Identify.confirmed} | CPDoSError {main_len}b > {len(req_verify.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(payload)}"
         )
 
 
@@ -148,11 +149,11 @@ def verify_cp_reflect(
 
     if reflect_word in req_verify.text:
         print(
-            f"{Identify.confirmed} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {payload}"
+            f"{Identify.confirmed} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(payload)}"
         )
     elif reflect_word in req_verify.headers:
         print(
-            f"{Identify.confirmed} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {payload}"
+            f"{Identify.confirmed} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(payload)}"
         )
 
 
@@ -171,12 +172,12 @@ def test_reflection(
         )
         if reflect_word in req_reflected.text:
             print(
-                f"{Identify.behavior} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {headers}"
+                f"{Identify.behavior} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(headers)}"
             )
             verify_cp_reflect(url, s, headers, authent)
         elif reflect_word in req_reflected.headers:
             print(
-                f"{Identify.behavior} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {headers}"
+                f"{Identify.behavior} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(headers)}"
             )
             verify_cp_reflect(url, s, headers, authent)
 
@@ -201,12 +202,12 @@ def uncommon_header_test(
             if req_uh.status_code not in [401, 403]:
                 if req_uh.status_code != main_status_code:
                     print(
-                        f"{Identify.behavior} | CPDoSError {main_status_code} > {req_uh.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {headers}"
+                        f"{Identify.behavior} | CPDoSError {main_status_code} > {req_uh.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(headers)}"
                     )
                     verify_cp(url, s, main_status_code, main_len, headers, authent)
                 elif len(req_uh.content) not in range(main_len - 500, main_len + 500):
                     print(
-                        f"{Identify.behavior} | CPDoSError {main_len}b > {len(req_uh.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {headers}"
+                        f"{Identify.behavior} | CPDoSError {main_len}b > {len(req_uh.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(headers)}"
                     )
                     verify_cp(url, s, main_status_code, main_len, headers, authent)
 

@@ -8,7 +8,14 @@ https://cpdos.org/
 import utils.proxy as proxy
 from modules.lists import payloads_keys
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, human_time, random, requests, sys
+from utils.utils import (
+    configure_logger,
+    format_payload,
+    human_time,
+    random,
+    requests,
+    sys,
+)
 
 logger = configure_logger(__name__)
 
@@ -69,7 +76,7 @@ def check_cached_status(
     )
     if confirmed:
         print(
-            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}"
+            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
@@ -78,9 +85,8 @@ def check_cached_status(
         behavior = False
         confirmed = False
     elif behavior:
-        pk_str = str(pk)
         print(
-            f" {Identify.behavior} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk_str if len(pk_str) < 60 else pk_str[0:60]}{Colors.RESET}"
+            f" {Identify.behavior} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
@@ -138,7 +144,7 @@ def check_cached_len(
     )
     if confirmed:
         print(
-            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}"
+            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
@@ -146,9 +152,8 @@ def check_cached_len(
             proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
         behavior = False
     elif behavior:
-        pk_str = str(pk)
         print(
-            f" {Identify.behavior} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk_str if len(pk_str) < 60 else pk_str[0:60]}{Colors.RESET}"
+            f" {Identify.behavior} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
@@ -182,7 +187,7 @@ def cpdos_main(
 
             if req.status_code == 888:
                 print(
-                    f" {Identify.behavior} | CPDoSError 888 response | CACHETAG: N/A | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {pk}"
+                    f" {Identify.behavior} | CPDoSError 888 response | CACHETAG: N/A | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {format_payload(pk)}"
                 )
                 check_cached_status(uri, s, pk, main_status_code, authent)
             elif req.status_code == 403 or req.status_code == 429:
