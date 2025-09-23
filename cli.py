@@ -36,7 +36,8 @@ def args() -> argparse.Namespace:
             Default: ./logs/%Y%m%d_%H%M.log.
         -v, --verbose (int): Increase verbosity (can be used multiple times).
         -hu, --humans: Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
-        -p, --proxy: proxy activation, can be modified in utils/proxy.py
+        -p, --proxy: proxy all requests through this proxy (format: host:port, default: 127.0.0.1:8080)
+        --burp: send behavior and confirmed requests to Burp proxy (format: host:port, default: 127.0.0.1:8080)
         --ocp, --only-cp: Only cache poisoning modules
 
     If no argument is provided, the function will print the help message and exit.
@@ -135,9 +136,18 @@ def args() -> argparse.Namespace:
     group.add_argument(
         "-p",
         "--proxy",
-        action="store_true",
-        dest="custom_proxy",
-        help="proxy activation, can be modified in utils/proxy.py",
+        dest="proxy",
+        nargs='?',
+        const='',  # Default value when --proxy is provided without argument
+        help="Proxy all requests through this proxy (format: host:port, default: 127.0.0.1:8080)",
+        required=False,
+    )
+    group.add_argument(
+        "--burp",
+        dest="burp",
+        nargs='?',
+        const='',  # Default value when --burp is provided without argument
+        help="Send behavior and confirmed requests to Burp proxy (format: host:port, default: 127.0.0.1:8080)",
         required=False,
     )
     group.add_argument(
