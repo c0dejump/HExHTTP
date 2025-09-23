@@ -49,6 +49,7 @@ Prerequisites:
 - Burp Suite Community or Professional
 - Python 3.x
 - Jython (for Burp extensions)
+
 ### Install the Custom Extension
   Download the Extension ./utils/burp_extension_issue.py
 
@@ -61,11 +62,65 @@ Prerequisites:
   ```
   Verify the extension is loaded in the Extensions tab
 
+### Using Burp Proxy Integration
+HExHTTP now supports flexible proxy configuration:
+
+```bash
+# Send behavior and confirmed findings to Burp (default: 127.0.0.1:8080)
+» ./hexhttp.py -u 'https://target.tld/' --burp
+
+# Use custom Burp proxy address
+» ./hexhttp.py -u 'https://target.tld/' --burp 192.168.1.100:8080
+
+# Route all traffic through a corporate proxy, but send findings to Burp
+» ./hexhttp.py -u 'https://target.tld/' --proxy corporate.proxy:3128 --burp 127.0.0.1:8080
+```
+
+When using `--burp`, HExHTTP will automatically create issues in Burp Suite for:
+- **Behavior findings**: Medium severity issues
+- **Confirmed vulnerabilities**: High severity issues
+
+## Proxy Configuration
+
+HExHTTP supports flexible proxy configuration for different use cases:
+
+### General Proxy (`--proxy`)
+Routes all HTTP requests through the specified proxy server:
+```bash
+# Custom proxy server
+» ./hexhttp.py -u 'https://target.tld/' --proxy 10.0.0.1:3128
+
+# Default proxy (127.0.0.1:8080)
+» ./hexhttp.py -u 'https://target.tld/' --proxy
+```
+
+### Burp Proxy (`--burp`)
+Sends behavior and confirmed findings to Burp Suite:
+```bash
+# Custom Burp proxy
+» ./hexhttp.py -u 'https://target.tld/' --burp 192.168.1.100:8080
+
+# Default Burp proxy (127.0.0.1:8080)
+» ./hexhttp.py -u 'https://target.tld/' --burp
+```
+
+### Combined Usage
+Use both options for maximum flexibility:
+```bash
+# Route traffic through corporate proxy, send findings to Burp
+» ./hexhttp.py -u 'https://target.tld/' --proxy corporate.proxy:3128 --burp 127.0.0.1:8080
+```
+
+### Supported Formats
+- `host:port` - e.g., `127.0.0.1:8080`
+- `host` - uses default port 8080, e.g., `localhost`
+- `http://host:port` - full URL format
+- `https://host:port` - HTTPS proxy support
 
 ## Usage
 
 ```bash
-Usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-F] [-a AUTH] [-b] [-hu HUMANS] [-t THREADS] [-l LOG] [-L LOG_FILE] [-v] [-p CUSTOM_PROXY]
+Usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-a AUTH] [-b] [-hu HUMANS] [-t THREADS] [-l LOG] [-L LOG_FILE] [-v] [-p PROXY] [--burp BURP] [--ocp]
 
 HExHTTP is a tool designed to perform tests on HTTP headers.
 
@@ -93,9 +148,11 @@ options:
                         The file path pattern for the log file. Default: logs/
   -v, --verbose         Increase verbosity (can be used multiple times)
 
-> Tips:
-  -p, --proxy CUSTOM_PROXY
-                        Add a custom proxy. Ex: http://127.0.0.1:8080 [In Progress]
+> Proxy Settings:
+  -p, --proxy PROXY     Proxy all requests through this proxy (format: host:port, default: 127.0.0.1:8080)
+  --burp BURP           Send behavior and confirmed requests to Burp proxy (format: host:port, default: 127.0.0.1:8080)
+
+> Other:
   --ocp, --only-cp      Only cache poisoning modules
 
 
@@ -118,6 +175,18 @@ options:
 
 # Use a custom Header and authentication
 » ./hexhttp.py --header 'Foo: bar' --auth 'user:passwd' -u 'https://target.tld/' 
+
+# Proxy all requests through a custom proxy
+» ./hexhttp.py -u 'https://target.tld/' --proxy 127.0.0.1:8080
+
+# Send interesting findings to Burp Suite for analysis
+» ./hexhttp.py -u 'https://target.tld/' --burp 127.0.0.1:8080
+
+# Use both general proxy and Burp (general traffic through proxy, findings to Burp)
+» ./hexhttp.py -u 'https://target.tld/' --proxy 10.0.0.1:3128 --burp 127.0.0.1:8080
+
+# Use default Burp proxy (127.0.0.1:8080)
+» ./hexhttp.py -u 'https://target.tld/' --burp
 
 # Loop on domains, grep for vulnerabilities only and send result with notify (from projectdiscovery)
 » for domain in $(cat domains.lst); do ./hexhttp.py -u "$domain" | grep -Eio "(INTERESTING|CONFIRMED)(.*)PAYLOAD.?:(.*){5,20}$" | notify -silent; done
@@ -147,7 +216,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 - Cache Poisoning DoS (CPDoS) techniques
 - Web cache poisoning
 - HTTP type CVE checking
-- HTTP Proxy plugin
+- **Flexible Proxy Support** (General proxy + Burp Suite integration)
 - CDN/proxies Analysis (Envoy/Apache/Akamai/Nginx) **[WIP]**
 - [X] Human scan (rate limiting + timeout randomization ) [WIP] -- works but cleaning, linting etc...
 

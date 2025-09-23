@@ -1,6 +1,31 @@
 Changelog:
 ----------
 
+- 2.2
+---------
+	New:
+	- PR and push are now checked against formatting, linting, type checking, security checking and regression testing (quality workflow)
+	- Version handles beta versioning now
+	- DX : Small Test Bed to verify regression
+	- 
+
+	Updated:
+	- setup and requirements consolidated into pyproject.toml
+	- dockerfile is now in sync with how hexhttp is installed
+	- headerfuzz dictionary was overwriting its payloads using the same key
+	- Banner and version concerns are now separated
+	- technologies module got renamed to align with class name
+	- Proxy and Burp options allows to specify proxy server to pass issues or whole traffic
+	- 
+
+	Deleted:
+	- vuln_notify feature never really implemented and was too platform specific
+	- 
+
+
+
+---------
+
 - 2.0
 ---------
 	New:

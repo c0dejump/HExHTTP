@@ -137,11 +137,12 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
         print(f" URL: {url}")
         print(f" URL response: {req_main.status_code}")
         print(f" URL response size: {main_len} bytes")
-        print(
-            f" Proxy: {Colors.RED}OFF{Colors.RESET}"
-            if not proxy.proxy_enabled
-            else f" Proxy: {Colors.GREEN}ON{Colors.RESET}"
-        )
+        proxy_status = f" Proxy: {Colors.RED}OFF{Colors.RESET}"
+        if proxy.proxy_enabled:
+            proxy_status = f" Proxy: {Colors.GREEN}ON{Colors.RESET} ({proxy.proxy_url})"
+        if proxy.burp_enabled:
+            proxy_status += f" | Burp: {Colors.GREEN}ON{Colors.RESET} ({proxy.burp_url})"
+        print(proxy_status)
         print(f"{Colors.BLUE}⟘{Colors.RESET}")
         if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
             choice = input(
@@ -257,7 +258,8 @@ def cli_main() -> None:
     user_agent = results.user_agent
     threads = results.threads
     humans = results.humans
-    custom_proxy = results.custom_proxy
+    proxy_arg = results.proxy
+    burp_arg = results.burp
     only_cp = results.only_cp
 
     configure_logging(results.verbose, results.log, results.log_file)
@@ -283,10 +285,37 @@ def cli_main() -> None:
                 print(f" Error in custom header format: {e}")
                 sys.exit()
 
-        if custom_proxy:
-            test_proxy = proxy.test_proxy_connection()
-            if test_proxy:
-                proxy.proxy_enabled = custom_proxy
+        # Handle proxy configuration
+        if proxy_arg or burp_arg:
+            # Configure main proxy
+            if proxy_arg is not None:  # Handle both empty string (default) and provided value
+                proxy.proxy_url = proxy.parse_proxy_url(proxy_arg)
+                test_proxy = proxy.test_proxy_connection(proxy.proxy_url)
+                if test_proxy:
+                    proxy.proxy_enabled = True
+                    print(f" Proxy configured: {proxy.proxy_url}")
+                else:
+                    # For regular proxy, just warn but continue (some proxies might not allow httpbin.org)
+                    print(f" {Colors.YELLOW}Proxy connection test failed, but continuing: {proxy.proxy_url}{Colors.RESET}")
+                    proxy.proxy_enabled = True
+            
+            # Configure Burp proxy
+            if burp_arg is not None:  # Handle both empty string (default) and provided value
+                proxy.burp_url = proxy.parse_proxy_url(burp_arg)
+                test_burp = proxy.test_proxy_connection(proxy.burp_url)
+                if test_burp:
+                    proxy.burp_enabled = True
+                    print(f" Burp proxy configured: {proxy.burp_url}")
+                else:
+                    print(f" {Colors.RED}Burp proxy connection failed: {proxy.burp_url}{Colors.RESET}")
+                    sys.exit(1)
+            
+            # If only burp is specified, also enable general proxying through burp
+            if burp_arg is not None and proxy_arg is None:
+                proxy.proxy_enabled = True
+                proxy.proxy_url = proxy.burp_url
+            
+            s.proxies = {"http": proxy.proxy_url, "https": proxy.proxy_url}
 
         if url_file and threads != 1337:
             with open(url_file) as url_file_handle:
