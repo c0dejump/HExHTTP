@@ -27,6 +27,26 @@ CONTENT_DELTA_RANGE = 500
 BIG_CONTENT_DELTA_RANGE = 5000
 
 
+def format_payload(payload: dict[str, str], max_length: int = 60) -> str:
+    """Format payload dictionary with truncated keys and values for readable output"""
+    formatted_items = []
+    for key, value in payload.items():
+        # Truncate key if it's too long
+        if len(key) > max_length:
+            truncated_key = f"{key[:max_length]}...({len(key)} chars total)"
+        else:
+            truncated_key = key
+
+        # Truncate value if it's too long
+        if len(value) > max_length:
+            truncated_value = f"{value[:max_length]}...({len(value)} chars total)"
+        else:
+            truncated_value = value
+
+        formatted_items.append(f"'{truncated_key}': '{truncated_value}'")
+    return "{" + ", ".join(formatted_items) + "}"
+
+
 def get_domain_from_url(url: str) -> str:
     domain = urlparse(url).netloc
     return domain
@@ -79,7 +99,7 @@ def check_auth(auth: str, url: str) -> tuple[str, str] | None:
             timeout=10,  # nosec B501
         )
         if r.status_code in [200, 302, 301]:
-            print("\n+ Authentication successfull\n")
+            print("\n+ Authentication successful\n")
             return authent
         else:
             print("\nAuthentication error")

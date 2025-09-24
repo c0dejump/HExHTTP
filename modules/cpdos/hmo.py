@@ -7,7 +7,7 @@ https://cpdos.org/#HMO
 
 import utils.proxy as proxy
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, human_time, random, requests
+from utils.utils import configure_logger, format_payload, human_time, random, requests
 
 logger = configure_logger(__name__)
 
@@ -300,7 +300,7 @@ def HMO(
 
             if reason:
                 print(
-                    f" {status} | HMO DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{probe_headers}{Colors.RESET}"
+                    f" {status} | HMO DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{format_payload(probe_headers)}{Colors.RESET}"
                 )
                 if proxy.proxy_enabled:
                     from utils.proxy import proxy_request
