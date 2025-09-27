@@ -8,11 +8,13 @@ From 0xrth research
 from utils.style import Colors, Identify
 from utils.utils import (
     CONTENT_DELTA_RANGE,
+    BIG_CONTENT_DELTA_RANGE,
     cache_tag_verify,
     configure_logger,
     random,
     requests,
 )
+from urllib.parse import urlparse, urlunparse
 
 try:
     import httpx
@@ -43,15 +45,13 @@ def verify(
         for _ in range(5):
             with httpx.Client(
                 http2=False, verify=False
-            ) as client:  # nosec B501 - Intentional SSL bypass for penetration testing
+            ) as client:
                 req_verify = client.get(url_with_raw_path)
 
         req_cb = s.get(url_cb, verify=False, timeout=10, allow_redirects=False)
-
         logger.debug(
             f"req_cb.status_code: {req_cb.status_code} | req_verify.status_code: {req_verify.status_code} | req_main.status_code: {req_main.status_code}"
         )
-
         cache_status = cache_tag_verify(req_cb)
         if (
             req_cb.status_code == req_verify.status_code
@@ -65,6 +65,7 @@ def verify(
             403,
             401,
             429,
+            req_main.status_code
         ]:
             print(
                 f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_cb.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
@@ -82,15 +83,21 @@ def path_traversal_check(
     authent: tuple[str, str] | None,
 ) -> None:
     try:
-        range_exlusion = range(
-            len(req_main.content) - CONTENT_DELTA_RANGE,
-            len(req_main.content) + CONTENT_DELTA_RANGE,
-        )
+        main_len = len(req_main.content)
+        range_exlusion = (
+                range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
+                if main_len < 10000
+                else range(
+                    main_len - BIG_CONTENT_DELTA_RANGE,
+                    main_len + BIG_CONTENT_DELTA_RANGE,
+                )
+            )
         paths = [
             "\\",
             "cc\\..\\",
             "cc/../",
-            "cc/%2e%2e%2f" "cc%2e%2e/",
+            "cc/%2e%2e%2f",
+            "cc%2e%2e/",
             "cc%2f..%2f",
             "cc/..\\",
             "cc/..;/",
@@ -104,6 +111,8 @@ def path_traversal_check(
                 if url[-1] == "/"
                 else f"{url}/{completed_path}"
             )
+
+            
             url_cb = f"{url}{cb}"
 
             req_test = s.get(url_test, verify=False, timeout=10, allow_redirects=False)

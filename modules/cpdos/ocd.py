@@ -3,6 +3,12 @@
 from utils.style import Colors, Identify
 from utils.utils import random, requests, sys
 
+"""
+ORIGIN Cache Poisoning. 
+by Geluchat
+
+"""
+
 
 def print_result(status: str, vuln: str, reason: str, url: str, payload: str) -> None:
     if payload:
@@ -107,30 +113,7 @@ def options_ocd(
 
 
 def OCD(url: str, authent: tuple[str, str] | None) -> None:
-    uri = f"{url}{random.randrange(999)}"
     headers = {"Origin": "https://geluorigin.chat"}
-    get_ocd(uri, headers, authent)
-    options_ocd(uri, headers, authent)
+    get_ocd(f"{url}{random.randrange(999)}", headers, authent)
+    options_ocd(f"{url}{random.randrange(999)}", headers, authent)
 
-
-if __name__ == "__main__":
-    url_file = sys.argv[1]
-    with open(url_file) as url_file_handle:
-        url_list = url_file_handle.read().splitlines()
-        for url in url_list:
-            url = f"{url}?cb=foo"
-            try:
-                OCD(url, None)
-            except KeyboardInterrupt:
-                print("Exiting")
-                sys.exit()
-            except requests.ConnectionError:
-                pass
-                # print("Error, cannot connect to target")
-            except requests.Timeout:
-                pass
-                # print("Error, request timeout (10s)")
-            except Exception as e:
-                print(f"Error : {e}")
-                pass
-            print(f" {url}", end="\r")

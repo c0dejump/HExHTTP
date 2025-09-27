@@ -3,6 +3,11 @@
 from utils.style import Colors, Identify
 from utils.utils import cache_tag_verify, random, requests, urlparse
 
+"""
+Exemple:
+toto.com/static/toto.js => toto.com/static\toto.js
+"""
+
 VULN_NAME = "BACKSLASH "
 
 
@@ -77,7 +82,7 @@ def vcp_len(url_b: str, s: requests.Session, req_b: requests.Response) -> bool:
         return False
 
 
-def backslash_poisoning(uri: str, s: requests.Session) -> None:
+def backslash_poisoning(uri: str, s: requests.Session, authent: tuple[str, str] | None, human: str,) -> None:
     url_b = f"{uri}?cb={random.randrange(999)}"
     req_main = s.get(url_b, verify=False, timeout=10, allow_redirects=False)
     pp = parse_path(url_b)

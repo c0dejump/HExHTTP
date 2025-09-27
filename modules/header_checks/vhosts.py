@@ -243,7 +243,7 @@ def check_vhost_enhanced(url: str) -> None:
     try:
         baseline_resp = requests.get(url, verify=False, timeout=10)
 
-        print(" ├─ Testing IP + Host header access...")
+        print(" ├─ Testing IP + Host header access")
         for path in test_paths:
             if path == "/":
                 test_url_original = url
@@ -277,7 +277,7 @@ def check_vhost_enhanced(url: str) -> None:
                     # print(f" │      Header diffs: {comparison['header_diffs']}")
                     results.append(comparison)
 
-        print(" ├─ Testing original basic vhosts...")
+        print(" ├─ Testing original basic vhosts")
         domain_clean = host if not host.startswith("www.") else host[4:]
 
         original_vhosts = [
@@ -298,7 +298,7 @@ def check_vhost_enhanced(url: str) -> None:
                     len(baseline_resp.content) - 100, len(baseline_resp.content) + 100
                 ):
                     print(
-                        f" │  └─ {Colors.GREEN}[ORIGINAL]{Colors.RESET} {url} [{len(baseline_resp.content)}b] <> {vh} [{len(req_vh.content)}b]"
+                        f" │  └─ {Colors.GREEN}[ORIGINAL]{Colors.RESET} {url} [{baseline_resp.status_code}] [{len(baseline_resp.content)}b] <> {vh} [{req_vh.status_code}] [{len(req_vh.content)}b]"
                     )
 
                     comparison = compare_responses(baseline_resp, req_vh, url, vh)
@@ -313,7 +313,7 @@ def check_vhost_enhanced(url: str) -> None:
             except Exception:
                 continue
 
-        print(" ├─ Testing wildcard with random host...")
+        print(" ├─ Testing wildcard with random host")
         rand_host_name, rand_resp = probe_random_host(url)
         if rand_resp:
             comparison = compare_responses(
@@ -333,7 +333,7 @@ def check_vhost_enhanced(url: str) -> None:
                 )
 
         if scheme == "https":
-            print(" ├─ Analyzing SSL certificate...")
+            print(" ├─ Analyzing SSL certificate")
             cert_info = get_cert_san(host)
             if cert_info:
                 print(f" │  └─ Certificate CN: {cert_info.get('subject_cn')}")

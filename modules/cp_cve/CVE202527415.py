@@ -56,7 +56,7 @@ def nuxt_check(
                         )
                     if req_nuxt.status_code != req.status_code:
                         print(
-                            f" {Identify.behavior} | CVE-2025-27415 | DIFFERENT RESPONSE {req.status_code} > {req_nuxt.status_code}| {Colors.BLUE}{url}{Colors.RESET}"
+                            f" {Identify.behavior} | CVE-2025-27415 | DIFFERENT RESPONSE {req.status_code} > {req_nuxt.status_code}| {Colors.BLUE}{poison_url}{Colors.RESET}"
                         )
                 except Exception as e:
                     logger.exception(e)
@@ -72,16 +72,16 @@ def nuxt_check(
                 try:
                     req_verify.json()
                     print(
-                        f" {Identify.confirmed} | CVE-2025-27415 | TAG OK | {Colors.BLUE}{unrisk_page}{Colors.RESET}"
+                        f" {Identify.confirmed} | CVE-2025-27415 | TAG OK | {Colors.BLUE}{poison_url}{Colors.RESET}"
                     )
                 except requests.exceptions.JSONDecodeError:
                     if "application/json" in req_verify.headers.get("Content-Type", ""):
                         print(
-                            f" {Identify.confirmed} | CVE-2025-27415 | TAG OK | {Colors.BLUE}{unrisk_page}{Colors.RESET}"
+                            f" {Identify.confirmed} | CVE-2025-27415 | TAG OK | {Colors.BLUE}{poison_url}{Colors.RESET}"
                         )
                     if req_verify.status_code != req.status_code:
                         print(
-                            f" {Identify.confirmed} | CVE-2025-27415 | DIFFERENT RESPONSE {req.status_code} > {req_verify.status_code} | {Colors.BLUE}{unrisk_page}{Colors.RESET}"
+                            f" {Identify.confirmed} | CVE-2025-27415 | DIFFERENT RESPONSE {req.status_code} > {req_verify.status_code} | {Colors.BLUE}{poison_url}{Colors.RESET}"
                         )
                 except Exception as e:
                     logger.exception(e)

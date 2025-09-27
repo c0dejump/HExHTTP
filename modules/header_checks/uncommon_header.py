@@ -5,7 +5,7 @@ pour identifier des comportements d'erreur potentiels et détecter les réflexio
 """
 
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, format_payload, random, requests, sys
+from utils.utils import configure_logger, format_payload, random, requests, sys, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
 
 logger = configure_logger(__name__)
 
@@ -118,11 +118,11 @@ def verify_cp(
 
     if req_verify.status_code != main_status_code:
         print(
-            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req_verify.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(payload)}"
+            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req_verify.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}"
         )
     elif len(req_verify.content) not in range(main_len - 200, main_len + 200):
         print(
-            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req_verify.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(payload)}"
+            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req_verify.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}"
         )
 
 
@@ -149,11 +149,11 @@ def verify_cp_reflect(
 
     if reflect_word in req_verify.text:
         print(
-            f" {Identify.confirmed} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(payload)}"
+            f" {Identify.confirmed} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}"
         )
     elif reflect_word in req_verify.headers:
         print(
-            f" {Identify.confirmed} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(payload)}"
+            f" {Identify.confirmed} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}"
         )
 
 
@@ -172,12 +172,12 @@ def test_reflection(
         )
         if reflect_word in req_reflected.text:
             print(
-                f" {Identify.behavior} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(headers)}"
+                f" {Identify.behavior} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(headers)}{Colors.RESET}"
             )
             verify_cp_reflect(url, s, headers, authent)
         elif reflect_word in req_reflected.headers:
             print(
-                f" {Identify.behavior} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(headers)}"
+                f" {Identify.behavior} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(headers)}{Colors.RESET}"
             )
             verify_cp_reflect(url, s, headers, authent)
 
@@ -191,6 +191,14 @@ def uncommon_header_test(
     uncommon_header: list[str],
     authent: tuple[str, str] | None = None,
 ) -> None:
+    range_exlusion = (
+                range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
+                if main_len < 10000
+                else range(
+                    main_len - BIG_CONTENT_DELTA_RANGE,
+                    main_len + BIG_CONTENT_DELTA_RANGE,
+                )
+            )
     for uh in uncommon_header:
         for ep in errors_payload:
             headers = {uh: ep}
@@ -202,12 +210,12 @@ def uncommon_header_test(
             if req_uh.status_code not in [401, 403]:
                 if req_uh.status_code != main_status_code:
                     print(
-                        f" {Identify.behavior} | CPDoSError {main_status_code} > {req_uh.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(headers)}"
+                        f" {Identify.behavior} | CPDoSError {main_status_code} > {req_uh.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(headers)}{Colors.RESET}"
                     )
                     verify_cp(url, s, main_status_code, main_len, headers, authent)
-                elif len(req_uh.content) not in range(main_len - 500, main_len + 500):
+                elif len(req_uh.content) not in range_exlusion:
                     print(
-                        f" {Identify.behavior} | CPDoSError {main_len}b > {len(req_uh.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {format_payload(headers)}"
+                        f" {Identify.behavior} | CPDoSError {main_len}b > {len(req_uh.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(headers)}{Colors.RESET}"
                     )
                     verify_cp(url, s, main_status_code, main_len, headers, authent)
 
@@ -245,49 +253,3 @@ def get_http_headers(
         logger.error(f"Erreur lors de la requête : {re}")
     except Exception as e:
         logger.exception(f"Erreur inattendue : {e}")
-
-
-if __name__ == "__main__":
-    url_arg = sys.argv[1]
-
-    s = requests.Session()
-    s.headers.update(
-        {
-            "User-Agent": DEFAULT_USER_AGENT,
-        }
-    )
-
-    if "http://" in url_arg or "https://" in url_arg:
-        url = f"{url_arg}?cb=foo"
-        req_main = s.get(url, verify=False, timeout=10, allow_redirects=False)
-
-        main_head = dict(req_main.headers)
-        main_len = len(req_main.content)
-        main_status_code = req_main.status_code
-        authent = None
-
-        get_http_headers(url, s, main_status_code, main_len, main_head, authent)
-    else:
-        with open(url_arg) as url_file:
-            urls = url_file.read().splitlines()
-            for url in urls:
-                url = f"{url}?cb=foo"
-                try:
-                    req_main = s.get(
-                        url, verify=False, timeout=10, allow_redirects=False
-                    )
-
-                    main_head = dict(req_main.headers)
-                    main_len = len(req_main.content)
-                    main_status_code = req_main.status_code
-                    authent = None
-
-                    get_http_headers(
-                        url, s, main_status_code, main_len, main_head, authent
-                    )
-                except KeyboardInterrupt:
-                    print("Exiting")
-                    sys.exit()
-                except Exception:
-                    pass
-                print(f" {url}", end="\r")

@@ -3,7 +3,12 @@
 
 from modules.cpdos.backslash import backslash_poisoning
 from modules.cpdos.basic_cpdos import cpdos_main
-from modules.cpdos.multiple_headers import MHC
+from modules.cpdos.mhc import MHC
+from modules.cpdos.hho import HHO
+from modules.cpdos.hmc import HMC
+from modules.cpdos.hmo import HMO
+from modules.cpdos.hhcn import HHCN
+from modules.cpdos.hbh import HBH
 from modules.cpdos.ocd import OCD
 from modules.cpdos.path_traversal import path_traversal_check
 from utils.style import Colors
@@ -43,33 +48,39 @@ def crawl_files(
                     uri = f"https://{uri[7:].replace('//', '/')}"
 
                 # print(uri)
-                run_cpdos_modules(uri, s, req_main, authent, human)
-                backslash_poisoning(uri, s)
+                run_cpdos_modules(uri, s, authent, human)
+                backslash_poisoning(uri, s, authent, human)
+
 
     except Exception as e:
         logger.exception(e)
+
+def randomiz_url(url):
+    return f"{url}?CPDoS={random.randint(1, 99)}"
 
 
 def run_cpdos_modules(
     url: str,
     s: requests.Session,
-    req_main: requests.Response,
     authent: tuple[str, str] | None,
     human: str,
 ) -> None:
-    uri = f"{url}?CPDoS={random.randint(1, 100)}"
+    uri = f"{url}?CPDoS={random.randint(1337, 7331)}"
+
+    req_main = requests.get(uri, verify=False, allow_redirects=False, auth=authent, timeout=8)
+
     try:
         logger.debug(req_main.content)
 
-        # HHO(uri, s, req_main, authent, human)
-        # HMC(uri, s, req_main, authent, human)
-        # HMO(uri, s, req_main, authent, human)
-        # HHCN(uri, s, req_main, authent)
-        # HBH(url, s, req_main, authent, human)
+        HHO(randomiz_url(url), s, req_main, authent, human)
+        HMC(randomiz_url(url), s, req_main, authent, human)
+        HMO(randomiz_url(url), s, req_main, authent, human)
+        HHCN(randomiz_url(url), s, req_main, authent)
+        HBH(randomiz_url(url), s, req_main, authent, human)
         MHC(url, req_main, authent, human)
-        OCD(url, authent)
+        OCD(randomiz_url(url), authent)
         path_traversal_check(url, s, req_main, authent)
-        cpdos_main(uri, s, req_main, authent, human)
+        cpdos_main(randomiz_url(url), s, req_main, authent, human)
         # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")
@@ -95,5 +106,5 @@ def check_CPDoS(
 
     print(f"{Colors.CYAN} ├ CPDoS analysis{Colors.RESET}")
 
-    run_cpdos_modules(url, s, req_main, authent, human)
+    run_cpdos_modules(url, s, authent, human)
     crawl_files(url, s, req_main, authent, human)

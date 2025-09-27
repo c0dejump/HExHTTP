@@ -7,14 +7,11 @@ https://cpdos.org/#HMO
 
 import utils.proxy as proxy
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, format_payload, human_time, random, requests
+from utils.utils import configure_logger, format_payload, human_time, random, requests, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
 
 logger = configure_logger(__name__)
 
 VULN_NAME = "HTTP Method Override"
-
-CONTENT_DELTA_RANGE = 500
-BIG_CONTENT_DELTA_RANGE = 5000
 
 
 def HMO(
@@ -211,6 +208,7 @@ def HMO(
         (header, method) for header in hmo_headers for method in methods
     ):
         uri = f"{url}{random.randrange(999)}"
+        
         reason = ""
         try:
             probe_headers = {header: method}
@@ -251,7 +249,7 @@ def HMO(
             elif (
                 len(probe.content) != main_len
                 and len(probe.content) not in range_exlusion
-                and probe.status_code not in [main_status_code, 429, 403]
+                and probe.status_code not in [429, 403]
             ):
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(probe.content)}b"

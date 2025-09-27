@@ -15,6 +15,7 @@ from utils.utils import (
     generate_cache_buster,
     human_time,
     requests,
+    random,
 )
 
 logger = configure_logger(__name__)
@@ -27,7 +28,7 @@ MAX_SAMPLE_CONTENT = 3
 
 
 def cache_poisoning(
-    url: str,
+    uri: str,
     s: requests.Session,
     parameters: dict[str, str],
     response_1: requests.Response,
@@ -38,7 +39,7 @@ def cache_poisoning(
     """Function to test for cache poisoning"""
 
     response_3 = s.get(
-        url,
+        uri,
         params=parameters,
         auth=authentication,
         allow_redirects=False,
@@ -67,7 +68,7 @@ def cache_poisoning(
     if reason:
         payload = f"Connection: {headers['Connection']}"
         print(
-            f" {Identify.confirmed} | {VULN_NAME} | {Colors.BLUE}{response_2.url}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
+            f" {Identify.confirmed} | {VULN_NAME} | {Colors.BLUE}{response_2.uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
@@ -101,11 +102,13 @@ def HBH(
     response_2_count_size = 0
 
     for header in header_list:
+        uri = f"{url}{random.randrange(9999)}"
+
         headers = {"Connection": f"keep-alive, {header}"}
         parameters = {"cacheBuster": generate_cache_buster()}
         try:
             response_2 = s.get(
-                url,
+                uri,
                 headers=headers,
                 params=parameters,
                 auth=authent,
@@ -166,17 +169,17 @@ def HBH(
             if behavior:
                 payload = f"Connection: {headers['Connection']}"
                 print(
-                    f" {Identify.behavior} | {VULN_NAME} | {Colors.BLUE}{response_2.url}{Colors.RESET} | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
+                    f" {Identify.behavior} | {VULN_NAME} | {Colors.BLUE}{response_2.uri}{Colors.RESET} | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
                 if proxy.proxy_enabled:
                     from utils.proxy import proxy_request
 
                     proxy_request(
-                        s, "GET", url, headers=headers, data=None, severity="behavior"
+                        s, "GET", uri, headers=headers, data=None, severity="behavior"
                     )
                 for _ in range(0, 5):
                     response_2 = s.get(
-                        url,
+                        uri,
                         headers=headers,
                         params=parameters,
                         auth=authent,
@@ -185,7 +188,7 @@ def HBH(
                         timeout=10,
                     )
                 cache_poisoning(
-                    url, s, parameters, response_1, response_2, authent, headers
+                    uri, s, parameters, response_1, response_2, authent, headers
                 )
             human_time(human)
 

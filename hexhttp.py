@@ -102,19 +102,8 @@ def get_technos(
 
     if not technologies_detected:
         print(
-            f"{Colors.YELLOW} │   └── No specific technologies detected{Colors.RESET}"
+            f"{Colors.YELLOW} │ └── No specific technologies detected{Colors.RESET}"
         )
-
-
-"""
-def fuzz_x_header(url):
-    When fuzzing for custom X-Headers on a target, a setup example as below can be combined with a dictionary/bruteforce attack. This makes it possible to extract hidden headers that the target uses.
-        X-Forwarded-{FUZZ}
-        X-Original-{FUZZ}
-        X-{COMPANY_NAME}-{FUZZ}
-    (https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
-    #TODO Really useful ?
-"""
 
 
 def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
@@ -273,6 +262,17 @@ def cli_main() -> None:
         s.headers.update(
             {
                 "User-Agent": user_agent,
+                #DECOMMENTHIS
+                #"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                #"Accept-Language": "en-US,en;q=0.5",
+                #"Accept-Encoding": "gzip, deflate, br",
+                #"Connection": "keep-alive",
+                #"Upgrade-Insecure-Requests": "1",
+                #"Sec-Fetch-Dest": "document",
+                #"Sec-Fetch-Mode": "navigate",
+                #"Sec-Fetch-Site": "none",
+                #"Sec-Fetch-User": "?1",
+                #"Priority": "u=4",
             }
         )
 

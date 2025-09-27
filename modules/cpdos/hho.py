@@ -7,7 +7,7 @@ https://cpdos.org/#HHO
 
 import utils.proxy as proxy
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, human_time, requests
+from utils.utils import configure_logger, human_time, requests, random
 
 logger = configure_logger(__name__)
 
@@ -48,10 +48,11 @@ def HHO(
     while iteration < max_iterations and not error_detected:
         big_value = big_value + "0" * 50
         h = {f"X-Oversized-Header-{iteration}": f"{big_value}"}
-
+        uri = f"{url}{random.randrange(9999)}"
+        
         try:
             probe = s.get(
-                url,
+                uri,
                 headers=h,
                 auth=authent,
                 allow_redirects=False,
@@ -71,7 +72,7 @@ def HHO(
             ):
                 logger.debug(
                     "CPDOS : URL (%s) STATUS (%s) Headers :(%s)",
-                    url,
+                    uri,
                     probe.status_code,
                     probe.headers,
                 )
@@ -91,7 +92,7 @@ def HHO(
     if error_detected:
         try:
             verify = s.get(
-                url, auth=authent, allow_redirects=False, verify=False, timeout=10
+                uri, auth=authent, allow_redirects=False, verify=False, timeout=10
             )
             if (
                 verify.status_code in [400, 413, 500, 502]
@@ -110,12 +111,12 @@ def HHO(
                 status = f"{Identify.behavior}"
                 severity = "behavior"
             print(
-                f" {status} | HHO DOS | {Colors.BLUE}{url}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}{Colors.RESET}"
+                f" {status} | HHO DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}{Colors.RESET}"
             )
             if proxy.proxy_enabled:
                 from utils.proxy import proxy_request
 
-                proxy_request(s, "GET", url, headers=h, data=None, severity=severity)
+                proxy_request(s, "GET", uri, headers=h, data=None, severity=severity)
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)

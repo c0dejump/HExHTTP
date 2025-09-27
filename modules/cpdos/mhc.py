@@ -46,7 +46,7 @@ def verify_cache_poisoning(
             conn.close()
 
         uri = f"{url}?CPDoS={cb}"
-        req = requests.get(uri, auth=authent, timeout=10)
+        req = requests.get(uri, auth=authent, verify=False, allow_redirects=False, timeout=10)
         if req.status_code == res_status and res_status != main_status_code:
             reason = f"DIFFERENT STATUS-CODE  {main_status_code} > {response.status}"
             print(
@@ -168,6 +168,7 @@ def host_duplicate_headers(
 def MHC(
     url: str, req_main: requests.Response, authent: tuple[str, str] | None, human: str
 ) -> None:
+
     main_status_code = req_main.status_code
     try:
         parsed_url = urlparse(url)
@@ -227,5 +228,7 @@ def MHC(
             print(f" {Colors.BLUE} {VULN_NAME} : {mh}{Colors.RESET}\r", end="")
             print("\033[K", end="")
 
+    except requests.Timeout as t:
+        logger.error(t)
     except Exception as e:
         logger.exception(e)

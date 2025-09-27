@@ -24,7 +24,11 @@ Follow these steps to install **HExHTTP**:
    ```
 3. **Install** the required dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip install .
+   ```
+   - dev mod
+   ```bash
+   pip install -e ".{dev]"
    ```
 4. **Ensure HExHTTP** is running correctly:
    ```bash
@@ -72,8 +76,6 @@ HExHTTP now supports flexible proxy configuration:
 # Use custom Burp proxy address
 » ./hexhttp.py -u 'https://target.tld/' --burp 192.168.1.100:8080
 
-# Route all traffic through a corporate proxy, but send findings to Burp
-» ./hexhttp.py -u 'https://target.tld/' --proxy corporate.proxy:3128 --burp 127.0.0.1:8080
 ```
 
 When using `--burp`, HExHTTP will automatically create issues in Burp Suite for:
@@ -94,20 +96,10 @@ Routes all HTTP requests through the specified proxy server:
 » ./hexhttp.py -u 'https://target.tld/' --proxy
 ```
 
-### Burp Proxy (`--burp`)
-Sends behavior and confirmed findings to Burp Suite:
-```bash
-# Custom Burp proxy
-» ./hexhttp.py -u 'https://target.tld/' --burp 192.168.1.100:8080
-
-# Default Burp proxy (127.0.0.1:8080)
-» ./hexhttp.py -u 'https://target.tld/' --burp
-```
-
 ### Combined Usage
 Use both options for maximum flexibility:
 ```bash
-# Route traffic through corporate proxy, send findings to Burp
+# Route all traffic through a corporate proxy, but send findings to Burp
 » ./hexhttp.py -u 'https://target.tld/' --proxy corporate.proxy:3128 --burp 127.0.0.1:8080
 ```
 
@@ -174,7 +166,7 @@ options:
 » ./hexhttp.py -u 'https://target.tld/' --user-agent "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/123.0-BugBounty"
 
 # Use a custom Header and authentication
-» ./hexhttp.py --header 'Foo: bar' --auth 'user:passwd' -u 'https://target.tld/' 
+» ./hexhttp.py --header 'Foo: bar' -H 'plip: plop' --auth 'user:passwd' -u 'https://target.tld/' 
 
 # Proxy all requests through a custom proxy
 » ./hexhttp.py -u 'https://target.tld/' --proxy 127.0.0.1:8080
@@ -187,9 +179,6 @@ options:
 
 # Use default Burp proxy (127.0.0.1:8080)
 » ./hexhttp.py -u 'https://target.tld/' --burp
-
-# Loop on domains, grep for vulnerabilities only and send result with notify (from projectdiscovery)
-» for domain in $(cat domains.lst); do ./hexhttp.py -u "$domain" | grep -Eio "(INTERESTING|CONFIRMED)(.*)PAYLOAD.?:(.*){5,20}$" | notify -silent; done
 
 ```
 
@@ -204,7 +193,7 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 ![example poisoner](./static/docs/_media/example_02.png)
 
 ### TOOL TIPS
-- If the base URL responds with a 403, try removing the comments in hexhttp.py (line 220) and restarting.
+- If the base URL responds with a 403, try removing the comments in hexhttp.py (search DECOMMENTHIS) and restarting.
 
 ## Features
 

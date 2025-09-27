@@ -34,8 +34,15 @@ def nextjsdos(
         url, verify=False, auth=authent, timeout=10, allow_redirects=False
     )
     req = reqdos  # Assign req to reqdos for the following check
-    if "pageProps" in req.text or len(reqdos.content) == len(reqverify.content):
-        print(f" {Identify.confirmed} | {url} | {headers}")
+    if "pageProps" in req.text or "__N_SSP" in req.text or len(reqdos.content) == len(reqverify.content):
+        try:
+            reqverify.json()
+            print(f" {Identify.confirmed} | CVE-2024-46982 | {uri} | PAYLOAD: {headers}")
+        except requests.exceptions.JSONDecodeError:
+            if "application/json" in reqverify.headers.get("Content-Type", ""):
+                print(f" {Identify.confirmed} | CVE-2024-46982 | {uri} | PAYLOAD: {headers}")
+            else:
+                pass
 
 
 def datareq_check(
@@ -57,7 +64,7 @@ def datareq_check(
             timeout=10,
         )
 
-        if "pageProps" in req.text or "__N_SSP" in req.text:
+        if "pageProps" in req.text or "__N_SSP" in req.text and len(req.content) != len(req_main.content):
             print(
                 f" {Identify.behavior} | CVE-2024-46982 | TAG OK | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: x-now-route-matches: 1"
             )

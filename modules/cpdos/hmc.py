@@ -26,7 +26,8 @@ def check_meta_character(
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
 
-    url = f"{url}{random.randrange(99)}"
+    url = f"{url}{random.randrange(999)}"
+
     headers = {"X-Metachar-Header": meta_character}
     probe = s.get(
         url,

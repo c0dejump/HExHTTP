@@ -15,7 +15,9 @@ from utils.utils import (
     random,
     requests,
     sys,
+    CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
 )
+
 
 logger = configure_logger(__name__)
 
@@ -170,10 +172,9 @@ def cpdos_main(
 ) -> None:
     main_status_code = initial_response.status_code
     main_len = len(initial_response.content)
-
     blocked = 0
     for pk in payloads_keys:
-        uri = f"{url}{random.randrange(99999)}"
+        uri = f"{url}{random.randrange(999)}"
         try:
             req = s.get(
                 uri,

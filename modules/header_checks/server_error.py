@@ -17,7 +17,6 @@ DEFAULT_USER_AGENT = (
 class ServerErrorAnalyzer:
 
     def __init__(self) -> None:
-        # Payloads plus variés et ciblés
         self.payloads_error = [
             "%2a",
             "%EXT%",
@@ -32,6 +31,7 @@ class ServerErrorAnalyzer:
             ".tmp",
             "%00",
             "%0D",
+            "@",
             "A" * 100,
             "%2f",
             "%5c",
@@ -65,9 +65,7 @@ class ServerErrorAnalyzer:
             "../../etc/passwd",
         ]
 
-        # Patterns d'erreur considérablement améliorés
         self.error_patterns = {
-            # Divulgation de chemins système
             "path_disclosure": {
                 "patterns": [
                     r'([A-Za-z]:\\(?:[^<>\s"\']*\\)*[^<>\s"\']*\.(php|asp|aspx|jsp|py|pl|cgi|txt|ini|conf))',
@@ -81,7 +79,6 @@ class ServerErrorAnalyzer:
                 ],
                 "severity": "HIGH",
             },
-            # Erreurs de base de données
             "database_error": {
                 "patterns": [
                     r"(MySQL server version for the right syntax)",
@@ -102,7 +99,6 @@ class ServerErrorAnalyzer:
                 ],
                 "severity": "HIGH",
             },
-            # Traces de pile et exceptions
             "stack_trace": {
                 "patterns": [
                     r"(Traceback \(most recent call last\):)",
@@ -123,7 +119,6 @@ class ServerErrorAnalyzer:
                 ],
                 "severity": "MEDIUM",
             },
-            # Mode debug actif
             "debug_mode": {
                 "patterns": [
                     r"(DEBUG = True|debug.*=.*true)",
@@ -141,7 +136,6 @@ class ServerErrorAnalyzer:
                 ],
                 "severity": "MEDIUM",
             },
-            # Adresses IP internes
             "internal_ip": {
                 "patterns": [
                     r"(\b(?:192\.168|10\.|172\.(?:1[6-9]|2[0-9]|3[01]))\.[0-9]{1,3}\.[0-9]{1,3}\b)",
@@ -154,7 +148,6 @@ class ServerErrorAnalyzer:
                 ],
                 "severity": "LOW",
             },
-            # Informations sensibles
             "sensitive_info": {
                 "patterns": [
                     r'(password\s*[=:]\s*["\'][^"\']{3,}["\'])',
@@ -169,7 +162,6 @@ class ServerErrorAnalyzer:
                 ],
                 "severity": "HIGH",
             },
-            # Énumération de fichiers/dossiers
             "directory_listing": {
                 "patterns": [
                     r"(<title>Index of /)",
@@ -182,7 +174,6 @@ class ServerErrorAnalyzer:
                 ],
                 "severity": "MEDIUM",
             },
-            # Serveurs et versions
             "server_info": {
                 "patterns": [
                     r"(Server:\s*([^\r\n]+))",
@@ -197,7 +188,6 @@ class ServerErrorAnalyzer:
                 ],
                 "severity": "LOW",
             },
-            # Configuration exposée
             "config_exposure": {
                 "patterns": [
                     r"(\[database\]|\[mysql\]|\[postgresql\])",
@@ -247,10 +237,8 @@ class ServerErrorAnalyzer:
     def _find_error_patterns(
         self, content: str, headers: dict[str, str]
     ) -> dict[str, dict[str, Any]]:
-        """Recherche améliorée des patterns avec scoring et contexte"""
         findings = {}
 
-        # Analyse séparée du contenu et des headers
         for category, patterns in self.error_patterns.items():
             matches = []
             confidence_scores = []
@@ -306,10 +294,8 @@ class ServerErrorAnalyzer:
     def _calculate_confidence(
         self, pattern: str, matches: list[Any], category: str
     ) -> float:
-        """Calcule un score de confiance pour un match"""
         base_confidence = 0.7
 
-        # Patterns très spécifiques = haute confiance
         specific_indicators = [
             "mysql_fetch_array",
             "Traceback",
@@ -319,12 +305,10 @@ class ServerErrorAnalyzer:
         if any(indicator in pattern for indicator in specific_indicators):
             base_confidence = 0.9
 
-        # Patterns génériques = confiance plus faible
         generic_indicators = [r"\w+", r"[^<>]*", r".*"]
         if any(indicator in pattern for indicator in generic_indicators):
             base_confidence -= 0.1
 
-        # Ajustement basé sur le nombre de matches
         if len(matches) > 3:
             base_confidence += 0.1
         elif len(matches) == 1:
@@ -335,7 +319,6 @@ class ServerErrorAnalyzer:
     def _analyze_error_response(
         self, payload: str, response: requests.Response, response_time: float
     ) -> dict[str, Any]:
-        """Analyse améliorée de la réponse d'erreur"""
         content = ""
         headers = {}
 
@@ -386,7 +369,6 @@ class ServerErrorAnalyzer:
                             )
                         match_index += 1
 
-        # Analyse additionnelle
         self._additional_analysis(payload, response, response_time, content)
 
         return {
@@ -404,24 +386,22 @@ class ServerErrorAnalyzer:
         response_time: float,
         content: str,
     ) -> None:
-        """Analyses supplémentaires"""
 
-        # Détection de comportement anormal
         if response_time > 5.0:
-            print(f"   ⏱️  Très lent ({response_time:.2f}s) - potentiel vecteur DoS")
+            print(f"   ⏱️  very slow ({response_time:.2f}s) - potential DoS")
 
         # Analyse de la taille de réponse
         content_length = len(content)
         if content_length > 10000:
-            print(f"   📊 Réponse volumineuse ({content_length:,} chars)")
+            print(f"   📊 Extensive response ({content_length:,} chars)")
         elif content_length == 0:
-            print("   🕳️  Réponse vide")
+            pass
 
         # Détection de redirections suspectes
         if 300 <= response.status_code < 400:
             location = response.headers.get("Location", "")
             if location:
-                print(f"   🔄 Redirection vers: {location[:100]}")
+                print(f"   🔄 Redirect To: {location[:100]}")
 
     def analyze_server_errors(
         self,
@@ -450,7 +430,7 @@ class ServerErrorAnalyzer:
             # Exécution de la requête
             result = self._make_request(error_url, authent)
             if not result:
-                print(f" │  ❌ Request failed for {payload}")
+                print(f" │  x Request failed for {payload}")
                 continue
 
             response, response_time = result

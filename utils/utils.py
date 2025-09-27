@@ -19,6 +19,13 @@ import urllib3
 from modules.logging_config import configure_logger  # noqa: F401
 from utils.style import Colors
 
+import requests.utils
+
+def _noop_check_header_validity(header, value=None):
+    return None
+
+requests.utils.check_header_validity = _noop_check_header_validity
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = configure_logger(__name__)

@@ -13,6 +13,7 @@ def vercel(url: str, s: requests.Session) -> None:
         {"x-vercel-deployment-url": "plop123"},
         {"x-vercel-ip-continent": "plop123"},
         {"x-vercel-signature": "plop123"},
+        {"X-Vercel-Id": "A" * 55},
     ]
     for vhl in vercel_header_list:
         try:
