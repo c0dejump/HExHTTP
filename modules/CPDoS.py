@@ -65,6 +65,7 @@ def run_cpdos_modules(
     authent: tuple[str, str] | None,
     human: str,
 ) -> None:
+
     uri = f"{url}?CPDoS={random.randint(1337, 7331)}"
 
     req_main = requests.get(uri, verify=False, allow_redirects=False, auth=authent, timeout=8)

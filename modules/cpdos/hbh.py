@@ -68,7 +68,7 @@ def cache_poisoning(
     if reason:
         payload = f"Connection: {headers['Connection']}"
         print(
-            f" {Identify.confirmed} | {VULN_NAME} | {Colors.BLUE}{response_2.uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
+            f" {Identify.confirmed} | {VULN_NAME} | {Colors.BLUE}{response_2.url}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
@@ -169,7 +169,7 @@ def HBH(
             if behavior:
                 payload = f"Connection: {headers['Connection']}"
                 print(
-                    f" {Identify.behavior} | {VULN_NAME} | {Colors.BLUE}{response_2.uri}{Colors.RESET} | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
+                    f" {Identify.behavior} | {VULN_NAME} | {Colors.BLUE}{response_2.url}{Colors.RESET} | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
                 if proxy.proxy_enabled:
                     from utils.proxy import proxy_request
