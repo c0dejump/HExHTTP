@@ -120,3 +120,14 @@ def check_auth(auth: str, url: str) -> tuple[str, str] | None:
         print('Error, the authentication format need to be "user:pass"')
         logger.exception(e)
         sys.exit()
+
+
+def range_exclusion(main_len):
+    range_exlusion = (
+        range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
+        if main_len < 10000
+        else range(
+            main_len - BIG_CONTENT_DELTA_RANGE,
+            main_len + BIG_CONTENT_DELTA_RANGE,
+        )
+    )

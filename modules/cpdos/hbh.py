@@ -74,7 +74,7 @@ def cache_poisoning(
             from utils.proxy import proxy_request
 
             proxy_request(
-                s, "GET", url, headers=headers, data=None, severity="confirmed"
+                s, "GET", uri, headers=headers, data=None, severity="confirmed"
             )
         # print(response_3.headers)
         # print(response_3.text)

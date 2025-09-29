@@ -76,6 +76,9 @@ class ServerErrorAnalyzer:
                     r'(\\(?:xampp|wamp|mamp)\\[^<>\s"\']*)',
                     r'(/var/log/[^<>\s"\']*)',
                     r'(/tmp/[^<>\s"\']*\.(tmp|log|txt))',
+                    r"(core/modules/[a-z_]+/src/[^\s\)]+\.php)",
+                    r"(sites/[a-z0-9_\-/]+\.php)",
+                    r"(vendor/[a-z0-9_\-/]+\.php)",
                 ],
                 "severity": "HIGH",
             },
@@ -96,6 +99,15 @@ class ServerErrorAnalyzer:
                     r"(Access denied for user \'[^\']*\'@\'[^\']*\')",
                     r"(Connection refused.*\d+)",
                     r"(\[SQL Server\]|\[MySQL\]|\[PostgreSQL\]|\[Oracle\])",
+                    r"(SQLSTATE\[\w+\]:[^\n]+)",
+                    r"(DatabaseException\w*:[^\n]+)",
+                    r"(SQL syntax[^\n]+)",
+                    r"(Illegal mix of collations)",
+                    r"(General error: \d+)",
+                    r"(\bSELECT\s+[^\n]{20,200}\s+FROM\s+)",
+                    r"(Array\s*\(\s*\[:[^\]]+\]\s*=>)",
+                    r"(SQLSTATE\[[A-Z0-9]+\]:)",
+                    r"(DatabaseException\w*)",
                 ],
                 "severity": "HIGH",
             },
@@ -116,6 +128,7 @@ class ServerErrorAnalyzer:
                     r"(Caused by: [a-zA-Z\.]+Exception)",
                     r"(Error \d+: [^<>\n]+)",
                     r"(UnhandledException|ArgumentException|NullReferenceException)",
+                    r"([A-Za-z]+\\[A-Za-z\\]+::[a-zA-Z_]+\(\))",
                 ],
                 "severity": "MEDIUM",
             },
@@ -157,8 +170,7 @@ class ServerErrorAnalyzer:
                     r'(connection[_\-]?string\s*[=:]\s*["\'][^"\']{10,}["\'])',
                     r'(database[_\-]?url\s*[=:]\s*["\'][^"\']{10,}["\'])',
                     r'(smtp[_\-]?password\s*[=:]\s*["\'][^"\']{3,}["\'])',
-                    r"(\b[A-Za-z0-9]{32,}\b)",  # Tokens/Hashes potentiels
-                    r"(-----BEGIN [A-Z ]+-----)",  # Clés cryptographiques
+                    r"(-----BEGIN [A-Z ]+-----)", 
                 ],
                 "severity": "HIGH",
             },
@@ -239,12 +251,12 @@ class ServerErrorAnalyzer:
     ) -> dict[str, dict[str, Any]]:
         findings = {}
 
-        for category, patterns in self.error_patterns.items():
+        for category, category_data in self.error_patterns.items():
             matches = []
             confidence_scores = []
             header_sources = []  # Track which headers contained matches
 
-            for pattern in patterns:
+            for pattern in category_data["patterns"]:
                 try:
                     # Recherche dans le contenu
                     content_matches = re.findall(
@@ -323,7 +335,7 @@ class ServerErrorAnalyzer:
         headers = {}
 
         try:
-            content = response.text[:5000] if hasattr(response, "text") else ""
+            content = response.text if hasattr(response, "text") else ""
             headers = dict(response.headers) if hasattr(response, "headers") else {}
         except Exception as e:
             logger.warning(f"Error reading response: {e}")
@@ -343,8 +355,7 @@ class ServerErrorAnalyzer:
                 sources = findings.get("sources", [])
 
                 print(
-                    f"   📍 {category.replace('_', ' ').title()} "
-                    f"[Confidence: {confidence:.2f}, Count: {count}]"
+                    f"    ⚠️ {category.replace('_', ' ').title()} "
                 )
 
                 # Affiche les matches trouvés avec leur source
@@ -390,14 +401,6 @@ class ServerErrorAnalyzer:
         if response_time > 5.0:
             print(f"   ⏱️  very slow ({response_time:.2f}s) - potential DoS")
 
-        # Analyse de la taille de réponse
-        content_length = len(content)
-        if content_length > 10000:
-            print(f"   📊 Extensive response ({content_length:,} chars)")
-        elif content_length == 0:
-            pass
-
-        # Détection de redirections suspectes
         if 300 <= response.status_code < 400:
             location = response.headers.get("Location", "")
             if location:

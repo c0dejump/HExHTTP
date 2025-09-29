@@ -82,6 +82,7 @@ common_header = [
     "X-Content-Security-Policy",
     "Cross-Origin-Opener-Policy",
     "Cross-Origin-Resource-Policy",
+    "cache-status",
 ]
 
 errors_payload = ["A" * 1024, "xxxx", "©"]
@@ -250,6 +251,6 @@ def get_http_headers(
             )
 
     except requests.exceptions.RequestException as re:
-        logger.error(f"Erreur lors de la requête : {re}")
+        logger.error(f"Error during query : {re}")
     except Exception as e:
-        logger.exception(f"Erreur inattendue : {e}")
+        logger.exception(f"Unexpected error : {e}")

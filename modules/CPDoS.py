@@ -68,7 +68,7 @@ def run_cpdos_modules(
 
     uri = f"{url}?CPDoS={random.randint(1337, 7331)}"
 
-    req_main = requests.get(uri, verify=False, allow_redirects=False, auth=authent, timeout=8)
+    req_main = requests.get(uri, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, auth=authent, timeout=8)
 
     try:
         logger.debug(req_main.content)

@@ -9,6 +9,7 @@ import utils.proxy as proxy
 from utils.style import Colors, Identify
 from utils.utils import (
     CONTENT_DELTA_RANGE,
+    BIG_CONTENT_DELTA_RANGE,
     configure_logger,
     get_domain_from_url,
     random,
@@ -54,6 +55,15 @@ def HHCN(
     try:
         main_response_size = len(main_response.content)
 
+        range_exlusion = (
+            range(main_response_size - CONTENT_DELTA_RANGE, main_response_size + CONTENT_DELTA_RANGE)
+            if main_response_size < 10000
+            else range(
+                main_response_size - BIG_CONTENT_DELTA_RANGE,
+                main_response_size + BIG_CONTENT_DELTA_RANGE,
+            )
+        )
+
         probe = s.get(
             url,
             headers=headers,
@@ -64,15 +74,11 @@ def HHCN(
         )
         probe_size = len(probe.content)
         behavior = ""
-        if not (
-            main_response_size - content_delta_range
-            < probe_size
-            < main_response_size + content_delta_range
-        ) or (main_response.status_code != probe.status_code):
+        if probe_size not in range_exlusion or (main_response.status_code != probe.status_code):
             if len(probe.headers) > 0:
                 for rf in probe.headers:
                     if "cache" in rf.lower() or "age" in rf.lower():
-                        for _ in range(10):
+                        for _ in range(5):
                             req_hhcn_bis = s.get(
                                 url,
                                 headers=headers,
@@ -100,11 +106,7 @@ def HHCN(
                     auth=authent,
                     allow_redirects=False,
                 )
-            if not (
-                main_response_size - content_delta_range
-                < probe_size
-                < main_response_size + content_delta_range
-            ):
+            if probe_size not in range_exlusion:
                 behavior = (
                     f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {probe_size}b"
                 )
@@ -122,7 +124,6 @@ def HHCN(
 
             if behavior and proxy.proxy_enabled:
                 from utils.proxy import proxy_request
-
                 proxy_request(s, "GET", url, headers=headers, data=None)
 
             control = s.get(url, verify=False, timeout=10, auth=authent)

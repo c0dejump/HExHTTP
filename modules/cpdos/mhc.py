@@ -86,12 +86,18 @@ def duplicate_headers(
                 if "age" in rh.lower() or "hit" in rh.lower():
                     return response, cb
 
-    except Exception:
+    except KeyboardInterrupt:
         conn.close()
+        raise
+    except Exception as e:
+        conn.close()
+        logger.exception(e)
         return tuple()
     finally:
-        conn.close()
-        return tuple()
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def referer_duplicate_headers(
@@ -121,6 +127,7 @@ def referer_duplicate_headers(
             for rh in response.headers:
                 if "age" in rh.lower() or "hit" in rh.lower():
                     return response, cb
+
     except Exception:
         conn.close()
         return tuple()
@@ -157,6 +164,7 @@ def host_duplicate_headers(
             for rh in response.headers:
                 if "age" in rh.lower() or "hit" in rh.lower():
                     return response, cb
+
     except Exception:
         conn.close()
         return tuple()

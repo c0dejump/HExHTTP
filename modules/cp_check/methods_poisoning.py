@@ -30,6 +30,7 @@ def print_result(
     url: str,
     payload: str,
 ) -> None:
+    method = method if method != "GET" else "GET "
     if payload:
         print(
             f" {status} | {vuln} {method} | {reason} {reason_result} | \033[34m{url}\033[0m | PAYLOAD: {Colors.THISTLE}{method} with {payload}{Colors.RESET}"

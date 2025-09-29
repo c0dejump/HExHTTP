@@ -80,7 +80,7 @@ def datareq_check(
                 nextjsdos(unrisk_page, uri, s)
             else:
                 print(
-                    " CVE-2024-46982 | [i] No risk-free pages have been found. Please do a manual check."
+                    " └─ [i] [CVE-2024-46982] No risk-free pages found. Please do a manual check."
                 )
     except requests.Timeout as t:
         logger.error(f"request timeout {uri}: {t}")

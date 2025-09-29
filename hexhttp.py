@@ -124,7 +124,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
         start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"{Colors.SALMON}[STARTED]{Colors.RESET} {start_time}")
         print(f" URL: {url}")
-        print(f" URL response: {req_main.status_code}")
+        print(f" URL response: {Colors.GREEN}{main_status_code}{Colors.RESET}") if main_status_code == 200 else print(f" URL response: {Colors.YELLOW}{main_status_code}{Colors.RESET}")
         print(f" URL response size: {main_len} bytes")
         proxy_status = f" Proxy: {Colors.RED}OFF{Colors.RESET}"
         if proxy.proxy_enabled:
@@ -133,7 +133,8 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
             proxy_status += f" | Burp: {Colors.GREEN}ON{Colors.RESET} ({proxy.burp_url})"
         print(proxy_status)
         print(f"{Colors.BLUE}⟘{Colors.RESET}")
-        if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
+
+        if main_status_code not in [200, 302, 301, 403, 401] and not url_file:
             choice = input(
                 f" {Colors.YELLOW}The url does not seem to answer correctly, continue anyway ?{Colors.RESET} [y/n]"
             )
@@ -152,12 +153,8 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
             get_technos(url, s, req_main, a_tech)
 
         get_http_headers(url, s, main_status_code, main_len, dict(main_head), authent)
-        check_cpcve(
-            url, s, req_main, parse_headers(custom_header), authent, human or ""
-        )
-        check_CPDoS(
-            url, s, req_main, parse_headers(custom_header), authent, human or ""
-        )
+        check_cpcve(url, s, req_main, parse_headers(custom_header), authent, human or "")
+        check_CPDoS(url, s, req_main, parse_headers(custom_header), authent, human or "")
         check_methods_poisoning(url, s, parse_headers(custom_header), authent)
         check_cache_poisoning(
             url,

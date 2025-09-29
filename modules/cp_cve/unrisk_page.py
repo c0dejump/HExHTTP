@@ -2,10 +2,16 @@
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
+from bs4 import MarkupResemblesLocatorWarning
+import warnings
+
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 from utils.utils import re, requests, urljoin
 
 COMMON_PATHS = [
+    "releases",
+    "referral-program",
     "accessibilite",
     "mentions-legales",
     "mentions",

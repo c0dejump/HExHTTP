@@ -79,7 +79,7 @@ def nuxt_check(
                         print(
                             f" {Identify.confirmed} | CVE-2025-27415 | TAG OK | {Colors.BLUE}{poison_url}{Colors.RESET}"
                         )
-                    if req_verify.status_code != req.status_code:
+                    if req_verify.status_code != req.status_code and req_verify.status_code not in [404, 429, 403]:
                         print(
                             f" {Identify.confirmed} | CVE-2025-27415 | DIFFERENT RESPONSE {req.status_code} > {req_verify.status_code} | {Colors.BLUE}{poison_url}{Colors.RESET}"
                         )
@@ -89,7 +89,7 @@ def nuxt_check(
                 logger.exception(e)
         else:
             print(
-                " CVE-2025-27415 | [i] It seems that the nuxt.js framework is used, but no risk-free pages have been found. Please do a manual check."
+                " └─ [i] [CVE-2025-27415] Seems nuxt.js framework is used, but no risk-free pages found. Please do a manual check."
             )
 
     except requests.Timeout as t:

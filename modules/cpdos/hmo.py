@@ -204,13 +204,22 @@ def HMO(
     main_status_code = initial_response.status_code
     main_len = len(initial_response.content)
 
+    range_exlusion = (
+        range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
+        if main_len < 10000
+        else range(
+            main_len - BIG_CONTENT_DELTA_RANGE,
+            main_len + BIG_CONTENT_DELTA_RANGE,
+        )
+    )
+
     for header, method in (
         (header, method) for header in hmo_headers for method in methods
     ):
-        uri = f"{url}{random.randrange(999)}"
         
         reason = ""
         try:
+            uri = f"{url}{random.randrange(999)}"
             probe_headers = {header: method}
             print(
                 f" {Colors.BLUE} {VULN_NAME} : {probe_headers}{Colors.RESET}\r", end=""
@@ -226,14 +235,7 @@ def HMO(
             )
             human_time(human)
 
-            range_exlusion = (
-                range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
-                if main_len < 10000
-                else range(
-                    main_len - BIG_CONTENT_DELTA_RANGE,
-                    main_len + BIG_CONTENT_DELTA_RANGE,
-                )
-            )
+
             logger.debug(range_exlusion)
 
             if probe.status_code != main_status_code and probe.status_code not in [
@@ -286,7 +288,7 @@ def HMO(
 
             if (
                 len(control.content) == len(probe.content)
-                and len(probe.content) not in range_exlusion
+                and len(control.content) not in range_exlusion
                 and control.status_code not in [429, 403]
             ):
                 reason = (
