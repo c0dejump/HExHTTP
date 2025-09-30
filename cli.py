@@ -132,7 +132,7 @@ def args() -> argparse.Namespace:
         help="Increase verbosity (can be used multiple times)",
     )
 
-    group = parser.add_argument_group(f"{Colors.BLUE}> Other{Colors.RESET}")
+    group = parser.add_argument_group(f"{Colors.BLUE}> Proxy Settings{Colors.RESET}")
     group.add_argument(
         "-p",
         "--proxy",
@@ -150,6 +150,8 @@ def args() -> argparse.Namespace:
         help="Send behavior and confirmed requests to Burp proxy (format: host:port, default: 127.0.0.1:8080)",
         required=False,
     )
+
+    group = parser.add_argument_group(f"{Colors.BLUE}> Tips{Colors.RESET}")
     group.add_argument(
         "--ocp",
         "--only-cp",

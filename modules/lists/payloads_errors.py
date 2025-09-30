@@ -79,7 +79,6 @@ payloads_keys = [
     {"x-timer": "${7*7}"},
     {"x-timer": "{{7*7}}"},
     {"x-timer": "<script>alert(1)</script>"},
-    {"x-timer": '"><script>alert(1)</script>'},
     {"x-timer": "25:61:61"},
     {"x-timer": "2024-13-32"},
     {"x-timer": "Mon, 32 Dec 2024 25:61:61 GMT"},

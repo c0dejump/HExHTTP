@@ -120,33 +120,36 @@ options:
   -h, --help            show this help message and exit
 
 > General:
-  -u, --url URL         URL to test [required]
-  -f, --file URL_FILE   File of URLs
+  -u URL, --url URL     URL to test [required] if no -f/--file provided
+  -f URL_FILE, --file URL_FILE
+                        File of URLs
   -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
 
 > Request Settings:
-  -H, --header CUSTOM_HEADER
+  -H CUSTOM_HEADER, --header CUSTOM_HEADER
                         Add a custom HTTP Header
-  -A, --user-agent USER_AGENT
+  -A USER_AGENT, --user-agent USER_AGENT
                         Add a custom User Agent
-  -a, --auth AUTH       Add an HTTP authentication. Ex: --auth admin:admin
-  -hu, --humans HUMANS  Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
-  -t, --threads THREADS
+  -a AUTH, --auth AUTH  Add an HTTP authentication. Ex: --auth admin:admin
+  -hu HUMANS, --humans HUMANS
+                        Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
+  -t THREADS, --threads THREADS
                         Threads numbers for multiple URLs. Default: 10
 
 > Log settings:
-  -l, --log LOG         Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-  -L, --log-file LOG_FILE
+  -l LOG, --log LOG     Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  -L LOG_FILE, --log-file LOG_FILE
                         The file path pattern for the log file. Default: logs/
   -v, --verbose         Increase verbosity (can be used multiple times)
 
 > Proxy Settings:
-  -p, --proxy PROXY     Proxy all requests through this proxy (format: host:port, default: 127.0.0.1:8080)
-  --burp BURP           Send behavior and confirmed requests to Burp proxy (format: host:port, default: 127.0.0.1:8080)
+  -p [PROXY], --proxy [PROXY]
+                        Proxy all requests through this proxy (format: host:port, default: 127.0.0.1:8080)
+  --burp [BURP]         Send behavior and confirmed requests to Burp proxy (format: host:port, default:
+                        127.0.0.1:8080)
 
-> Other:
+> Tips:
   --ocp, --only-cp      Only cache poisoning modules
-
 
 ```
 

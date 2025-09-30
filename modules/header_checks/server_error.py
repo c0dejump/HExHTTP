@@ -242,6 +242,10 @@ class ServerErrorAnalyzer:
             )
             response_time = time.time() - start_time
             return response, response_time
+        except UnicodeDecodeError as e:
+            # Erreur spécifique pour les headers mal encodés (notamment Location)
+            logger.debug(f"Unicode decode error for {url}: {e} - Likely malformed redirect header")
+            return None
         except requests.RequestException as e:
             logger.debug(f"Request failed for {url}: {e}")
             return None

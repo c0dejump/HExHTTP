@@ -46,13 +46,13 @@ def check_meta_character(
             and control.status_code != main_status_code
         ):
             reason = (
-                f"{Colors.BLUE}{main_status_code} > {control.status_code}{Colors.RESET}"
+                f"{main_status_code} > {control.status_code}"
             )
 
     if reason:
         payload = f"PAYLOAD: {headers}"
         print(
-            f" {Identify.confirmed} | HMC | {Colors.BLUE}{url}{Colors.RESET} | {reason} | {Colors.THISTLE}{payload}{Colors.RESET}"
+            f" {Identify.confirmed} | HMC DOS | {Colors.BLUE}{url}{Colors.RESET} | {reason} | {Colors.THISTLE}{payload}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request

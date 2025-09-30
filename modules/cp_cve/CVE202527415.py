@@ -20,6 +20,7 @@ def nuxt_check(
     authent: tuple[str, str] | None,
 ) -> None:
     try:
+
         req = s.get(
             url,
             verify=False,
@@ -36,6 +37,14 @@ def nuxt_check(
                 else f"{unrisk_page}/_payload.json"
             )
             try:
+                req_unrisk = s.get(
+                    unrisk_page,
+                    verify=False,
+                    auth=authent,
+                    timeout=10,
+                    allow_redirects=False,
+                )
+
                 req_nuxt = s.get(
                     poison_url,
                     verify=False,
@@ -54,7 +63,7 @@ def nuxt_check(
                         print(
                             f" {Identify.behavior} | CVE-2025-27415 | TAG OK | {Colors.BLUE}{poison_url}{Colors.RESET}"
                         )
-                    if req_nuxt.status_code != req.status_code:
+                    elif req_nuxt.status_code != req_unrisk.status_code and req_nuxt.status_code not in [404, 429, 403]:
                         print(
                             f" {Identify.behavior} | CVE-2025-27415 | DIFFERENT RESPONSE {req.status_code} > {req_nuxt.status_code}| {Colors.BLUE}{poison_url}{Colors.RESET}"
                         )
@@ -79,7 +88,7 @@ def nuxt_check(
                         print(
                             f" {Identify.confirmed} | CVE-2025-27415 | TAG OK | {Colors.BLUE}{poison_url}{Colors.RESET}"
                         )
-                    if req_verify.status_code != req.status_code and req_verify.status_code not in [404, 429, 403]:
+                    elif req_verify.status_code != req_unrisk.status_code and req_verify.status_code not in [404, 429, 403]:
                         print(
                             f" {Identify.confirmed} | CVE-2025-27415 | DIFFERENT RESPONSE {req.status_code} > {req_verify.status_code} | {Colors.BLUE}{poison_url}{Colors.RESET}"
                         )
