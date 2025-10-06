@@ -283,7 +283,7 @@ def cli_main() -> None:
                 sys.exit()
 
         # Handle proxy configuration
-        if proxy_arg or burp_arg:
+        if proxy_arg is not None or burp_arg is not None:
             # Configure main proxy
             if proxy_arg is not None:  # Handle both empty string (default) and provided value
                 proxy.proxy_url = proxy.parse_proxy_url(proxy_arg)

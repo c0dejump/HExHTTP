@@ -697,7 +697,7 @@ def risk_badge(item: dict[str, Any]) -> str:
             "mixed_case",
         }
     ):
-        return f"{Colors.YELLOW}⚠️{Colors.RESET}"
+        return f"{Colors.YELLOW}💡{Colors.RESET}"
     return ""
 
 

@@ -265,7 +265,7 @@ def HMO(
             ):
                 continue
 
-            for _ in range(5):
+            for _ in range(3):
                 probe = s.get(
                     uri,
                     headers=probe_headers,
@@ -275,6 +275,7 @@ def HMO(
                     allow_redirects=False,
                 )
                 human_time(human)
+
             control = s.get(uri, verify=False, timeout=10, auth=authent)
             if (
                 control.status_code == probe.status_code
@@ -300,7 +301,7 @@ def HMO(
 
             if reason:
                 print(
-                    f" {status} | HMO DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{format_payload(probe_headers)}{Colors.RESET}"
+                    f" {status} | HMOs DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{format_payload(probe_headers)}{Colors.RESET}"
                 )
                 if proxy.proxy_enabled:
                     from utils.proxy import proxy_request
