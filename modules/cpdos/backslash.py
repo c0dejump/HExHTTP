@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 from utils.style import Colors, Identify
-from utils.utils import cache_tag_verify, random, requests, urlparse
+from utils.utils import cache_tag_verify, random, requests, urlparse, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
 
 """
 Exemple:
@@ -29,6 +29,15 @@ def parse_path(url_b: str) -> str | None:
 def backslash_test(
     pp: str, url_b: str, req_main: requests.Response, s: requests.Session
 ) -> None:
+    main_len = len(req_main.content)
+    range_exlusion = (
+        range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
+        if main_len < 10000
+        else range(
+            main_len - BIG_CONTENT_DELTA_RANGE,
+            main_len + BIG_CONTENT_DELTA_RANGE,
+        )
+    )
     for _ in range(0, 5):
         req_b = s.get(pp, verify=False, timeout=10, allow_redirects=False)
     cache_status = cache_tag_verify(req_b)
@@ -41,7 +50,7 @@ def backslash_test(
             print(
                 f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_b.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
             )
-    elif len(req_b.content) != len(req_main.content):
+    elif len(req_b.content) not in range_exlusion:
         print(
             f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_b.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
         )

@@ -105,12 +105,10 @@ def HBH(
         uri = f"{url}{random.randrange(9999)}"
 
         headers = {"Connection": f"keep-alive, {header}"}
-        parameters = {"cacheBuster": generate_cache_buster()}
         try:
             response_2 = s.get(
                 uri,
                 headers=headers,
-                params=parameters,
                 auth=authent,
                 allow_redirects=False,
                 verify=False,

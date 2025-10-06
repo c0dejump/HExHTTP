@@ -142,7 +142,6 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
                 sys.exit()
         for k in req_main.headers:
             resp_main_headers.append(f"{k}: {req_main.headers[k]}")
-
         if not only_cp:
             check_cachetag_header(resp_main_headers)
             get_server_error(url, authent)
@@ -169,6 +168,9 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
         print(f"Error: {e}")
         pass
         # print(f"Error in processing {url}: {e}")
+    except Exception as e:
+        print(f"Error : {e}")
+        logger.exception(e)
 
 
 def parse_headers(header_list: list[str] | None) -> dict[str, str]:
@@ -190,7 +192,6 @@ def main(urli: str, s: requests.Session, auth: str | None) -> None:
         authent = check_auth(auth, urli)
     else:
         authent = None
-
     if url_file and threads != 1337:
         try:
             while True:
@@ -326,19 +327,12 @@ def cli_main() -> None:
                     worker.daemon = True
                     worker.start()
                     worker_threads.append(worker)
-                # Add a timeout to prevent infinite waiting
-                start_time = time.time()
-                timeout = 300  # 5 minutes maximum
-
-                while not enclosure_queue.empty():
-                    if time.time() - start_time > timeout:
-                        print("Warning: Queue processing timeout reached, forcing exit")
-                        break
-                    time.sleep(0.1)
-
-                # Wait for worker threads to finish with timeout
+                
+                enclosure_queue.join()
+                
                 for worker in worker_threads:
-                    worker.join(timeout=30)  # 30 second timeout per worker
+                    worker.join(timeout=60)
+
             except KeyboardInterrupt:
                 print("Exiting")
                 sys.exit()
@@ -347,6 +341,7 @@ def cli_main() -> None:
                 sys.exit()
             except Exception as e:
                 print(f"Error : {e}")
+                logger.exception(e)
             print("Scan finish")
         elif url_file and threads == 1337:
             with open(url_file) as url_file_handle:
