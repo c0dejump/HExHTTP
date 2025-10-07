@@ -473,11 +473,11 @@ def determine_rejection_reason(is_valid: bool, is_confirmed: bool, is_false_posi
     if is_false_positive:
         return "False positive detected - server responds to invalid URLs"
     elif not is_valid:
-        return "Response doesn't match expected proxy behavior patterns"
+        return "Response doesn't match expected proxy patterns"
     elif not is_confirmed:
-        return "Could not confirm proxy behavior with secondary test"
+        return "Could not confirm proxy with secondary test"
     else:
-        return "Insufficient evidence of proxy behavior"
+        return "Insufficient evidence of proxy"
 
 
 def test_http09_misconf(url: str) -> dict[str, Any]:

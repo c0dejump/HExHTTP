@@ -84,6 +84,13 @@ def HMC(
         r"\f",
         r"\u0000",
         r"\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07\x07metahttptest",
+        r"\u00A0",
+        r"\u202E",
+        r"\x0b",
+        r"\x0c",
+        r"\x7f",
+        r"\x1b[31mred\x1b[0m",
+        
     ]
     for meta_character in meta_characters:
         try:
