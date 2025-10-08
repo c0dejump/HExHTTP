@@ -114,7 +114,7 @@ def HHCN(
                     f" {Identify.behavior} | HHCN | {Colors.BLUE}{url}{Colors.RESET} | {behavior} | {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
 
-            if main_response.status_code != probe.status_code:
+            if main_response.status_code != probe.status_code and probe.status_code not in [429, 401, 403]:
                 behavior = (
                     f"DIFFERENT STATUS-CODE | {main_response_size}b > {probe_size}b"
                 )
@@ -142,6 +142,7 @@ def HHCN(
                 behavior
                 and req_hhcn_bis.status_code == control.status_code
                 and control.status_code != main_response.status_code
+                and control.status_code not in [429, 401, 403]
             ):
                 confirmed = f"DIFFERENT STATUS-CODE | {main_response.status_code} > {control.status_code}"
                 print(

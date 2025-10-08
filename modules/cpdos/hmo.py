@@ -242,7 +242,7 @@ def HMO(
                 vw = verify_405_waf(probe)
                 if vw:
                     print(" └── [i] Human Verification waf activated ! wait a moment and try with -hu option")
-                    sys.exit()
+                    break
 
             if probe.status_code != main_status_code and probe.status_code not in [
                 main_status_code,
