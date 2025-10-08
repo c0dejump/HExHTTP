@@ -7,7 +7,7 @@ https://cpdos.org/#HMO
 
 import utils.proxy as proxy
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, format_payload, human_time, random, requests, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
+from utils.utils import configure_logger, sys, format_payload, human_time, random, requests, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE, verify_405_waf
 
 logger = configure_logger(__name__)
 
@@ -238,6 +238,12 @@ def HMO(
 
             logger.debug(range_exlusion)
 
+            if probe.status_code == 405:
+                vw = verify_405_waf(probe)
+                if vw:
+                    print(" └── [i] Human Verification waf activated ! wait a moment and try with -hu option")
+                    sys.exit()
+
             if probe.status_code != main_status_code and probe.status_code not in [
                 main_status_code,
                 429,
@@ -269,14 +275,13 @@ def HMO(
                 probe = s.get(
                     uri,
                     headers=probe_headers,
-                    verify=False,
                     timeout=10,
                     auth=authent,
                     allow_redirects=False,
                 )
                 human_time(human)
 
-            control = s.get(uri, verify=False, timeout=10, auth=authent)
+            control = s.get(uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
             if (
                 control.status_code == probe.status_code
                 and control.status_code not in [main_status_code, 429, 403]
@@ -287,7 +292,7 @@ def HMO(
                 status = f"{Identify.confirmed}"
                 severity = "confirmed"
 
-            if (
+            elif (
                 len(control.content) == len(probe.content)
                 and len(control.content) not in range_exlusion
                 and control.status_code not in [429, 403]

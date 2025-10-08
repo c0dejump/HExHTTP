@@ -133,6 +133,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
             proxy_status += f" | Burp: {Colors.GREEN}ON{Colors.RESET} ({proxy.burp_url})"
         print(proxy_status)
         print(f"{Colors.BLUE}⟘{Colors.RESET}")
+        print(f"{Colors.BLUE}⟙{Colors.RESET}")
 
         if main_status_code not in [200, 302, 301, 403, 401] and not url_file:
             choice = input(

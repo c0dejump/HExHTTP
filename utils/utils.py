@@ -15,6 +15,7 @@ from urllib.parse import (
 
 import requests
 import urllib3
+from bs4 import BeautifulSoup
 
 from modules.logging_config import configure_logger  # noqa: F401
 from utils.style import Colors
@@ -131,3 +132,13 @@ def range_exclusion(main_len):
             main_len + BIG_CONTENT_DELTA_RANGE,
         )
     )
+
+def verify_405_waf(req):
+    html = req.text
+    soup = BeautifulSoup(html, "html.parser")
+    title = soup.title.string if soup.title else None
+    if title.lower() == "human verification" or req.headers.get("x-amzn-waf-action", "").lower() == "captcha":
+        return True
+    else:
+        return False
+
