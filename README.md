@@ -1,7 +1,7 @@
 # HExHTTP
 
 <p align="center">
-  <img src="./static/docs/_media/logo_v2_gif.gif" alt="Logo" width="540">
+  <img src="./static/docs/_media/logo_v2_gif.gif" alt="Logo" width="520">
 </p>
 
 > HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors.
@@ -28,7 +28,7 @@ Follow these steps to install **HExHTTP**:
    ```bash
    pip install .
    ```
-   - dev mod
+  - dev mod
    ```bash
    pip install -e ".{dev]"
    ```
@@ -56,7 +56,7 @@ Prerequisites:
 - Python 3.x
 - Jython (for Burp extensions)
 
-### Install the Custom Extension
+#### Install the Custom Extension
   Download the Extension ./utils/burp_extension_issue.py
 
   In Burp Suite, go to *Extensions > Add*
@@ -68,7 +68,7 @@ Prerequisites:
   ```
   Verify the extension is loaded in the Extensions tab
 
-### Using Burp Proxy Integration
+#### Using Burp Proxy Integration
 HExHTTP now supports flexible proxy configuration:
 
 ```bash
@@ -88,7 +88,7 @@ When using `--burp`, HExHTTP will automatically create issues in Burp Suite for:
 
 HExHTTP supports flexible proxy configuration for different use cases:
 
-### General Proxy (`--proxy`)
+#### General Proxy (`--proxy`)
 Routes all HTTP requests through the specified proxy server:
 ```bash
 # Custom proxy server
@@ -98,14 +98,14 @@ Routes all HTTP requests through the specified proxy server:
 » ./hexhttp.py -u 'https://target.tld/' --proxy
 ```
 
-### Combined Usage
+#### Combined Usage
 Use both options for maximum flexibility:
 ```bash
 # Route all traffic through a corporate proxy, but send findings to Burp
 » ./hexhttp.py -u 'https://target.tld/' --proxy corporate.proxy:3128 --burp 127.0.0.1:8080
 ```
 
-### Supported Formats
+#### Supported Formats
 - `host:port` - e.g., `127.0.0.1:8080`
 - `host` - uses default port 8080, e.g., `localhost`
 - `http://host:port` - full URL format

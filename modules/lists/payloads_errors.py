@@ -20,10 +20,32 @@ Examples of payloads:
 This list is used for testing various edge cases and invalid inputs.
 """
 
+
+def make_headers():
+    """
+    Envoie une requête HTTP avec 101 headers personnalisés
+    """
+    # Création d'un dictionnaire avec 101 headers
+    headers = {}
+    
+    # Ajout de quelques headers standards
+    headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    headers['Accept-Language'] = 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7'
+    headers['Accept-Encoding'] = 'gzip, deflate, br'
+    headers['Connection'] = 'keep-alive'
+    
+    # Ajout de 96 headers personnalisés pour atteindre 101
+    for i in range(1, 100):
+        headers[f'X-Custom-Header-{i}'] = f'Value-{i}'
+    
+    return headers
+
 payloads_keys = [
     # {"xxxx":"缓"},
     # {"缓":"缓"},
     # {"X-Custom-Header-♥": "value"},
+    make_headers(),
     {"xyz": "1"},
     {"(": "1"},
     {"/": "\\:\\"},
@@ -149,6 +171,7 @@ payloads_keys = [
     {"If-None-Match": "*", "If-Match": "toto"},
     {"If-None-Match": "<toto>"},
     {"If-Match": "etag-value"},
+    {"If-Match": "®"},
     {"Max-Forwards": "0"},
     {"Max-Forwards": "fooxxx"},
     {"TE": "toto"},

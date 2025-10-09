@@ -30,7 +30,6 @@ MAX_SAMPLE_CONTENT = 3
 def cache_poisoning(
     uri: str,
     s: requests.Session,
-    parameters: dict[str, str],
     response_1: requests.Response,
     response_2: requests.Response,
     authentication: tuple[str, str] | None,
@@ -40,7 +39,6 @@ def cache_poisoning(
 
     response_3 = s.get(
         uri,
-        params=parameters,
         auth=authentication,
         allow_redirects=False,
         verify=False,
@@ -179,14 +177,13 @@ def HBH(
                     response_2 = s.get(
                         uri,
                         headers=headers,
-                        params=parameters,
                         auth=authent,
                         allow_redirects=False,
                         verify=False,
                         timeout=10,
                     )
                 cache_poisoning(
-                    uri, s, parameters, response_1, response_2, authent, headers
+                    uri, s, response_1, response_2, authent, headers
                 )
             human_time(human)
 

@@ -35,7 +35,7 @@ def cloudfront(url: str, s: requests.Session) -> None:
         if header in [h.lower() for h in cf_test.headers.keys()]:
             detected_headers.append(header)
 
-    if detected_headers:
+    """if detected_headers:
         print(
             f"{Colors.GREEN} │   └── CloudFront headers found: {', '.join(detected_headers)}{Colors.RESET}"
-        )
+        )"""

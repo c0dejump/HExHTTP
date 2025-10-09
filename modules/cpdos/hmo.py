@@ -247,6 +247,7 @@ def HMO(
             if probe.status_code != main_status_code and probe.status_code not in [
                 main_status_code,
                 429,
+                401,
                 403,
             ]:
                 reason = (
@@ -257,7 +258,7 @@ def HMO(
             elif (
                 len(probe.content) != main_len
                 and len(probe.content) not in range_exlusion
-                and probe.status_code not in [429, 403]
+                and probe.status_code not in [429, 401, 403]
             ):
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(probe.content)}b"
@@ -284,7 +285,7 @@ def HMO(
             control = s.get(uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
             if (
                 control.status_code == probe.status_code
-                and control.status_code not in [main_status_code, 429, 403]
+                and control.status_code not in [main_status_code, 429, 401, 403]
             ):
                 reason = (
                     f"DIFFERENT STATUS-CODE {main_status_code} > {control.status_code}"
@@ -295,7 +296,7 @@ def HMO(
             elif (
                 len(control.content) == len(probe.content)
                 and len(control.content) not in range_exlusion
-                and control.status_code not in [429, 403]
+                and control.status_code not in [429, 401, 403]
             ):
                 reason = (
                     f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(control.content)}b"
@@ -306,7 +307,7 @@ def HMO(
 
             if reason:
                 print(
-                    f" {status} | HMOs DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{format_payload(probe_headers)}{Colors.RESET}"
+                    f" {status} | HMO DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{format_payload(probe_headers)}{Colors.RESET}"
                 )
                 if proxy.proxy_enabled:
                     from utils.proxy import proxy_request

@@ -12,6 +12,7 @@ Changelog:
 		- Cross Mixed Methods CPDoS (Cross-method cache poisoning, negative caching, Mix methods)
 	- Origin CORS DoS by Geluchat
 	- Uncommon header analysis (retrieves the non-common headers from the request and replays them for testing purposes)
+	- Debug headers checks
 	- PR and push are now checked against formatting, linting, type checking, security checking and regression testing (quality workflow)
 	- Version handles beta versioning now
 	- DX : Small Test Bed to verify regression

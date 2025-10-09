@@ -346,7 +346,7 @@ class ServerErrorAnalyzer:
             return {}
 
         print(
-            f" ├─ {response.status_code} error with '{payload}' [{len(response.content)} bytes, {response_time:.2f}s]"
+            f" ├─ {response.status_code} error with '{payload}' [{len(response.content)} bytes]"
         )
 
         # Analyse des patterns d'erreur

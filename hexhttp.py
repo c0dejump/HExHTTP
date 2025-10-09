@@ -22,6 +22,7 @@ from modules.header_checks.methods import check_methods
 from modules.header_checks.server_error import get_server_error
 from modules.header_checks.uncommon_header import get_http_headers
 from modules.header_checks.vhosts import check_vhost
+from modules.header_checks.debug_header import check_http_debug
 
 # others
 from modules.logging_config import configure_logging
@@ -152,6 +153,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
             check_http_version(url)
             get_technos(url, s, req_main, a_tech)
 
+        check_http_debug(url, s, main_status_code, main_len, main_head, authent, human or "")
         get_http_headers(url, s, main_status_code, main_len, dict(main_head), authent)
         check_cpcve(url, s, req_main, parse_headers(custom_header), authent, human or "")
         check_CPDoS(url, s, req_main, parse_headers(custom_header), authent, human or "")
