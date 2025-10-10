@@ -100,7 +100,11 @@ def HHCN(
                     auth=authent,
                     allow_redirects=False,
                 )
-            if probe_size not in rel:
+            if ( 
+                probe_size != main_response_size
+                and probe_size not in rel 
+                and probe.status_code not in [429, 401, 403]
+                ):
                 behavior = (
                     f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {probe_size}b"
                 )
@@ -120,12 +124,14 @@ def HHCN(
                 from utils.proxy import proxy_request
                 proxy_request(s, "GET", url, headers=headers, data=None)
 
-            control = s.get(url, verify=False, timeout=10, auth=authent)
+            control = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
 
             if (
                 behavior
-                and len(req_hhcn_bis.content) == len(control.content)
-                and len(control.content) != main_response_size
+                and len(control.content) == len(req_hhcn_bis.content)
+                and len(control.content) != main_response_size 
+                and len(control.content) not in rel
+                and control.status_code not in [429, 401, 403]
             ):
                 confirmed = f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {len(control.content)}b"
                 print(

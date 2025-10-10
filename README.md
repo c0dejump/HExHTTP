@@ -190,7 +190,8 @@ options:
 ## Examples
 
 ### Example on a public target
-![example 1](./static/docs/_media/example_01.png)
+![example 1](./static/docs/_media/exemple_v02_01.png)
+![example 2](./static/docs/_media/exemple_v02_02.png)
 
 ### Example with a confirmed Cache Poisoning vulnerability
 You can test this tool on the Web Security Academy's vulnerable labs, like [Web cache poisoning with an unkeyed header](https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws/lab-web-cache-poisoning-with-an-unkeyed-header). The expected result should be the same as below.
