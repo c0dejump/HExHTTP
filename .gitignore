@@ -1,6 +1,13 @@
-.py3
 __pycache__
-*.txt
-todo.md
+.vscode/
+*_cache/
+.venv/
+dist/
+build/
 dev/
 logs/*.log
+*.txt
+todo.md
+*.egg-info/
+.py3
+.coverage

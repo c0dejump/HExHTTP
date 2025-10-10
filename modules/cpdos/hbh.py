@@ -1,33 +1,43 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 
 """
 Attempts to find Hop-By-Hop Header abuse
 https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
-from modules.utils import requests, generate_cache_buster, configure_logger, human_time, cache_tag_verify, Identify
+import utils.proxy as proxy
 from modules.lists import header_list
+from utils.style import Colors, Identify
+from utils.utils import (
+    configure_logger,
+    generate_cache_buster,
+    human_time,
+    requests,
+    random,
+    range_exclusion,
+)
 
 logger = configure_logger(__name__)
 
 VULN_NAME = "Hop-By-Hop"
 
-CONTENT_DELTA_RANGE = 500
-BIG_CONTENT_DELTA_RANGE = 1000
 
 MAX_SAMPLE_STATUS = 3
 MAX_SAMPLE_CONTENT = 3
 
 
 def cache_poisoning(
-    url, s, parameters, response_1, response_2, authentication, headers
-):
+    uri: str,
+    s: requests.Session,
+    response_1: requests.Response,
+    response_2: requests.Response,
+    authentication: tuple[str, str] | None,
+    headers: dict[str, str],
+) -> None:
     """Function to test for cache poisoning"""
 
     response_3 = s.get(
-        url,
-        params=parameters,
+        uri,
         auth=authentication,
         allow_redirects=False,
         verify=False,
@@ -55,21 +65,27 @@ def cache_poisoning(
     if reason:
         payload = f"Connection: {headers['Connection']}"
         print(
-            f" {Identify.confirmed} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {reason} | PAYLOAD: {payload}"
+            f" {Identify.confirmed} | {VULN_NAME} | {Colors.BLUE}{response_2.url}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
         )
-        #print(response_3.headers)
-        #print(response_3.text)
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+
+            proxy_request(
+                s, "GET", uri, headers=headers, data=None, severity="confirmed"
+            )
+        # print(response_3.headers)
+        # print(response_3.text)
 
 
 def HBH(
-    url,
-    s,
-    initial_response,
-    authent,
-    human,
-    max_sample_status=MAX_SAMPLE_STATUS,
-    max_sample_content=MAX_SAMPLE_CONTENT,
-):
+    url: str,
+    s: requests.Session,
+    initial_response: requests.Response,
+    authent: tuple[str, str] | None,
+    human: str,
+    max_sample_status: int = MAX_SAMPLE_STATUS,
+    max_sample_content: int = MAX_SAMPLE_CONTENT,
+) -> None:
     """Function to test for Hop by Hop vulnerabilities"""
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
@@ -83,13 +99,13 @@ def HBH(
     response_2_count_size = 0
 
     for header in header_list:
+        uri = f"{url}{random.randrange(9999)}"
+
         headers = {"Connection": f"keep-alive, {header}"}
-        parameters = {"cacheBuster": generate_cache_buster()}
         try:
             response_2 = s.get(
-                url,
+                uri,
                 headers=headers,
-                params=parameters,
                 auth=authent,
                 allow_redirects=False,
                 verify=False,
@@ -127,11 +143,11 @@ def HBH(
             ):
                 behavior = f"DIFFERENT STATUS-CODE  {response_1.status_code} > {response_2.status_code}"
 
-            len_main = len(response_1.content)
-            range_exlusion = range(len_main - CONTENT_DELTA_RANGE, len_main + CONTENT_DELTA_RANGE) if len_main < 10000 else range(len_main - BIG_CONTENT_DELTA_RANGE, len_main + BIG_CONTENT_DELTA_RANGE)
-           
+            main_len = len(response_1.content)
+            rel = range_exclusion(main_len)
+
             if (
-                len(response_1.content) not in range_exlusion
+                len(response_1.content) not in rel
                 and response_2.status_code not in [429, 403]
                 and response_1.status_code not in [301, 302, 429, 403]
                 and response_2_count_size < max_sample_content
@@ -141,25 +157,30 @@ def HBH(
             if behavior:
                 payload = f"Connection: {headers['Connection']}"
                 print(
-                    f" {Identify.behavior} | {VULN_NAME} | \033[34m{response_2.url}\033[0m | {behavior} | PAYLOAD: {payload}"
+                    f" {Identify.behavior} | {VULN_NAME} | {Colors.BLUE}{response_2.url}{Colors.RESET} | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
                 )
+                if proxy.proxy_enabled:
+                    from utils.proxy import proxy_request
+
+                    proxy_request(
+                        s, "GET", uri, headers=headers, data=None, severity="behavior"
+                    )
                 for _ in range(0, 5):
                     response_2 = s.get(
-                        url,
+                        uri,
                         headers=headers,
-                        params=parameters,
                         auth=authent,
                         allow_redirects=False,
                         verify=False,
                         timeout=10,
                     )
                 cache_poisoning(
-                    url, s, parameters, response_1, response_2, authent, headers
+                    uri, s, response_1, response_2, authent, headers
                 )
             human_time(human)
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)
 
-        print(f" \033[34m {VULN_NAME} : {headers}\033[0m\r", end="")
+        print(f" {Colors.BLUE} {VULN_NAME} : {headers}{Colors.RESET}\r", end="")
         print("\033[K", end="")

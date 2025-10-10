@@ -1,10 +1,50 @@
 Changelog:
 ----------
 
+
+- 2.0
+---------
+	New:
+	- HTTP proxy module, you can send behavior and confirmed request directly in burp (or other HTTP proxy) now (utils/proxy.py)
+	- Check CVE-2021-27577 by Claude AI
+	- Multiple method poisoning analysis (modules/cp_check/methods_poisoning)
+		- Fat methods poisoning
+		- Cross Mixed Methods CPDoS (Cross-method cache poisoning, negative caching, Mix methods)
+	- Origin CORS DoS by Geluchat
+	- Uncommon header analysis (retrieves the non-common headers from the request and replays them for testing purposes)
+	- Debug headers checks
+	- PR and push are now checked against formatting, linting, type checking, security checking and regression testing (quality workflow)
+	- Version handles beta versioning now
+	- DX : Small Test Bed to verify regression
+	Updated:
+	- setup and requirements consolidated into pyproject.toml
+	- dockerfile is now in sync with how hexhttp is installed
+	- headerfuzz dictionary was overwriting its payloads using the same key
+	- Banner and version concerns are now separated
+	- technologies module got renamed to align with class name
+	- Proxy and Burp options allows to specify proxy server to pass issues or whole traffic
+	- Fixed bugs
+	- Remake server_error checks
+	- Remake Helper (-h) & README.md
+	- Unrisk page checking on the last CVE
+	- New payloads
+		- upgrade H2C DoS by Geluchat
+	- BIG Linting
+		- Added "utils" repository
+		- Moving certain files/folders/functions to linting
+		- Implementation of the cli.py file to lighten hexhttp.py
+	- HTTP Version & protocol analysis updated
+	- Vhosts misconfiguration analysis updated
+	- Methods analysis updated
+	Deleted:
+	- Cookies reflection tests (already completed in other modules)
+	- vuln_notify feature never really implemented and was too platform specific
+---------
+
 - 1.9.2
 ---------
 	News
-	- New cve module to check Next.js CPDoS by Zhero research (CVE-2025-49826)
+	- New cve module to check Next.js CPDoS by Zhero research and Wlayzz PoC (CVE-2025-49826)
 	Updated:
 	- Updated TODO list
 	- Updated HTTP method checks (+50 added)

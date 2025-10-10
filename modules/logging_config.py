@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 This module provides functions to configure logging for a Python application.
@@ -15,6 +14,7 @@ Functions:
         log_file (str): The file path pattern for the log file. Defaults "./logs/%Y%m%d_%H%M.log".
 """
 
+import argparse
 import logging
 import logging.config
 from time import strftime
@@ -33,10 +33,13 @@ def valid_log_level(level: str) -> str:
     Raises:
         ValueError: If the provided log level is invalid.
     """
-    try:
-        return logging.getLevelName(level.upper())
-    except ValueError as exc:
-        raise ValueError(f"Invalid log level: {level}") from exc
+    valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    level_upper = level.upper()
+
+    if level_upper in valid_levels:
+        return level_upper
+    else:
+        raise argparse.ArgumentTypeError(f"invalid valid_log_level value: '{level}'")
 
 
 def configure_logger(module_name: str) -> logging.Logger:
@@ -56,7 +59,9 @@ def configure_logger(module_name: str) -> logging.Logger:
     return logger
 
 
-def configure_logging(verbose:int, log: int, log_file: str = "./logs/%Y%m%d_%H%M.log"):
+def configure_logging(
+    verbose: int, log: int, log_file: str = "./logs/%Y%m%d_%H%M.log"
+) -> None:
     """
     Configures the logging level for the root logger.
 

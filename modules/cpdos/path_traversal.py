@@ -1,105 +1,148 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 From 0xrth research
 """
 
 
-from modules.utils import random, requests, configure_logger, cache_tag_verify, Identify
-import traceback
+from utils.style import Colors, Identify
+from utils.utils import (
+    range_exclusion,
+    cache_tag_verify,
+    configure_logger,
+    random,
+    requests,
+)
+from urllib.parse import urlparse, urlunparse
+
 try:
     import httpx
-except:
+except ImportError:
     print("httpx does not seem to be installed")
 
 logger = configure_logger(__name__)
 
 VULN_NAME = "Path Traversal"
-CONTENT_DELTA_RANGE = 500
 
 
-def verify(req_main, url, url_cb, url_test, completed_path, range_exlusion, p, s):
+def verify(
+    req_main: requests.Response,
+    url: str,
+    url_cb: str,
+    url_test: str,
+    completed_path: str,
+    rel: range,
+    p: str,
+    s: requests.Session,
+) -> None:
     try:
-        completed_path = completed_path.encode("utf-8")
-        url_with_raw_path = f"{url}{completed_path.decode('utf-8')}" if url[-1] == "/" else f"{url}/{completed_path.decode('utf-8')}"
-        #print(url_with_raw_path)
-        #print(url_with_raw_path)
+        url_with_raw_path = (
+            f"{url}{completed_path}" if url[-1] == "/" else f"{url}/{completed_path}"
+        )
+        logger.debug(url_with_raw_path)
+
         for _ in range(5):
-            with httpx.Client(http2=False, verify=False) as client:
+            with httpx.Client(
+                http2=False, verify=False
+            ) as client:
                 req_verify = client.get(url_with_raw_path)
 
         req_cb = s.get(url_cb, verify=False, timeout=10, allow_redirects=False)
-        #print(f"req_cb.status_code: {req_cb.status_code} | req_verify.status_code: {req_verify.status_code} | req_main.status_code: {req_main.status_code}")
+        logger.debug(
+            f"req_cb.status_code: {req_cb.status_code} | req_verify.status_code: {req_verify.status_code} | req_main.status_code: {req_main.status_code}"
+        )
         cache_status = cache_tag_verify(req_cb)
-        if req_cb.status_code == req_verify.status_code and req_cb.status_code != req_main.status_code and req_cb.status_code not in [403, 401, 429]:
-            print(f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_cb.status_code} | CACHETAG : {cache_status} | \033[34m{url_cb}\033[0m | PAYLOAD: {url_test}")
-        elif len(req_cb.content) not in range_exlusion and req_cb.status_code not in [403, 401, 429]:
-            print(f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_cb.content)}b | CACHETAG : {cache_status} | \033[34m{url_cb}\033[0m | PAYLOAD: {url_test}")
-    except requests.Timeout:
-        #print(f"request timeout {url} {p}")
-        pass
+        if (
+            req_cb.status_code == req_verify.status_code
+            and req_cb.status_code != req_main.status_code
+            and req_cb.status_code not in [403, 401, 429]
+        ):
+            print(
+                f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_cb.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
+            )
+        elif len(req_cb.content) not in rel and req_cb.status_code not in [
+            403,
+            401,
+            429,
+            req_main.status_code
+        ]:
+            print(
+                f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_cb.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
+            )
+    except requests.Timeout as t:
+        logger.error(t)
     except Exception as e:
-        #traceback.print_exc()
-        pass
+        logger.exception(e)
 
 
-
-def path_traversal_check(url, s, req_main, authent):
+def path_traversal_check(
+    url: str,
+    s: requests.Session,
+    req_main: requests.Response,
+    authent: tuple[str, str] | None,
+) -> None:
     try:
-        range_exlusion = range(len(req_main.content) - CONTENT_DELTA_RANGE, len(req_main.content) + CONTENT_DELTA_RANGE)
+        main_len = len(req_main.content)
+        rel = range_exclusion(main_len)
         paths = [
-        "\\",
-        "cc\\..\\",
-        "cc/../",
-        "cc/%2e%2e%2f"
-        "cc%2e%2e/",
-        "cc%2f..%2f",
-        "cc/..\\",
-        "cc/..;/",
+            "\\",
+            "cc\\..\\",
+            "cc/../",
+            "cc/%2e%2e%2f",
+            "cc%2e%2e/",
+            "cc%2f..%2f",
+            "cc/..\\",
+            "cc/..;/",
         ]
         for p in paths:
             cb = f"?cb={random.randrange(999)}"
 
             completed_path = f"{p}{cb}"
-            url_test = f"{url}{completed_path}" if url[-1] == "/" else f"{url}/{completed_path}"
+            url_test = (
+                f"{url}{completed_path}"
+                if url[-1] == "/"
+                else f"{url}/{completed_path}"
+            )
+
+            
             url_cb = f"{url}{cb}"
 
             req_test = s.get(url_test, verify=False, timeout=10, allow_redirects=False)
-            if req_test.status_code != req_main.status_code and req_test.status_code not in [403, 401, 429]:
-                print(f" {Identify.behavior} | {VULN_NAME} {req_main.status_code} > {req_test.status_code} | \033[34m{url_cb}\033[0m | PAYLOAD: {url_test}")
-                verify(req_main, url, url_cb, url_test, completed_path, range_exlusion, p, s)
-            elif len(req_test.content) not in range_exlusion and req_test.status_code not in [403, 401, 429]:
-                print(f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_test.content)}b | \033[34m{url_cb}\033[0m | PAYLOAD: {url_test}")
-                verify(req_main, url, url_cb, url_test, completed_path, range_exlusion, p, s)
-    except requests.Timeout:
-        #print(f"request timeout {url} {p}")
-        pass
+            if (
+                req_test.status_code != req_main.status_code
+                and req_test.status_code not in [403, 401, 429]
+            ):
+                print(
+                    f" {Identify.behavior} | {VULN_NAME} {req_main.status_code} > {req_test.status_code} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
+                )
+                verify(
+                    req_main,
+                    url,
+                    url_cb,
+                    url_test,
+                    completed_path,
+                    rel,
+                    p,
+                    s,
+                )
+            elif len(
+                req_test.content
+            ) not in rel and req_test.status_code not in [403, 401, 429]:
+                print(
+                    f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_test.content)}b | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
+                )
+                verify(
+                    req_main,
+                    url,
+                    url_cb,
+                    url_test,
+                    completed_path,
+                    rel,
+                    p,
+                    s,
+                )
+
+    except requests.Timeout as t:
+        logger.error(t)
     except Exception as e:
-        #traceback.print_exc()
-        pass
-
-
-
-
-if __name__ == "__main__":
-    # file => python3 file.py f file.txt | single url => python3 file.py url.com
-    s = requests.Session()
-    s.headers.update(
-                {
-                    "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko",
-                }
-            )
-
-    if len(sys.argv) == 2:
-        url = sys.argv[1]
-        main(url, s)
-    elif len(sys.argv) == 3:
-        input_file = sys.argv[2]
-        with open(input_file, 'r') as f:
-            urls = [line.strip() for line in f if line.strip()]
-        for url in urls:
-            main(url, s)
-            print(f" {url}", end='\r')
-    else:
-        print("Usage:\n With file => python3 file.py f file.txt \n With single url => python3 file.py url.com")
+        logger.exception(e)

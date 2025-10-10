@@ -1,191 +1,89 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-import sys, argparse, re
-
-from modules.utils import *
-
-#header checks
-from modules.header_checks.check_localhost import check_localhost
-from modules.header_checks.methods import check_methods
-from modules.header_checks.http_version import check_http_version
-from modules.header_checks.vhosts import check_vhost
-from modules.header_checks.cachetag_header import check_cachetag_header
-
-#cp & cpdos
-from modules.cp_check.cache_poisoning_nf_files import check_cache_files
-from modules.CPDoS import check_CPDoS
-from modules.CVE import check_cpcve
-from tools.autopoisoner.autopoisoner import check_cache_poisoning
-
-#others
-from modules.logging_config import valid_log_level, configure_logging
-from modules.server_error import get_server_error
-from modules.technologies import technology
-from modules.cookie_reflection import check_cookie_reflection
-from static.banner import print_banner
-
-#threading
-from queue import Queue, Empty
-
-try:
-    enclosure_queue = Queue()
-except:
-    enclosure_queue = Queue.Queue()
-
+from datetime import datetime
+from queue import Empty, Queue
 from threading import Thread
 
+# utils
+import utils.proxy as proxy
+from cli import args
+
+# cp & cpdos
+from modules.cp_check.cache_poisoning_nf_files import check_cache_files
+from modules.cp_check.methods_poisoning import check_methods_poisoning
+from modules.CPDoS import check_CPDoS
+from modules.CVE import check_cpcve
+from modules.header_checks.cachetag_header import check_cachetag_header
+
+# header checks
+from modules.header_checks.check_localhost import check_localhost
+from modules.header_checks.http_version import check_http_version
+from modules.header_checks.methods import check_methods
+from modules.header_checks.server_error import get_server_error
+from modules.header_checks.uncommon_header import get_http_headers
+from modules.header_checks.vhosts import check_vhost
+from modules.header_checks.debug_header import check_http_debug
+
+# others
+from modules.logging_config import configure_logging
+from modules.Technology import Technology
+from tools.autopoisoner.autopoisoner import check_cache_poisoning
+from utils.style import Colors
+from utils.utils import (
+    check_auth,
+    configure_logger,
+    get_domain_from_url,
+    requests,
+    sys,
+    time,
+)
+
+logger = configure_logger(__name__)
+
+# Global queue for multi-threaded processing
+enclosure_queue: Queue[str] = Queue()
+
+# Global variables for CLI arguments
+human: str | None = None
+url_file: str | None = None
+custom_header: list[str] | None = None
+behavior: bool | None = None
+only_cp: bool | None = None
+threads: int | None = None
+authent: tuple[str, str] | None = None
 
 
-def args():
-    """
-    Parses command-line arguments and returns them.
-
-    This function uses argparse to define and parse command-line arguments for the script.
-    It includes options for specifying a URL, a file of URLs, custom HTTP headers, user agents,
-    authentication, verbosity, logging, and threading.
-
-    Returns:
-        argparse.Namespace: Parsed command-line arguments.
-
-    Arguments:
-        -u, --url (str): URL to test [required].
-        -f, --file (str): File of URLs.
-        -H, --header (str): Add a custom HTTP Header.
-        -A, --user-agent (str): Add a custom User Agent.
-        -a, --auth (str): Add an HTTP authentication. Ex: --auth admin:admin.
-        -b, --behavior (bool): Activates a simplified version of verbose,
-            highlighting interesting cache behaviors.
-        -t, --threads (int): Threads numbers for multiple URLs. Default: 10.
-        -l, --log (str): Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-            Default: WARNING.
-        -L, --log-file (str): The file path pattern for the log file.
-            Default: ./logs/%Y%m%d_%H%M.log.
-        -v, --verbose (int): Increase verbosity (can be used multiple times).
-
-    If no argument is provided, the function will print the help message and exit.
-    """
-    parser = argparse.ArgumentParser(description=print_banner())
-
-    parser.add_argument(
-        "-u", "--url", dest="url", help="URL to test \033[31m[required]\033[0m"
-    )
-    parser.add_argument(
-        "-f", "--file", dest="url_file", help="File of URLs", required=False
-    )
-    parser.add_argument(
-        "-H",
-        "--header",
-        dest="custom_header",
-        help="Add a custom HTTP Header",
-        action="append",
-        required=False,
-    )
-    parser.add_argument(
-        "-A",
-        "--user-agent",
-        dest="user_agent",
-        help="Add a custom User Agent",
-        required=False,
-    )
-    parser.add_argument(
-        "-a",
-        "--auth",
-        dest="auth",
-        help="Add an HTTP authentication. \033[33mEx: --auth admin:admin\033[0m",
-        required=False,
-    )
-    parser.add_argument(
-        "-b",
-        "--behavior",
-        dest="behavior",
-        help="Activates a simplified version of verbose, highlighting interesting cache behaviors",
-        required=False,
-        action="store_true",
-    )
-    parser.add_argument(
-        "-hu",
-        "--humans",
-        dest="humans",
-        help="Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'",
-        default="0",
-        required=False,
-    )
-    parser.add_argument(
-        "-t",
-        "--threads",
-        dest="threads",
-        help="Threads numbers for multiple URLs. \033[32mDefault: 10\033[0m",
-        type=int,
-        default=10,
-        required=False,
-    )
-    parser.add_argument(
-        "-l",
-        "--log",
-        type=valid_log_level,
-        default="WARNING",
-        help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-    )
-    parser.add_argument(
-        "-L",
-        "--log-file",
-        dest="log_file",
-        default="./logs/%Y%m%d_%H%M.log",
-        help="The file path pattern for the log file. \033[32mDefault: logs/\033[0m",
-        required=False,
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        default=0,
-        help="Increase verbosity (can be used multiple times)",
-    )
-    parser.add_argument(
-        "-p",
-        "--proxy",
-        dest="custom_proxy",
-        help="Add a custom proxy. Ex: http://127.0.0.1:8080 [In Progress]",
-        required=False,
-    )
-    parser.add_argument(
-        "--ocp",
-        "--only-cp",
-        dest="only_cp",
-        help="Only cache poisoning modules",
-        required=False,
-        action="store_true"
-    )
-
-
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
-
-    return parser.parse_args()
-
-
-def get_technos(a_tech, req_main, url, s):
+def get_technos(
+    url: str, s: requests.Session, req_main: requests.Response, a_tech: Technology
+) -> None:
     """
     Check what is the reverse proxy/WAF/cached server... and test based on the result.
     #TODO Cloudfoundry => https://hackerone.com/reports/728664
     """
-    print("\033[36m ├ Techno analysis\033[0m")
+    print(f"{Colors.CYAN} ├ Techno analysis{Colors.RESET}")
     technos = {
         "apache": ["apache", "tomcat"],
         "nginx": ["nginx"],
         "envoy": ["envoy"],
-        "akamai": ["akamai", "x-akamai", "x-akamai-transformed", "akamaighost", "akamaiedge", "edgesuite"],
+        "akamai": [
+            "akamai",
+            "x-akamai",
+            "x-akamai-transformed",
+            "akamaighost",
+            "akamaiedge",
+            "edgesuite",
+        ],
         "imperva": ["imperva"],
         "fastly": ["fastly"],
         "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"],
+        "cloudfront": ["x-amz-cf", "cloudfront", "x-amz-request-id"],
         "vercel": ["vercel"],
         # "cloudfoundry": ["cf-app"]
     }
 
+    technologies_detected = False
     for t in technos:
-        tech_hit = False
+        tech_hit: str | bool = False
         for v in technos[t]:
             for rt in req_main.headers:
                 # case-insensitive comparison
@@ -195,91 +93,90 @@ def get_technos(a_tech, req_main, url, s):
                     or v.lower() in rt.lower()
                 ):
                     tech_hit = t
-        if tech_hit:
-            techno_result = getattr(a_tech, tech_hit)(url, s)
+                    break  # Exit inner loops once we find a match
+            if tech_hit:
+                break
+        if tech_hit and isinstance(tech_hit, str):
+            getattr(a_tech, tech_hit)(url, s)
+            technologies_detected = True
             tech_hit = False
 
-
-"""
-def fuzz_x_header(url):
-    When fuzzing for custom X-Headers on a target, a setup example as below can be combined with a dictionary/bruteforce attack. This makes it possible to extract hidden headers that the target uses.
-        X-Forwarded-{FUZZ}
-        X-Original-{FUZZ}
-        X-{COMPANY_NAME}-{FUZZ}
-    (https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)
-    #TODO real utility ?
-"""
-
-def check_auth(auth, url):
-    try:
-        authent = (auth.split(":")[0], auth.split(":")[1])
-        r = requests.get(
-            url, allow_redirects=False, verify=False, auth=authent, timeout=10
+    if not technologies_detected:
+        print(
+            f"{Colors.YELLOW} │ └── No specific technologies detected{Colors.RESET}"
         )
-        if r.status_code in [200, 302, 301]:
-            print("\n+ Authentication successfull\n")
-            return authent
-        else:
-            print("\nAuthentication error")
-            continue_error = input(
-                "The authentication seems bad, continue ? [y/N]"
-            )
-            if continue_error not in ["y", "Y"]:
-                print("Exiting")
-                sys.exit()
-    except Exception as e:
-        traceback.print_exc()
-        print('Error, the authentication format need to be "user:pass"')
-        sys.exit()
 
 
-
-def process_modules(url, s, a_tech):
+def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
     domain = get_domain_from_url(url)
+    resp_main_headers = []
 
     try:
         req_main = s.get(
             url, verify=False, allow_redirects=False, timeout=10, auth=authent
         )
 
-        print("\033[34m⟙\033[0m")
+        main_status_code = req_main.status_code
+        main_head = req_main.headers
+        main_len = len(req_main.content)
+
+        print(f"{Colors.BLUE}⟙{Colors.RESET}")
+        # print(s.headers)
+        start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"{Colors.SALMON}[STARTED]{Colors.RESET} {start_time}")
         print(f" URL: {url}")
-        print(f" URL response: {req_main.status_code}")
-        print(f" URL response size: {len(req_main.content)} bytes")
-        print("\033[34m⟘\033[0m")
-        if req_main.status_code not in [200, 302, 301, 403, 401] and not url_file:
+        print(f" URL response: {Colors.GREEN}{main_status_code}{Colors.RESET}") if main_status_code == 200 else print(f" URL response: {Colors.YELLOW}{main_status_code}{Colors.RESET}")
+        print(f" URL response size: {main_len} bytes")
+        proxy_status = f" Proxy: {Colors.RED}OFF{Colors.RESET}"
+        if proxy.proxy_enabled:
+            proxy_status = f" Proxy: {Colors.GREEN}ON{Colors.RESET} ({proxy.proxy_url})"
+        if proxy.burp_enabled:
+            proxy_status += f" | Burp: {Colors.GREEN}ON{Colors.RESET} ({proxy.burp_url})"
+        print(proxy_status)
+        print(f"{Colors.BLUE}⟘{Colors.RESET}")
+        print(f"{Colors.BLUE}⟙{Colors.RESET}")
+
+        if main_status_code not in [200, 302, 301, 403, 401] and not url_file:
             choice = input(
-                " \033[33mThe url does not seem to answer correctly, continue anyway ?\033[0m [y/n]"
+                f" {Colors.YELLOW}The url does not seem to answer correctly, continue anyway ?{Colors.RESET} [y/n]"
             )
             if choice not in ["y", "Y"]:
                 sys.exit()
         for k in req_main.headers:
-            base_header.append(f"{k}: {req_main.headers[k]}")
-
+            resp_main_headers.append(f"{k}: {req_main.headers[k]}")
         if not only_cp:
-            check_cachetag_header(url, req_main, base_header)
-            get_server_error(url, base_header, authent, url_file)
-            check_vhost(domain, url)
+            check_cachetag_header(resp_main_headers)
+            get_server_error(url, authent)
+            check_vhost(url)
             check_localhost(url, s, domain, authent)
-            check_methods(url, custom_header, authent, human)
+            check_methods(url, custom_header, authent, human is not None)
             check_http_version(url)
+            get_technos(url, s, req_main, a_tech)
 
-        check_cpcve(url, s, req_main, domain, custom_header, authent, human)
-        check_CPDoS(url, s, req_main, domain, custom_header, authent, human)
-        check_cache_poisoning(url, custom_header, behavior, authent, human)
-        check_cache_files(url, s, custom_header, authent)
-
-        if not only_cp:
-            techno = get_technos(a_tech, req_main, url, s)
-        #check_cookie_reflection(url, custom_header, authent) #REDO
-        #fuzz_x_header(url) #TODO
+        check_http_debug(url, s, main_status_code, main_len, main_head, authent, human or "")
+        get_http_headers(url, s, main_status_code, main_len, dict(main_head), authent)
+        check_cpcve(url, s, req_main, parse_headers(custom_header), authent, human or "")
+        check_CPDoS(url, s, req_main, parse_headers(custom_header), authent, human or "")
+        check_methods_poisoning(url, s, parse_headers(custom_header), authent)
+        check_cache_poisoning(
+            url,
+            parse_headers(custom_header),
+            behavior or False,
+            authent is not None,
+            human or "",
+        )
+        check_cache_files(url, s, parse_headers(custom_header), authent)
+        # fuzz_x_header(url) #TODO
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
         pass
         # print(f"Error in processing {url}: {e}")
+    except Exception as e:
+        print(f"Error : {e}")
+        logger.exception(e)
 
 
-def parse_headers(header_list):
+def parse_headers(header_list: list[str] | None) -> dict[str, str]:
     headers = {}
     if header_list:
         for header in header_list:
@@ -289,39 +186,41 @@ def parse_headers(header_list):
     return headers
 
 
-def main(urli, s, auth):
-    global base_header
+def main(urli: str, s: requests.Session, auth: str | None) -> None:
     global authent
-    base_header = []
 
-    # DEBUG global completed_tasks
-
-    a_tech = technology()
+    a_tech = Technology()
 
     if auth:
         authent = check_auth(auth, urli)
     else:
-        authent = False
-
+        authent = None
     if url_file and threads != 1337:
         try:
             while True:
                 try:
-                    url = urli.get_nowait()
+                    if isinstance(urli, Queue):
+                        url = urli.get_nowait()
+                    else:
+                        url = urli
+                        # For single URL, break after processing
+                        process_modules(url, s, a_tech)
+                        break
                 except Empty:
                     break
                 try:
                     process_modules(url, s, a_tech)
+                except Exception:
+                    logger.exception(f"Error processing URL {url}")
                 finally:
-                    urli.task_done()
+                    if isinstance(urli, Queue):
+                        urli.task_done()
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-            urli.task_done()
             sys.exit()
         except Exception as e:
-            pass
-            # print(f"Error : {e}")
-            urli.task_done()
+            print(f"Worker thread error: {e}")
+            logger.exception(e)
     else:
         try:
             process_modules(urli, s, a_tech)
@@ -330,11 +229,16 @@ def main(urli, s, auth):
             sys.exit()
         except Exception as e:
             print(f"Error : {e}")
+            logger.exception(e)
 
 
-if __name__ == "__main__":
+def cli_main() -> None:
+    """Entry point for the CLI command."""
     # Parse arguments
     results = args()
+
+    # Make variables global so they can be accessed by process_modules
+    global human, url_file, custom_header, behavior, only_cp, threads, authent
 
     url = results.url
     url_file = results.url_file
@@ -344,57 +248,94 @@ if __name__ == "__main__":
     user_agent = results.user_agent
     threads = results.threads
     humans = results.humans
-    proxy = results.custom_proxy
+    proxy_arg = results.proxy
+    burp_arg = results.burp
     only_cp = results.only_cp
 
     configure_logging(results.verbose, results.log, results.log_file)
-
-    global human
 
     human = humans
 
     try:
         s = requests.Session()
-        if user_agent:
-            s.headers.update({"User-agent": user_agent})
-        else:
-            s.headers.update(
-                {
-                    "User-agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; LCJB; rv:11.0) like Gecko",
-                    #"Accept": "html",
-                    "Accept-Encoding": "gzip"
-                }
-            )
+        s.verify = False
+        s.max_redirects = 60
+        s.headers.update(
+            {
+                "User-Agent": user_agent,
+                #DECOMMENTHIS
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+                "Priority": "u=4",
+            }
+        )
+
         if custom_header:
             try:
                 custom_headers = parse_headers(custom_header)
                 s.headers.update(custom_headers)
             except Exception as e:
-                print(e)
+                logger.exception(e)
+                print(f" Error in custom header format: {e}")
                 sys.exit()
-        if proxy:
-            proxies = {
-                'https': proxy,
-            }
-            s.proxies.update(proxies)
 
-        s.max_redirects = 60
+        # Handle proxy configuration
+        if proxy_arg is not None or burp_arg is not None:
+            # Configure main proxy
+            if proxy_arg is not None:  # Handle both empty string (default) and provided value
+                proxy.proxy_url = proxy.parse_proxy_url(proxy_arg)
+                test_proxy = proxy.test_proxy_connection(proxy.proxy_url)
+                if test_proxy:
+                    proxy.proxy_enabled = True
+                    print(f" Proxy configured: {proxy.proxy_url}")
+                else:
+                    # For regular proxy, just warn but continue (some proxies might not allow httpbin.org)
+                    print(f" {Colors.YELLOW}Proxy connection test failed, but continuing: {proxy.proxy_url}{Colors.RESET}")
+                    proxy.proxy_enabled = True
+            
+            # Configure Burp proxy
+            if burp_arg is not None:  # Handle both empty string (default) and provided value
+                proxy.burp_url = proxy.parse_proxy_url(burp_arg)
+                test_burp = proxy.test_proxy_connection(proxy.burp_url)
+                if test_burp:
+                    proxy.burp_enabled = True
+                    print(f" Burp proxy configured: {proxy.burp_url}")
+                else:
+                    print(f" {Colors.RED}Burp proxy connection failed: {proxy.burp_url}{Colors.RESET}")
+                    sys.exit(1)
+            
+            # If only burp is specified, also enable general proxying through burp
+            if burp_arg is not None and proxy_arg is None:
+                proxy.proxy_enabled = True
+                proxy.proxy_url = proxy.burp_url
+            
+            s.proxies = {"http": proxy.proxy_url, "https": proxy.proxy_url}
 
         if url_file and threads != 1337:
-            with open(url_file, "r") as urls:
-                urls = urls.read().splitlines()
+            with open(url_file) as url_file_handle:
+                urls = url_file_handle.read().splitlines()
             try:
                 for url in urls:
                     enclosure_queue.put(url)
                 worker_threads = []
-                for _ in range(threads):
+                for _ in range(threads or 1):
                     worker = Thread(target=main, args=(enclosure_queue, s, auth))
                     worker.daemon = True
                     worker.start()
                     worker_threads.append(worker)
+                
                 enclosure_queue.join()
+                
                 for worker in worker_threads:
-                    worker.join()
+                    worker.join(timeout=60)
+
             except KeyboardInterrupt:
                 print("Exiting")
                 sys.exit()
@@ -403,10 +344,11 @@ if __name__ == "__main__":
                 sys.exit()
             except Exception as e:
                 print(f"Error : {e}")
+                logger.exception(e)
             print("Scan finish")
         elif url_file and threads == 1337:
-            with open(url_file, "r") as urls:
-                urls = urls.read().splitlines()
+            with open(url_file) as url_file_handle:
+                urls = url_file_handle.read().splitlines()
                 for url in urls:
                     main(url, s, auth)
         else:
@@ -425,3 +367,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error : {e}")
     print("")
+
+
+if __name__ == "__main__":
+    cli_main()

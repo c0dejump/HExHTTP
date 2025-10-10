@@ -1,21 +1,37 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Attempts to find Cache Poisoning Denial of Service (CpDoS) error based
 https://cpdos.org/
 """
 
+import utils.proxy as proxy
 from modules.lists import payloads_keys
-from modules.utils import requests, random, sys, configure_logger, human_time, Identify
+from utils.style import Colors, Identify
+from utils.utils import (
+    configure_logger,
+    format_payload,
+    human_time,
+    random,
+    requests,
+    sys,
+    range_exclusion
+)
+
 
 logger = configure_logger(__name__)
 
 
-def check_cached_status(url, s, pk, main_status_code, authent):
+def check_cached_status(
+    url: str,
+    s: requests.Session,
+    pk: dict[str, str],
+    main_status_code: int,
+    authent: tuple[str, str] | None,
+) -> None:
     behavior = False
     confirmed = False
-    cache_status = False
+    cache_status: bool = False
 
     for _ in range(0, 5):
         req = s.get(
@@ -29,7 +45,7 @@ def check_cached_status(url, s, pk, main_status_code, authent):
     req_verify = s.get(
         url, verify=False, allow_redirects=False, auth=authent, timeout=10
     )
-    # print(f"{req.status_code} :: {req_verify.status_code}")
+    logger.debug(f"{req.status_code} :: {req_verify.status_code}")
     if (
         req.status_code == req_verify.status_code
         and req.status_code not in [429, 200, 304, 303, 403]
@@ -55,28 +71,41 @@ def check_cached_status(url, s, pk, main_status_code, authent):
                 behavior = True
                 cache_status = True
 
-    cache_status = (
-        f"\033[31m{cache_status}\033[0m"
+    cache_tag = (
+        f"{Colors.RED}{cache_status}{Colors.RESET}"
         if not cache_status
-        else f"\033[32m{cache_status}\033[0m"
+        else f"{Colors.GREEN}{cache_status}{Colors.RESET}"
     )
     if confirmed:
-        #print(headers)
         print(
-            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+
+            proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
         behavior = False
         confirmed = False
     elif behavior:
         print(
-            f" {Identify.behavior} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f" {Identify.behavior} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+
+            proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
 
 
-def check_cached_len(url, s, pk, main_len, authent):
+def check_cached_len(
+    url: str,
+    s: requests.Session,
+    pk: dict[str, str],
+    main_len: int,
+    authent: tuple[str, str] | None,
+) -> None:
     behavior = False
     confirmed = False
-    cache_status = False
+    cache_status: bool = False
 
     for _ in range(0, 5):
         req = s.get(
@@ -90,7 +119,7 @@ def check_cached_len(url, s, pk, main_len, authent):
     req_verify = s.get(
         url, verify=False, allow_redirects=False, auth=authent, timeout=10
     )
-    # print(f"{req.status_code} :: {req_verify.status_code}")
+    logger.debug(f"{req.status_code} :: {req_verify.status_code}")
     if (
         len(req.content) == len(req_verify.content)
         and len(req_verify.content) != main_len
@@ -110,31 +139,45 @@ def check_cached_len(url, s, pk, main_len, authent):
                 behavior = True
                 cache_status = False
 
-    cache_status = (
-        f"\033[31m {cache_status} \033[0m"
+    cache_tag = (
+        f"{Colors.RED} {cache_status} {Colors.RESET}"
         if not cache_status
-        else f"\033[32m {cache_status} \033[0m"
+        else f"{Colors.GREEN} {cache_status} {Colors.RESET}"
     )
     if confirmed:
         print(
-            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+
+            proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
         behavior = False
     elif behavior:
         print(
-            f" {Identify.behavior} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_status} | \033[34m{url}\033[0m | PAYLOAD: {pk if len(pk) < 60 else pk[0:60]}"
+            f" {Identify.behavior} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
+        if proxy.proxy_enabled:
+            from utils.proxy import proxy_request
+
+            proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
 
 
-def cpdos_main(url, s, initial_response, authent, human):
+def cpdos_main(
+    url: str,
+    s: requests.Session,
+    initial_response: requests.Response,
+    authent: tuple[str, str] | None,
+    human: str,
+) -> None:
     main_status_code = initial_response.status_code
     main_len = len(initial_response.content)
-
     blocked = 0
+
+    rel = range_exclusion(main_len)
+    
     for pk in payloads_keys:
-        # pk = pk.encode(encoding='UTF-8')
-        #print(pk)
-        uri = f"{url}{random.randrange(99999)}"
+        uri = f"{url}{random.randrange(999)}"
         try:
             req = s.get(
                 uri,
@@ -148,12 +191,12 @@ def cpdos_main(url, s, initial_response, authent, human):
 
             if req.status_code == 888:
                 print(
-                    f" {Identify.behavior} | CPDoSError 888 response | CACHETAG: N/A | \033[34m{url}\033[0m | PAYLOAD: {pk}"
+                    f" {Identify.behavior} | CPDoSError 888 response | CACHETAG: N/A | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {format_payload(pk)}"
                 )
                 check_cached_status(uri, s, pk, main_status_code, authent)
-            elif req.status_code == 403 or req.status_code == 429:
+            if req.status_code == 403 or req.status_code == 429:
                 uri_403 = f"{url}{random.randrange(999)}"
-                req_403_test = requests.get(
+                req_403_test = s.get(
                     uri_403,
                     verify=False,
                     auth=authent,
@@ -163,7 +206,7 @@ def cpdos_main(url, s, initial_response, authent, human):
                 if req_403_test.status_code == 403 or req_403_test.status_code == 429:
                     blocked += 1
 
-            elif (
+            if (
                 blocked < 3
                 and req.status_code != 200
                 and main_status_code not in [403, 401]
@@ -172,18 +215,14 @@ def cpdos_main(url, s, initial_response, authent, human):
                 # print(f"[{main_status_code}>{req.status_code}] [{len(main_status_code.headers)}b>{len(req.headers)}b] [{len(main_status_code.content)}b>{len(req.content)}b] {url} :: {pk}")
                 check_cached_status(uri, s, pk, main_status_code, authent)
             elif blocked < 3 and req.status_code == main_status_code:
-                if len(str(main_len)) <= 5 and main_len not in range(
-                    len_req - 1000, len_req + 1000
-                ):
+                if len(str(main_len)) <= 5 and main_len not in rel:
                     check_cached_len(uri, s, pk, main_len, authent)
-                elif len(str(main_len)) > 5 and main_len not in range(
-                    len_req - 10000, len_req + 10000
-                ):
+                elif len(str(main_len)) > 5 and main_len not in rel:
                     check_cached_len(uri, s, pk, main_len, authent)
             human_time(human)
-            
+
             if len(list(pk.values())[0]) < 50 and len(list(pk.keys())[0]) < 50:
-                sys.stdout.write(f"\033[34m {pk}\033[0m\r")
+                sys.stdout.write(f"{Colors.BLUE}{pk}{Colors.RESET}\r")
                 sys.stdout.write("\033[K")
         except KeyboardInterrupt:
             print("Exiting")

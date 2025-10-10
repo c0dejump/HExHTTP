@@ -1,0 +1,112 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "HExHTTP"
+version = "2.0"
+description = "HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors."
+readme = "README.md"
+authors = [
+    { name = "c0dejump", email = "codejumpgame@gmail.com" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.11"
+keywords = ["http", "headers", "security", "vulnerability", "cache-poisoning", "web-security"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Topic :: Security",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Testing",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+]
+dependencies = [
+    "requests>=2.31.0,<3.0.0",
+    "wafw00f>=2.2.0",
+    "urllib3>=2.2.0,<3.0.0",
+    "pync>=2.0.3",
+    "beautifulsoup4>=4.12,<5",
+    "httpx>=0.24.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/c0dejump/HExHTTP/"
+"Bug Tracker" = "https://github.com/c0dejump/HExHTTP/issues"
+
+[project.scripts]
+hexhttp = "hexhttp:cli_main"
+
+[project.optional-dependencies]
+# Dev dependencies (installed via `pip install .[dev]`)
+dev = [
+    "black",
+    "ruff",
+    "mypy",
+    "bandit",
+    "pytest>=7.0.0",
+    "pytest-cov",
+    "flask>=2.0.0",
+    "pre-commit",
+    "types-setuptools",
+    "types-requests",
+    "types-urllib3",
+    "types-flask"
+]
+
+# Test dependencies (installed via `pip install .[test]`)
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov",
+    "flask>=2.0.0",
+    "types-flask"
+]
+
+# setuptools package discovery
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests*", "docs*"]
+
+# Include package data
+[tool.setuptools.package-data]
+"modules.lists" = ["*.lst"]
+
+# Tool configurations
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+skip-string-normalization = false  # Enforce double quotes unless you set true
+
+[tool.ruff]
+line-length = 88
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]  # Let Black handle line length instead of Ruff
+
+[tool.mypy]
+python_version = "3.11"
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_optional = true
+ignore_missing_imports = true
+exclude = [
+    "build/",
+    "dist/",
+    ".*\\.egg-info/",
+    "__pycache__/",
+]
+
+[tool.bandit]
+exclude_dirs  = [".venv", "venv", "tests"]
+# Skip B110 (try_except_pass) and B112 (try_except_continue) - common patterns in network testing tools
+skips = ["B101","B110", "B112", "B404","B603"]
