@@ -7,7 +7,7 @@ https://cpdos.org/#HMO
 
 import utils.proxy as proxy
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, sys, format_payload, human_time, random, requests, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE, verify_405_waf
+from utils.utils import configure_logger, sys, format_payload, human_time, random, requests, range_exclusion, verify_405_waf
 
 logger = configure_logger(__name__)
 
@@ -204,14 +204,7 @@ def HMO(
     main_status_code = initial_response.status_code
     main_len = len(initial_response.content)
 
-    range_exlusion = (
-        range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
-        if main_len < 10000
-        else range(
-            main_len - BIG_CONTENT_DELTA_RANGE,
-            main_len + BIG_CONTENT_DELTA_RANGE,
-        )
-    )
+    rel = range_exclusion(main_len)
 
     for header, method in (
         (header, method) for header in hmo_headers for method in methods
@@ -236,7 +229,7 @@ def HMO(
             human_time(human)
 
 
-            logger.debug(range_exlusion)
+            logger.debug(rel)
 
             if probe.status_code == 405:
                 vw = verify_405_waf(probe)
@@ -257,7 +250,7 @@ def HMO(
                 severity = "behavior"
             elif (
                 len(probe.content) != main_len
-                and len(probe.content) not in range_exlusion
+                and len(probe.content) not in rel
                 and probe.status_code not in [429, 401, 403]
             ):
                 reason = (
@@ -268,7 +261,7 @@ def HMO(
                 severity = "behavior"
             elif (
                 probe.status_code == main_status_code
-                and len(probe.content) in range_exlusion
+                and len(probe.content) in rel
             ):
                 continue
 
@@ -295,7 +288,7 @@ def HMO(
 
             elif (
                 len(control.content) == len(probe.content)
-                and len(control.content) not in range_exlusion
+                and len(control.content) not in rel
                 and control.status_code not in [429, 401, 403]
             ):
                 reason = (

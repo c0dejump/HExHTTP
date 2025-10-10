@@ -15,7 +15,7 @@ from utils.utils import (
     random,
     requests,
     sys,
-    CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
+    range_exclusion
 )
 
 
@@ -173,6 +173,9 @@ def cpdos_main(
     main_status_code = initial_response.status_code
     main_len = len(initial_response.content)
     blocked = 0
+
+    rel = range_exclusion(main_len)
+    
     for pk in payloads_keys:
         uri = f"{url}{random.randrange(999)}"
         try:
@@ -191,7 +194,7 @@ def cpdos_main(
                     f" {Identify.behavior} | CPDoSError 888 response | CACHETAG: N/A | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {format_payload(pk)}"
                 )
                 check_cached_status(uri, s, pk, main_status_code, authent)
-            elif req.status_code == 403 or req.status_code == 429:
+            if req.status_code == 403 or req.status_code == 429:
                 uri_403 = f"{url}{random.randrange(999)}"
                 req_403_test = s.get(
                     uri_403,
@@ -203,7 +206,7 @@ def cpdos_main(
                 if req_403_test.status_code == 403 or req_403_test.status_code == 429:
                     blocked += 1
 
-            elif (
+            if (
                 blocked < 3
                 and req.status_code != 200
                 and main_status_code not in [403, 401]
@@ -212,13 +215,9 @@ def cpdos_main(
                 # print(f"[{main_status_code}>{req.status_code}] [{len(main_status_code.headers)}b>{len(req.headers)}b] [{len(main_status_code.content)}b>{len(req.content)}b] {url} :: {pk}")
                 check_cached_status(uri, s, pk, main_status_code, authent)
             elif blocked < 3 and req.status_code == main_status_code:
-                if len(str(main_len)) <= 5 and main_len not in range(
-                    len_req - 1000, len_req + 1000
-                ):
+                if len(str(main_len)) <= 5 and main_len not in rel:
                     check_cached_len(uri, s, pk, main_len, authent)
-                elif len(str(main_len)) > 5 and main_len not in range(
-                    len_req - 10000, len_req + 10000
-                ):
+                elif len(str(main_len)) > 5 and main_len not in rel:
                     check_cached_len(uri, s, pk, main_len, authent)
             human_time(human)
 

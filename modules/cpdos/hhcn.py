@@ -14,6 +14,7 @@ from utils.utils import (
     get_domain_from_url,
     random,
     requests,
+    range_exclusion,
 )
 
 logger = configure_logger(__name__)
@@ -55,14 +56,7 @@ def HHCN(
     try:
         main_response_size = len(main_response.content)
 
-        range_exlusion = (
-            range(main_response_size - CONTENT_DELTA_RANGE, main_response_size + CONTENT_DELTA_RANGE)
-            if main_response_size < 10000
-            else range(
-                main_response_size - BIG_CONTENT_DELTA_RANGE,
-                main_response_size + BIG_CONTENT_DELTA_RANGE,
-            )
-        )
+        rel = range_exclusion(main_response_size)
 
         probe = s.get(
             url,
@@ -74,7 +68,7 @@ def HHCN(
         )
         probe_size = len(probe.content)
         behavior = ""
-        if probe_size not in range_exlusion or (main_response.status_code != probe.status_code):
+        if probe_size not in rel or (main_response.status_code != probe.status_code):
             if len(probe.headers) > 0:
                 for rf in probe.headers:
                     if "cache" in rf.lower() or "age" in rf.lower():
@@ -106,7 +100,7 @@ def HHCN(
                     auth=authent,
                     allow_redirects=False,
                 )
-            if probe_size not in range_exlusion:
+            if probe_size not in rel:
                 behavior = (
                     f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {probe_size}b"
                 )

@@ -132,6 +132,7 @@ def range_exclusion(main_len):
             main_len + BIG_CONTENT_DELTA_RANGE,
         )
     )
+    return range_exlusion
 
 def verify_405_waf(req):
     html = req.text

@@ -9,13 +9,12 @@ import utils.proxy as proxy
 from modules.lists import header_list
 from utils.style import Colors, Identify
 from utils.utils import (
-    BIG_CONTENT_DELTA_RANGE,
-    CONTENT_DELTA_RANGE,
     configure_logger,
     generate_cache_buster,
     human_time,
     requests,
     random,
+    range_exclusion,
 )
 
 logger = configure_logger(__name__)
@@ -144,18 +143,11 @@ def HBH(
             ):
                 behavior = f"DIFFERENT STATUS-CODE  {response_1.status_code} > {response_2.status_code}"
 
-            len_main = len(response_1.content)
-            range_exlusion = (
-                range(len_main - CONTENT_DELTA_RANGE, len_main + CONTENT_DELTA_RANGE)
-                if len_main < 10000
-                else range(
-                    len_main - BIG_CONTENT_DELTA_RANGE,
-                    len_main + BIG_CONTENT_DELTA_RANGE,
-                )
-            )
+            main_len = len(response_1.content)
+            rel = range_exclusion(main_len)
 
             if (
-                len(response_1.content) not in range_exlusion
+                len(response_1.content) not in rel
                 and response_2.status_code not in [429, 403]
                 and response_1.status_code not in [301, 302, 429, 403]
                 and response_2_count_size < max_sample_content

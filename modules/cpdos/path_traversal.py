@@ -7,8 +7,7 @@ From 0xrth research
 
 from utils.style import Colors, Identify
 from utils.utils import (
-    CONTENT_DELTA_RANGE,
-    BIG_CONTENT_DELTA_RANGE,
+    range_exclusion,
     cache_tag_verify,
     configure_logger,
     random,
@@ -32,7 +31,7 @@ def verify(
     url_cb: str,
     url_test: str,
     completed_path: str,
-    range_exlusion: range,
+    rel: range,
     p: str,
     s: requests.Session,
 ) -> None:
@@ -61,7 +60,7 @@ def verify(
             print(
                 f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_cb.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
             )
-        elif len(req_cb.content) not in range_exlusion and req_cb.status_code not in [
+        elif len(req_cb.content) not in rel and req_cb.status_code not in [
             403,
             401,
             429,
@@ -84,14 +83,7 @@ def path_traversal_check(
 ) -> None:
     try:
         main_len = len(req_main.content)
-        range_exlusion = (
-                range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
-                if main_len < 10000
-                else range(
-                    main_len - BIG_CONTENT_DELTA_RANGE,
-                    main_len + BIG_CONTENT_DELTA_RANGE,
-                )
-            )
+        rel = range_exclusion(main_len)
         paths = [
             "\\",
             "cc\\..\\",
@@ -129,13 +121,13 @@ def path_traversal_check(
                     url_cb,
                     url_test,
                     completed_path,
-                    range_exlusion,
+                    rel,
                     p,
                     s,
                 )
             elif len(
                 req_test.content
-            ) not in range_exlusion and req_test.status_code not in [403, 401, 429]:
+            ) not in rel and req_test.status_code not in [403, 401, 429]:
                 print(
                     f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_test.content)}b | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
                 )
@@ -145,7 +137,7 @@ def path_traversal_check(
                     url_cb,
                     url_test,
                     completed_path,
-                    range_exlusion,
+                    rel,
                     p,
                     s,
                 )

@@ -75,7 +75,7 @@ def run_cpdos_modules(
 
         HHO(randomiz_url(url), s, req_main, authent, human)
         HMC(randomiz_url(url), s, req_main, authent, human)
-        HMO(randomiz_url(url), s, req_main, authent, human)
+        #HMO(randomiz_url(url), s, req_main, authent, human)
         HHCN(randomiz_url(url), s, req_main, authent)
         HBH(randomiz_url(url), s, req_main, authent, human)
         MHC(url, req_main, authent, human)
