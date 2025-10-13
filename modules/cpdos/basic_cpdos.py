@@ -389,9 +389,9 @@ def cpdos_main(
             print(f"invalide header (fallback): {e}")
             try:
                 req = raw_get(uri, pk, authent, timeout=10)
-                print(f"{Colors.YELLOW}RAW sent -> status {req.status_code}{Colors.RESET}")
+                #print(f"{Colors.YELLOW}RAW sent -> status {req.status_code}{Colors.RESET}")
             except Exception as ee:
-                print(f"raw send error: {ee}")
+                #print(f"raw send error: {ee}")
                 logger.exception(ee)
         except UnicodeEncodeError as e:
             #print(f"invalid unicode: {e}")

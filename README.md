@@ -218,7 +218,9 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 ## TODO
 
 - [ ] Cache poisoning module (autopoisoner) remake
+- [ ] Remake "session" handler/wrapper
 - [ ] Filter False Positive on WAF blocking [WIP]
+- [ ] Host Header Injection analysis
 - [ ] Parameter Cloacking
 - [ ] Try with mobile user-agent
 - [ ] Tests Bed for regression testing

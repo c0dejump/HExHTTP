@@ -1,6 +1,13 @@
 Changelog:
 ----------
 
+- 2.1
+---------
+	Updated:
+	- Fixed cpdos_main: Reworking the source code to avoid FP and improve detection, as well as being able to send headers not authorized by the basic requests library & recreating a “fresh” session before launching the cpdos modules
+	- New payloads
+	- Fixed logic and style bug
+---------
 
 - 2.0
 ---------
