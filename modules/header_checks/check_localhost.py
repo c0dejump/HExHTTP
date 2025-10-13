@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Attemps to check if localhost can be scanned with Host Header
+Attemps to check if the target localhost can be scanned with Host Header
 """
 
 from utils.style import Colors

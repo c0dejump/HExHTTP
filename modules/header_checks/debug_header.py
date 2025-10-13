@@ -58,6 +58,9 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
             else:
                 print(e)
             continue
+        if len(list(dh.values())[0]) < 50 and len(list(dh.keys())[0]) < 50:
+                sys.stdout.write(f"{Colors.BLUE}{dh} :: {req_dh.status_code}{Colors.RESET}\r")
+                sys.stdout.write("\033[K")
     
     # Afficher les résultats regroupés
     for key, data in behavior_groups.items():

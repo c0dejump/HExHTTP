@@ -4,6 +4,7 @@ import argparse  # noqa: F401
 import random
 import re  # noqa: F401
 import socket
+import ssl
 import string
 import sys
 import time
@@ -41,13 +42,13 @@ def format_payload(payload: dict[str, str], max_length: int = 60) -> str:
     for key, value in payload.items():
         # Truncate key if it's too long
         if len(key) > max_length:
-            truncated_key = f"{key[:max_length]}...({len(key)} chars total)"
+            truncated_key = f"{key[:max_length]}...({len(key)} total chars)"
         else:
             truncated_key = key
 
         # Truncate value if it's too long
         if len(value) > max_length:
-            truncated_value = f"{value[:max_length]}...({len(value)} chars total)"
+            truncated_value = f"{value[:max_length]}...({len(value)} total chars)"
         else:
             truncated_value = value
 
@@ -138,8 +139,28 @@ def verify_405_waf(req):
     html = req.text
     soup = BeautifulSoup(html, "html.parser")
     title = soup.title.string if soup.title else None
-    if title.lower() == "human verification" or req.headers.get("x-amzn-waf-action", "").lower() == "captcha":
+    amz_waf = req.headers.get("x-amzn-waf-action", "")
+    if title.lower() == "human verification":
         return True
+    if amz_waf:
+        if amz_waf.lower() == "captcha":
+            return True
     else:
         return False
 
+
+def new_session(base_session=None):
+    s = requests.Session()
+
+    if base_session:
+        s.verify = base_session.verify
+        s.max_redirects = base_session.max_redirects
+
+        s.headers.update(base_session.headers)
+
+        s.proxies.update(base_session.proxies)
+
+        for prefix, adapter in base_session.adapters.items():
+            s.mount(prefix, adapter)
+
+    return s

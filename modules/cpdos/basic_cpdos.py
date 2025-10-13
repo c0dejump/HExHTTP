@@ -10,16 +10,190 @@ from modules.lists import payloads_keys
 from utils.style import Colors, Identify
 from utils.utils import (
     configure_logger,
-    format_payload,
     human_time,
     random,
     requests,
     sys,
-    range_exclusion
+    range_exclusion,
 )
 
+# stdlib
+import socket
+import ssl
+from urllib.parse import urlsplit
+import string
+import base64
 
 logger = configure_logger(__name__)
+
+
+def _escape_bytewise(s: str) -> str:
+    """
+      - backslash -> \\
+      - \n -> \\n, \r -> \\r, \t -> \\t
+      - quote simple -> \'
+      - printable ASCII (0x20..0x7e)
+      - other octets -> \\xHH
+    """
+    if s is None:
+        return ""
+    b = s.encode("utf-8", errors="surrogatepass")
+    out_parts = []
+    for byte in b:
+        ch = chr(byte)
+        if ch == "\\":
+            out_parts.append("\\\\")
+        elif ch == "\n":
+            out_parts.append("\\n")
+        elif ch == "\r":
+            out_parts.append("\\r")
+        elif ch == "\t":
+            out_parts.append("\\t")
+        elif ch == "'":
+            out_parts.append("\\'")
+        elif 32 <= byte <= 126:
+            out_parts.append(ch)
+        else:
+            out_parts.append(f"\\x{byte:02x}")
+    return "".join(out_parts)
+
+
+def format_payload(payload: dict) -> str:
+    parts = []
+    for k, v in payload.items():
+        ks_escaped = _escape_bytewise(str(k))
+        vs_escaped = _escape_bytewise(str(v))
+        if len(vs_escaped) > 60:
+            vs_escaped = f"{vs_escaped[:60]}...({len(vs_escaped)} total chars)"
+        parts.append(f"'{ks_escaped}': '{vs_escaped}'")
+    return "" + ", ".join(parts) + ""
+
+
+class SimpleResponse:
+    def __init__(self, status_code: int, headers: dict[str, str], content: bytes):
+        self.status_code = status_code
+        self.headers = headers
+        self.content = content
+
+
+def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | None, timeout: int = 10) -> SimpleResponse:
+    headers = headers or {}
+
+    if getattr(proxy, "proxy_enabled", False):
+        logger.warning("Proxy enabled but not supported by raw sending; direct sending without proxy.")
+
+    u = urlsplit(url)
+    scheme = u.scheme.lower() or "http"
+    host_port = u.netloc
+    if not host_port:
+        raise ValueError(f"invalid URL: {url}")
+
+    # host et port
+    if ":" in host_port:
+        host, port_str = host_port.rsplit(":", 1)
+        try:
+            port = int(port_str)
+        except ValueError:
+            port = 443 if scheme == "https" else 80
+    else:
+        host = host_port
+        port = 443 if scheme == "https" else 80
+
+    # chemin + query
+    path = u.path or "/"
+    if u.query:
+        path = f"{path}?{u.query}"
+
+    lines: list[bytes] = []
+    lines.append(f"GET {path} HTTP/1.1\r\n".encode("utf-8", errors="surrogatepass"))
+
+    has_host_like = any(k.lower() == "host" for k in (headers.keys() if headers else []))
+    if not has_host_like:
+        lines.append(f"Host: {host}\r\n".encode("utf-8", errors="surrogatepass"))
+
+    if auth and len(auth) == 2 and all(auth):
+        token = base64.b64encode(f"{auth[0]}:{auth[1]}".encode("utf-8", errors="surrogatepass")).decode("ascii")
+        lines.append(f"Authorization: Basic {token}\r\n".encode("ascii"))
+
+    lines.append(b"Connection: close\r\n")
+
+    if headers:
+        for k, v in headers.items():
+            name_bytes = str(k).encode("utf-8", errors="surrogatepass")
+            val_bytes = str(v).encode("utf-8", errors="surrogatepass")
+            lines.append(name_bytes + b": " + val_bytes + b"\r\n")
+
+    lines.append(b"\r\n")
+    req_bytes = b"".join(lines)
+
+    sock = socket.create_connection((host, port), timeout=timeout)
+    try:
+        if scheme == "https":
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            ssock = ctx.wrap_socket(sock, server_hostname=host)
+        else:
+            ssock = sock
+
+        ssock.sendall(req_bytes)
+
+        chunks = []
+        while True:
+            data = ssock.recv(65536)
+            if not data:
+                break
+            chunks.append(data)
+        raw = b"".join(chunks)
+    finally:
+        try:
+            ssock.close()
+        except Exception:
+            pass
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+    sep = raw.find(b"\r\n\r\n")
+    if sep == -1:
+        return SimpleResponse(status_code=0, headers={}, content=raw)
+
+    head = raw[:sep]
+    body = raw[sep+4:]
+
+    first_crlf = head.find(b"\r\n")
+    status_line = head[:first_crlf] if first_crlf != -1 else head
+    try:
+        parts = status_line.decode("latin-1", errors="ignore").split()
+        code = int(parts[1]) if len(parts) >= 2 else 0
+    except Exception:
+        code = 0
+
+    headers_dict: dict[str, str] = {}
+    if first_crlf != -1:
+        for line in head[first_crlf+2:].split(b"\r\n"):
+            if b":" in line:
+                name, val = line.split(b":", 1)
+                headers_dict[name.decode("latin-1", errors="ignore")] = val.strip().decode("latin-1", errors="ignore")
+
+    return SimpleResponse(status_code=code, headers=headers_dict, content=body)
+
+
+def safe_get(s, url: str, headers: dict[str, str] | None, verify: bool, allow_redirects: bool, auth: tuple[str, str] | None, timeout: int):
+    try:
+        return s.get(
+            url,
+            headers=headers,
+            verify=verify,
+            allow_redirects=allow_redirects,
+            auth=auth,
+            timeout=timeout,
+        )
+    except requests.exceptions.InvalidHeader as e:
+        logger.debug(f"safe_get fallback raw pour {url}: {e}")
+        return raw_get(url, headers, auth, timeout=timeout)
+
 
 
 def check_cached_status(
@@ -29,12 +203,13 @@ def check_cached_status(
     main_status_code: int,
     authent: tuple[str, str] | None,
 ) -> None:
-    behavior = False
+    behavior = True
     confirmed = False
     cache_status: bool = False
 
     for _ in range(0, 5):
-        req = s.get(
+        req = safe_get(
+            s,
             url,
             headers=pk,
             verify=False,
@@ -42,34 +217,24 @@ def check_cached_status(
             auth=authent,
             timeout=10,
         )
-    req_verify = s.get(
-        url, verify=False, allow_redirects=False, auth=authent, timeout=10
+    req_verify = safe_get(
+        s, url, headers=None, verify=False, allow_redirects=False, auth=authent, timeout=10
     )
     logger.debug(f"{req.status_code} :: {req_verify.status_code}")
     if (
-        req.status_code == req_verify.status_code
-        and req.status_code not in [429, 200, 304, 303, 403]
-        or req_verify.status_code not in [429, 200, 304, 303, 403]
-        and req_verify.status_code != main_status_code
+        req_verify.status_code != main_status_code
+        and req.status_code == req_verify.status_code
+        and req.status_code not in [429, 304, 303, 403]
+        and req_verify.status_code not in [429, 304, 303, 403]
     ):
-        behavior = True
-        for rh in req_verify.headers:
-            if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
-                confirmed = True
+        confirmed = True
+
+    for rh in getattr(req_verify, "headers", {}) or {}:
+        try:
+            if "age" in rh.lower() or "hit" in str(req_verify.headers[rh]).lower():
                 cache_status = True
-    elif req.status_code != req_verify.status_code and req.status_code == 304:
-        for rh in req_verify.headers:
-            if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
-                behavior = True
-                cache_status = True
-    elif req.status_code != req_verify.status_code and req.status_code not in [
-        429,
-        304,
-    ]:
-        for rh in req_verify.headers:
-            if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
-                behavior = True
-                cache_status = True
+        except Exception:
+            pass
 
     cache_tag = (
         f"{Colors.RED}{cache_status}{Colors.RESET}"
@@ -82,17 +247,14 @@ def check_cached_status(
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-
             proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
         behavior = False
-        confirmed = False
     elif behavior:
         print(
             f" {Identify.behavior} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-
             proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
 
 
@@ -103,12 +265,13 @@ def check_cached_len(
     main_len: int,
     authent: tuple[str, str] | None,
 ) -> None:
-    behavior = False
+    behavior = True
     confirmed = False
     cache_status: bool = False
 
     for _ in range(0, 5):
-        req = s.get(
+        req = safe_get(
+            s,
             url,
             headers=pk,
             verify=False,
@@ -116,41 +279,36 @@ def check_cached_len(
             auth=authent,
             timeout=10,
         )
-    req_verify = s.get(
-        url, verify=False, allow_redirects=False, auth=authent, timeout=10
+    req_verify = safe_get(
+        s, url, headers=None, verify=False, allow_redirects=False, auth=authent, timeout=10
     )
     logger.debug(f"{req.status_code} :: {req_verify.status_code}")
     if (
         len(req.content) == len(req_verify.content)
         and len(req_verify.content) != main_len
-        and req_verify.status_code not in [429, 403]
+        and req_verify.status_code not in [429, 403, 401]
     ):
-        behavior = True
-        for rh in req_verify.headers:
-            if "age" in rh.lower() or "hit" in req_verify.headers[rh].lower():
-                confirmed = True
+        confirmed = True
+
+    for rh in getattr(req_verify, "headers", {}) or {}:
+        try:
+            if "age" in rh.lower() or "hit" in str(req_verify.headers[rh]).lower():
                 cache_status = True
-    elif len(req.content) != len(req_verify.content):
-        for rh in req_verify.headers:
-            if "age" in rh.lower():
-                behavior = True
-                cache_status = True
-            else:
-                behavior = True
-                cache_status = False
+        except Exception:
+            pass
 
     cache_tag = (
         f"{Colors.RED} {cache_status} {Colors.RESET}"
         if not cache_status
         else f"{Colors.GREEN} {cache_status} {Colors.RESET}"
     )
+
     if confirmed:
         print(
             f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-
             proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
         behavior = False
     elif behavior:
@@ -159,7 +317,6 @@ def check_cached_len(
         )
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-
             proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
 
 
@@ -177,9 +334,10 @@ def cpdos_main(
     rel = range_exclusion(main_len)
     
     for pk in payloads_keys:
-        uri = f"{url}{random.randrange(999)}"
+        uri = f"{url}{random.randrange(9999)}"
         try:
-            req = s.get(
+            req = safe_get(
+                s,
                 uri,
                 headers=pk,
                 verify=False,
@@ -196,8 +354,10 @@ def cpdos_main(
                 check_cached_status(uri, s, pk, main_status_code, authent)
             if req.status_code == 403 or req.status_code == 429:
                 uri_403 = f"{url}{random.randrange(999)}"
-                req_403_test = s.get(
+                req_403_test = safe_get(
+                    s,
                     uri_403,
+                    headers=None,
                     verify=False,
                     auth=authent,
                     timeout=10,
@@ -208,11 +368,9 @@ def cpdos_main(
 
             if (
                 blocked < 3
-                and req.status_code != 200
                 and main_status_code not in [403, 401]
                 and req.status_code != main_status_code
             ):
-                # print(f"[{main_status_code}>{req.status_code}] [{len(main_status_code.headers)}b>{len(req.headers)}b] [{len(main_status_code.content)}b>{len(req.content)}b] {url} :: {pk}")
                 check_cached_status(uri, s, pk, main_status_code, authent)
             elif blocked < 3 and req.status_code == main_status_code:
                 if len(str(main_len)) <= 5 and main_len not in rel:
@@ -222,11 +380,23 @@ def cpdos_main(
             human_time(human)
 
             if len(list(pk.values())[0]) < 50 and len(list(pk.keys())[0]) < 50:
-                sys.stdout.write(f"{Colors.BLUE}{pk}{Colors.RESET}\r")
+                sys.stdout.write(f"{Colors.BLUE}{pk} :: {req.status_code}{Colors.RESET}\r")
                 sys.stdout.write("\033[K")
         except KeyboardInterrupt:
             print("Exiting")
             sys.exit()
+        except requests.exceptions.InvalidHeader as e:
+            print(f"invalide header (fallback): {e}")
+            try:
+                req = raw_get(uri, pk, authent, timeout=10)
+                print(f"{Colors.YELLOW}RAW sent -> status {req.status_code}{Colors.RESET}")
+            except Exception as ee:
+                print(f"raw send error: {ee}")
+                logger.exception(ee)
+        except UnicodeEncodeError as e:
+            #print(f"invalid unicode: {e}")
+            logger.exception(e)
         except Exception as e:
+            #print(e)
             logger.exception(e)
         uri = url

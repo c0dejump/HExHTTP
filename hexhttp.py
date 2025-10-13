@@ -152,7 +152,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
             check_methods(url, custom_header, authent, human is not None)
             check_http_version(url)
             get_technos(url, s, req_main, a_tech)
-
+            
         check_http_debug(url, s, main_status_code, main_len, main_head, authent, human or "")
         get_http_headers(url, s, main_status_code, main_len, dict(main_head), authent)
         check_cpcve(url, s, req_main, parse_headers(custom_header), authent, human or "")
@@ -167,10 +167,16 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
         )
         check_cache_files(url, s, parse_headers(custom_header), authent)
         # fuzz_x_header(url) #TODO
-    except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
-        pass
-        # print(f"Error in processing {url}: {e}")
+    # requests errors
+    except requests.ConnectionError as e:
+        if "Connection refused" in str(e):
+            print(f"Error, connection refused by target host: {e}")
+        else:
+            print(f"Error, cannot connect to target: {e}")
+    except requests.Timeout:
+        print("Error, request timeout (10s)")
+    except requests.exceptions.MissingSchema:
+        print("Error, missing http:// or https:// schema")
     except Exception as e:
         print(f"Error : {e}")
         logger.exception(e)
@@ -264,16 +270,16 @@ def cli_main() -> None:
             {
                 "User-Agent": user_agent,
                 #DECOMMENTHIS
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Accept-Encoding": "gzip, deflate, br",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "none",
-                "Sec-Fetch-User": "?1",
-                "Priority": "u=4",
+                #"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                #"Accept-Language": "en-US,en;q=0.5",
+                #"Accept-Encoding": "gzip, deflate, br",
+                #"Connection": "keep-alive",
+                #"Upgrade-Insecure-Requests": "1",
+                #"Sec-Fetch-Dest": "document",
+                #"Sec-Fetch-Mode": "navigate",
+                #"Sec-Fetch-Site": "none",
+                #"Sec-Fetch-User": "?1",
+                #"Priority": "u=4",
             }
         )
 
@@ -357,15 +363,9 @@ def cli_main() -> None:
     except KeyboardInterrupt:
         print("Exiting")
         sys.exit()
-    # requests errors
-    except requests.ConnectionError:
-        print("Error, cannot connect to target")
-    except requests.Timeout:
-        print("Error, request timeout (10s)")
-    except requests.exceptions.MissingSchema:
-        print("Error, missing http:// or https:// schema")
     except Exception as e:
         print(f"Error : {e}")
+        logger.exception(e)
     print("")
 
 
