@@ -65,7 +65,7 @@ def format_payload(payload: dict) -> str:
         vs_escaped = _escape_bytewise(str(v))
         if len(vs_escaped) > 60:
             vs_escaped = f"{vs_escaped[:60]}...({len(vs_escaped)} total chars)"
-        parts.append(f"'{ks_escaped}': '{vs_escaped}'")
+        parts.append(f"{ks_escaped}: {vs_escaped}")
     return "" + ", ".join(parts) + ""
 
 
