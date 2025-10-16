@@ -3,19 +3,19 @@
 http debug check
 """
 from utils.style import Colors
-from utils.utils import configure_logger, requests, random, range_exclusion, traceback, sys, human_time
+from utils.utils import configure_logger, requests, random, range_exclusion, traceback, sys, human_time, random_ua
 from modules.lists.debug_list import DEBUG_HEADERS
 
 def check_http_debug(url, s, main_status_code, main_len, main_head, authent, human):
     print(f"{Colors.CYAN} ├ Debug Headers analysis{Colors.RESET}")
     rel = range_exclusion(main_len)
     
-    # Dictionnaires pour regrouper les comportements similaires
     behavior_groups = {}
     
     for dh in DEBUG_HEADERS:
         try:
             uri = f"{url}?cb={random.randrange(999)}"
+            s.headers.update(random_ua())
             human_time(human)
             req_dh = s.get(uri, headers=dh, allow_redirects=False, verify=False)
             
@@ -23,13 +23,11 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
             behavior_msg = None
             
             if req_dh.status_code != main_status_code and req_dh.status_code not in [403, 401, 429]:
-                # Regrouper par plage de status codes (par tranche de 10)
                 status_range = (req_dh.status_code // 10) * 10
                 behavior_key = f"STATUS_{main_status_code}_{status_range}"
                 behavior_msg = f"[INTERESTING BEHAVIOR] | {main_status_code} > {req_dh.status_code}"
                 
             elif len(req_dh.content) not in rel and req_dh.status_code not in [403, 401, 429]:
-                # Regrouper par plage de tailles (par tranche de 1000 bytes)
                 size_range = (len(req_dh.content) // 1000) * 1000
                 behavior_key = f"BODY_{main_len}_{size_range}"
                 behavior_msg = f"[INTERESTING BEHAVIOR] | BODY: {main_len}b > {len(req_dh.content)}b"
@@ -58,14 +56,14 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
             else:
                 print(e)
             continue
+        if len(list(dh.values())[0]) < 50 and len(list(dh.keys())[0]) < 50:
+                sys.stdout.write(f"{Colors.BLUE}{dh} :: {req_dh.status_code}{Colors.RESET}\r")
+                sys.stdout.write("\033[K")
     
-    # Afficher les résultats regroupés
     for key, data in behavior_groups.items():
         if data['count'] == 1:
-            # Comportement unique - DEBUG CONFIRMED
             print(f"\033[32m └── [DEBUG CONFIRMED]\033[0m | {data['msg'].replace('[INTERESTING BEHAVIOR]', '').strip()} | \033[34m{data['url']}\033[0m | PAYLOAD: {data['payloads'][0]}")
         else:
-            # Comportements similaires regroupés
             similar_text = f" (+{data['count']-1} similar)"
             payload_count = f"with {data['count']} payloads"
             print(f"\033[33m └── {data['msg']}\033[0m | \033[34m{data['url']}\033[0m{similar_text} {payload_count}")

@@ -10,7 +10,6 @@ from modules.lists import header_list
 from utils.style import Colors, Identify
 from utils.utils import (
     configure_logger,
-    generate_cache_buster,
     human_time,
     requests,
     random,

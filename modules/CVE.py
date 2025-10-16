@@ -9,6 +9,7 @@ from modules.cp_cve.CVE202447374 import litespeed
 from modules.cp_cve.CVE202527415 import nuxt_check
 from modules.cp_cve.CVE202529927 import middleware
 from modules.cp_cve.CVE202549826 import nextjs_204
+from modules.cp_cve.CVE202557822 import nextjs_ssrf
 from utils.style import Colors
 from utils.utils import configure_logger, random, requests, sys
 
@@ -48,6 +49,7 @@ def run_cve_modules(
         middleware(url, s, custom_header)
         nextjs_204(url, s)
         apache_cp(url, authent)
+        nextjs_ssrf(url)
 
         # TODO:https://labs.withsecure.com/advisories/plone-cms-cache-poisoning-xss-vulnerability
         # TODO:https://github.com/ZephrFish/F5-CVE-2022-1388-Exploit/tree/main

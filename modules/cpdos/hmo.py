@@ -7,7 +7,7 @@ https://cpdos.org/#HMO
 
 import utils.proxy as proxy
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, sys, format_payload, human_time, random, requests, range_exclusion, verify_405_waf
+from utils.utils import configure_logger, sys, format_payload, human_time, random, requests, range_exclusion, verify_405_waf, random_ua
 
 logger = configure_logger(__name__)
 
@@ -218,6 +218,7 @@ def HMO(
                 f" {Colors.BLUE} {VULN_NAME} : {probe_headers}{Colors.RESET}\r", end=""
             )
             print("\033[K", end="")
+            s.headers.update(random_ua())
             probe = s.get(
                 uri,
                 headers=probe_headers,
@@ -274,7 +275,8 @@ def HMO(
                     allow_redirects=False,
                 )
                 human_time(human)
-
+                
+            s.headers.update(random_ua())
             control = s.get(uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
             if (
                 control.status_code == probe.status_code

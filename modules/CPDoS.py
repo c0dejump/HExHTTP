@@ -12,7 +12,7 @@ from modules.cpdos.hbh import HBH
 from modules.cpdos.ocd import OCD
 from modules.cpdos.path_traversal import path_traversal_check
 from utils.style import Colors
-from utils.utils import configure_logger, random, re, requests, sys
+from utils.utils import configure_logger, random, re, requests, sys, new_session
 
 logger = configure_logger(__name__)
 
@@ -25,8 +25,8 @@ def crawl_files(
     human: str,
 ) -> None:
     try:
-        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|svg))(?=")'
-        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|svg))(?=")'
+        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|svg|txt))(?=")'
+        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|svg|txt))(?=")'
         # regexp3 = r'(?<=src=")(\/[^\/].+?)(?=")'
         # regexp4 = r'(?<=href=")(\/[^\/].+?)(?=")'
 
@@ -71,11 +71,13 @@ def run_cpdos_modules(
     req_main = requests.get(uri, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, auth=authent, timeout=8)
 
     try:
+
+        s = new_session(s)
         logger.debug(req_main.content)
 
         HHO(randomiz_url(url), s, req_main, authent, human)
         HMC(randomiz_url(url), s, req_main, authent, human)
-        #HMO(randomiz_url(url), s, req_main, authent, human)
+        HMO(randomiz_url(url), s, req_main, authent, human)
         HHCN(randomiz_url(url), s, req_main, authent)
         HBH(randomiz_url(url), s, req_main, authent, human)
         MHC(url, req_main, authent, human)
@@ -87,6 +89,7 @@ def run_cpdos_modules(
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")
         sys.exit()
     except Exception as e:
+        print(e)
         logger.exception(e)
 
 

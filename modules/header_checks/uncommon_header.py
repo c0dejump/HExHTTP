@@ -5,7 +5,7 @@ pour identifier des comportements d'erreur potentiels et détecter les réflexio
 """
 
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, format_payload, random, requests, sys, CONTENT_DELTA_RANGE, BIG_CONTENT_DELTA_RANGE
+from utils.utils import configure_logger, format_payload, random, requests, sys, range_exclusion
 
 logger = configure_logger(__name__)
 
@@ -192,14 +192,7 @@ def uncommon_header_test(
     uncommon_header: list[str],
     authent: tuple[str, str] | None = None,
 ) -> None:
-    range_exlusion = (
-                range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
-                if main_len < 10000
-                else range(
-                    main_len - BIG_CONTENT_DELTA_RANGE,
-                    main_len + BIG_CONTENT_DELTA_RANGE,
-                )
-            )
+    rel = range_exclusion(main_len)
     for uh in uncommon_header:
         for ep in errors_payload:
             headers = {uh: ep}
@@ -214,7 +207,7 @@ def uncommon_header_test(
                         f" {Identify.behavior} | CPDoSError {main_status_code} > {req_uh.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(headers)}{Colors.RESET}"
                     )
                     verify_cp(url, s, main_status_code, main_len, headers, authent)
-                elif len(req_uh.content) not in range_exlusion:
+                elif len(req_uh.content) not in rel:
                     print(
                         f" {Identify.behavior} | CPDoSError {main_len}b > {len(req_uh.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(headers)}{Colors.RESET}"
                     )
