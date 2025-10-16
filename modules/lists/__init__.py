@@ -36,5 +36,5 @@ def load_payloads_from(file_path: str) -> list[str]:
     return results
 
 
-mobile_user_agents = load_payloads_from("./modules/lists/mobile-user-agent.lst")
+mobile_user_agents = load_payloads_from("./modules/lists/user-agent.lst")
 header_list = load_payloads_from("./modules/lists/lowercase-headers.lst")

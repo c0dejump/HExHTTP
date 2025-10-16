@@ -15,6 +15,7 @@ from utils.utils import (
     requests,
     sys,
     range_exclusion,
+    random_ua,
 )
 
 # stdlib
@@ -182,6 +183,7 @@ def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | No
 
 def safe_get(s, url: str, headers: dict[str, str] | None, verify: bool, allow_redirects: bool, auth: tuple[str, str] | None, timeout: int):
     try:
+        s.headers.update(random_ua())
         return s.get(
             url,
             headers=headers,

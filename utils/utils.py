@@ -67,12 +67,12 @@ def get_ip_from_url(url: str) -> str:
     return ip
 
 
-def generate_cache_buster(length: int | None = 12) -> str:
+"""def generate_cache_buster(length: int | None = 12) -> str:
     if not isinstance(length, int) or length <= 0:
         raise ValueError("[!] Lenght of cacheBuster be a positive integer")
     return "".join(
         random.choice(string.ascii_lowercase) for i in range(length)  # nosec B311
-    )
+    )"""
 
 
 def human_time(human: str) -> None:
@@ -164,3 +164,11 @@ def new_session(base_session=None):
             s.mount(prefix, adapter)
 
     return s
+
+
+def random_ua():
+    with open("./modules/lists/user-agent.lst", "r", encoding="utf-8") as f:
+        user_agents = [line.strip() for line in f if line.strip()]
+
+    random_user_agent = {"User-Agent": random.choice(user_agents)}
+    return(random_user_agent)

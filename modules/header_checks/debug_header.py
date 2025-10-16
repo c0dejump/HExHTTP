@@ -3,7 +3,7 @@
 http debug check
 """
 from utils.style import Colors
-from utils.utils import configure_logger, requests, random, range_exclusion, traceback, sys, human_time
+from utils.utils import configure_logger, requests, random, range_exclusion, traceback, sys, human_time, random_ua
 from modules.lists.debug_list import DEBUG_HEADERS
 
 def check_http_debug(url, s, main_status_code, main_len, main_head, authent, human):
@@ -15,6 +15,7 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
     for dh in DEBUG_HEADERS:
         try:
             uri = f"{url}?cb={random.randrange(999)}"
+            s.headers.update(random_ua())
             human_time(human)
             req_dh = s.get(uri, headers=dh, allow_redirects=False, verify=False)
             
