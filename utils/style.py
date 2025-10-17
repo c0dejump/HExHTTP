@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+import requests
+
 class Colors:
     """Colors constants for the output messages"""
 

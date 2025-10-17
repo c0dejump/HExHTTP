@@ -9,6 +9,7 @@ Changelog:
 	- Fixed logic and style bug
 	News:
 	- CVE-2025-57822 module check
+	- Add random user-agent during cpdos to avoid overly strict waf
 ---------
 
 - 2.0

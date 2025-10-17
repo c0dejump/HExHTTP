@@ -1,17 +1,13 @@
-import os
-import threading
-
 from tools.autopoisoner.headerfuzz import headersToFuzz
 from tools.autopoisoner.print_utils import (
     behavior_or_confirmed_message,
     potential_verbose_message,
 )
 from utils.style import Colors
-from utils.utils import human_time, random, re, requests, sys
+from utils.utils import human_time, random, re, requests, sys, os
 
 currentPath = os.path.dirname(__file__)
 
-LOCK = threading.Lock()
 TIMEOUT_DELAY = 10
 
 CANARY = "ndvyepenbvtidpvyzh.com"
@@ -23,7 +19,7 @@ behavior: bool = False
 
 def splitURLS(
     allURLs: list[str], threadsSize: int
-) -> list[list[str]]:  # Multithreading
+) -> list[list[str]]:
 
     splitted: list[list[str]] = []
     URLSsize = len(allURLs)

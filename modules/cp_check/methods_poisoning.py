@@ -15,6 +15,7 @@ from utils.utils import (
     random,
     requests,
 )
+from utils.print_utils import cache_tag_verify
 
 logger = configure_logger(__name__)
 
@@ -27,17 +28,18 @@ def print_result(
     method: str,
     reason: str,
     reason_result: str,
+    cachetag: str,
     url: str,
     payload: str,
 ) -> None:
     method = method if method != "GET" else "GET "
     if payload:
         print(
-            f" {status} | {vuln} {method} | {reason} {reason_result} | \033[34m{url}\033[0m | PAYLOAD: {Colors.THISTLE}{method} with {payload}{Colors.RESET}"
+            f" {status} | {vuln} {method} | {reason} {reason_result} | {cachetag} | \033[34m{url}\033[0m | PAYLOAD: {Colors.THISTLE}{method} with {payload}{Colors.RESET}"
         )
     else:
         print(
-            f" {status} | {vuln} {method} | {reason} {reason_result} | \033[34m{url}\033[0m | PAYLOAD: {Colors.THISTLE}{method}{Colors.RESET}"
+            f" {status} | {vuln} {method} | {reason} {reason_result} | {cachetag} | \033[34m{url}\033[0m | PAYLOAD: {Colors.THISTLE}{method}{Colors.RESET}"
         )
 
 
@@ -74,6 +76,7 @@ def verify_fat_get_poisoning(
             f"{rm}",
             "DIFFERENT STATUS-CODE",
             f"{req_main.status_code} > {req_verify.status_code}",
+            f"CACHETAG: {cache_tag_verify(req_verify)}",
             url,
             d,
         )
@@ -87,6 +90,7 @@ def verify_fat_get_poisoning(
             f"{rm}",
             "DIFFERENT RESP LENGTH",
             f"{len_main}b > {len(req_verify.content)}b",
+            f"CACHETAG: {cache_tag_verify(req_verify)}",
             url,
             d,
         )
@@ -132,6 +136,7 @@ def fat_methods_poisoning(
                     f"{rm}",
                     "DIFFERENT STATUS-CODE",
                     f"{req_main.status_code} > {req_fg.status_code}",
+                    f"CACHETAG: {cache_tag_verify(req_fg)}",
                     url,
                     d,
                 )
@@ -144,6 +149,7 @@ def fat_methods_poisoning(
                     f"{rm}",
                     "DIFFERENT RESP LENGTH",
                     f"{req_main.status_code}b > {len_fg}b",
+                    f"CACHETAG: {cache_tag_verify(req_fg)}",
                     url,
                     d,
                 )
@@ -151,13 +157,13 @@ def fat_methods_poisoning(
                 verify_fat_get_poisoning(s, url, d, rm, req_main, len_main, authent)
             elif d in req_fg.text or "codejump" in req_fg.text:
                 print_result(
-                    Identify.behavior, "FAT", f"{rm}", "BODY REFLECTION", "", url, d
+                    Identify.behavior, "FAT", f"{rm}", "BODY REFLECTION", "", f"CACHETAG: {cache_tag_verify(req_fg)}", url, d
                 )
                 behavior_check = True
                 verify_fat_get_poisoning(s, url, d, rm, req_main, len_main, authent)
             elif d in req_fg.headers or "codejump" in req_fg.headers:
                 print_result(
-                    Identify.behavior, "FAT", f"{rm}", "HEADERS REFLECTION", "", url, d
+                    Identify.behavior, "FAT", f"{rm}", "HEADERS REFLECTION", "", f"CACHETAG: {cache_tag_verify(req_fg)}", url, d
                 )
                 behavior_check = True
                 verify_fat_get_poisoning(s, url, d, rm, req_main, len_main, authent)
@@ -208,6 +214,7 @@ def cp_mix(
                             f"{rm} <> GET",
                             "DIFFERENT STATUS-CODE",
                             f"{req_main.status_code} > {req_mix.status_code}",
+                            f"CACHETAG: {cache_tag_verify(req_mix)}",
                             url,
                             d,
                         )
@@ -221,6 +228,7 @@ def cp_mix(
                             f"{rm} <> GET",
                             "DIFFERENT RESP LENGTH",
                             f"{len(req_main.content)}b > {len(req_mix.content)}b",
+                            f"CACHETAG: {cache_tag_verify(req_mix)}",
                             url,
                             d,
                         )
@@ -253,6 +261,7 @@ def cp_mix(
                         f"{rm} <> GET",
                         "DIFFERENT STATUS-CODE",
                         f"{req_main.status_code} > {req_mix.status_code}",
+                        f"CACHETAG: {cache_tag_verify(req_mix)}",
                         url,
                         d,
                     )
@@ -266,6 +275,7 @@ def cp_mix(
                         f"{rm} <> GET",
                         "DIFFERENT RESP LENGTH",
                         f"{len(req_main.content)}b > {len(req_mix.content)}b",
+                        f"CACHETAG: {cache_tag_verify(req_mix)}",
                         url,
                         d,
                     )

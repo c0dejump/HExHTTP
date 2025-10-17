@@ -11,6 +11,14 @@
 <img alt="Python3.7" src="https://img.shields.io/badge/Python-3.7+-informational">
 </div>
 
+[News](https://github.com/c0dejump/HExHTTP/blob/main/CHANGELOG.md) | 
+[Installation](https://github.com/c0dejump/HExHTTP/#installation) | 
+[Usage](https://github.com/c0dejump/HExHTTP/#usage) | 
+[Exemples](https://github.com/c0dejump/HExHTTP/#exemples) | 
+[Features](https://github.com/c0dejump/HExHTTP/#features) | 
+[TODO](https://github.com/c0dejump/HExHTTP/#todo)
+
+
 ## Installation
 
 
@@ -204,15 +212,17 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 ## Features
 
 - Server Error response checking
-- Localhost header response analysis
 - Vhosts checking
+- Localhost header response analysis
 - Methods response analysis
 - HTTP Version & protocol analysis **[Experimental]**
+- CDN/proxies Analysis (Envoy/Apache/Akamai/Nginx) **[WIP]**
+- Debug headers analysis
+- Uncommon headers analysis
+- HTTP type CVE checking
 - Cache Poisoning DoS (CPDoS) techniques
 - Web cache poisoning
-- HTTP type CVE checking
 - **Flexible Proxy Support** (General proxy + Burp Suite integration)
-- CDN/proxies Analysis (Envoy/Apache/Akamai/Nginx) **[WIP]**
 - [X] Human scan (rate limiting + timeout randomization ) [WIP] -- works but cleaning, linting etc...
 
 ## TODO
@@ -222,7 +232,6 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 - [ ] Filter False Positive on WAF blocking [WIP]
 - [ ] Host Header Injection analysis
 - [ ] Parameter Cloacking
-- [ ] Try with mobile user-agent
 - [ ] Tests Bed for regression testing
 - [ ] Different Output formats (eg, JSON, JSONL, TXT)
 

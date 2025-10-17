@@ -90,7 +90,6 @@ def duplicate_headers(
         conn.close()
         raise
     except Exception as e:
-        conn.close()
         logger.exception(e)
         return tuple()
     finally:
@@ -129,7 +128,6 @@ def referer_duplicate_headers(
                     return response, cb
 
     except Exception:
-        conn.close()
         return tuple()
     finally:
         conn.close()

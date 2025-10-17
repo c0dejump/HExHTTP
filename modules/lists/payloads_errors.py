@@ -41,6 +41,8 @@ def make_headers():
     
     return headers
 
+    
+
 payloads_keys = [
     # {"xxxx":"缓"},
     # {"缓":"缓"},
@@ -1883,10 +1885,13 @@ payloads_keys = [
     {'X-Forwarded-UIDH': 'malformed;;;'},
     {'X-Client-Data': 'invalid-base64-data!!!'},
     {'X-Client-Data': 'malformed;;;'},
+    {'Newrelic': 'xxxxxxxxxxx'},
     {'X-NewRelic-ID': 'invalid-newrelic-id'},
     {'X-NewRelic-ID': 'malformed;;;'},
     {'X-NewRelic-App-Data': 'invalid-app-data'},
     {'X-NewRelic-App-Data': 'malformed;;;'},
+    {'Traceparent': 'xxxxxxxxxxxx'},
+    {'Tracestate': 'xxxxxxxxxxx'},
     {'X-Datadog-Trace-Id': 'invalid-trace-id'},
     {'X-Datadog-Trace-Id': 'malformed;;;'},
     {'X-Datadog-Parent-Id': 'invalid-parent-id'},
