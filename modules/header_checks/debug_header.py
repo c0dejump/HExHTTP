@@ -54,7 +54,7 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
             elif "Connection aborted" in str(e):
                 print(f"\033[33m └── [WARNING]\033[0m | Connection aborted | \033[34m{uri}\033[0m | PAYLOAD: {dh}")
             else:
-                print(e)
+                #print(e)
             continue
         if len(list(dh.values())[0]) < 50 and len(list(dh.keys())[0]) < 50:
                 sys.stdout.write(f"{Colors.BLUE}{dh} :: {req_dh.status_code}{Colors.RESET}\r")

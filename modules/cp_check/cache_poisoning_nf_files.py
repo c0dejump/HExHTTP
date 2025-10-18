@@ -109,5 +109,5 @@ def check_cache_files(
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
             sys.exit()
         except Exception as e:
-            print(e)
+            #print(e)
             logger.exception(e)

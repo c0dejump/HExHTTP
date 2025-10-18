@@ -11,13 +11,14 @@
 <img alt="Python3.7" src="https://img.shields.io/badge/Python-3.7+-informational">
 </div>
 
+<br>
 
 <p align="center">
-  <a href="https://github.com/c0dejump/HExHTTP/blob/main/CHANGELOG.md">📰 News</a> •
-  <a href="https://github.com/c0dejump/HExHTTP/#installation">⚙️ Installation</a> •
-  <a href="https://github.com/c0dejump/HExHTTP/#usage">💻 Usage</a> •
-  <a href="https://github.com/c0dejump/HExHTTP/#exemples">🧩 Exemples</a> •
-  <a href="https://github.com/c0dejump/HExHTTP/#features">🚀 Features</a> •
+  <a href="https://github.com/c0dejump/HExHTTP/blob/main/CHANGELOG.md">📰 News</a> |
+  <a href="https://github.com/c0dejump/HExHTTP/#installation">⚙️ Installation</a> |
+  <a href="https://github.com/c0dejump/HExHTTP/#usage">💻 Usage</a> |
+  <a href="https://github.com/c0dejump/HExHTTP/#exemples">🧩 Exemples</a> |
+  <a href="https://github.com/c0dejump/HExHTTP/#features">🚀 Features</a> |
   <a href="https://github.com/c0dejump/HExHTTP/#todo">🧠 TODO</a>
 </p>
 
