@@ -7,7 +7,7 @@ https://cpdos.org/
 
 import utils.proxy as proxy
 from modules.lists import payloads_keys
-from utils.style import Colors, Identify
+from utils.style import Identify, Colors
 from utils.utils import (
     configure_logger,
     human_time,
@@ -17,6 +17,7 @@ from utils.utils import (
     range_exclusion,
     random_ua,
 )
+from utils.print_utils import print_results, cache_tag_verify
 
 # stdlib
 import socket
@@ -26,48 +27,6 @@ import string
 import base64
 
 logger = configure_logger(__name__)
-
-
-def _escape_bytewise(s: str) -> str:
-    """
-      - backslash -> \\
-      - \n -> \\n, \r -> \\r, \t -> \\t
-      - quote simple -> \'
-      - printable ASCII (0x20..0x7e)
-      - other octets -> \\xHH
-    """
-    if s is None:
-        return ""
-    b = s.encode("utf-8", errors="surrogatepass")
-    out_parts = []
-    for byte in b:
-        ch = chr(byte)
-        if ch == "\\":
-            out_parts.append("\\\\")
-        elif ch == "\n":
-            out_parts.append("\\n")
-        elif ch == "\r":
-            out_parts.append("\\r")
-        elif ch == "\t":
-            out_parts.append("\\t")
-        elif ch == "'":
-            out_parts.append("\\'")
-        elif 32 <= byte <= 126:
-            out_parts.append(ch)
-        else:
-            out_parts.append(f"\\x{byte:02x}")
-    return "".join(out_parts)
-
-
-def format_payload(payload: dict) -> str:
-    parts = []
-    for k, v in payload.items():
-        ks_escaped = _escape_bytewise(str(k))
-        vs_escaped = _escape_bytewise(str(v))
-        if len(vs_escaped) > 60:
-            vs_escaped = f"{vs_escaped[:60]}...({len(vs_escaped)} total chars)"
-        parts.append(f"{ks_escaped}: {vs_escaped}")
-    return "" + ", ".join(parts) + ""
 
 
 class SimpleResponse:
@@ -209,7 +168,7 @@ def check_cached_status(
     confirmed = False
     cache_status: bool = False
 
-    for _ in range(0, 5):
+    for _ in range(0, 3):
         req = safe_get(
             s,
             url,
@@ -231,30 +190,15 @@ def check_cached_status(
     ):
         confirmed = True
 
-    for rh in getattr(req_verify, "headers", {}) or {}:
-        try:
-            if "age" in rh.lower() or "hit" in str(req_verify.headers[rh]).lower():
-                cache_status = True
-        except Exception:
-            pass
 
-    cache_tag = (
-        f"{Colors.RED}{cache_status}{Colors.RESET}"
-        if not cache_status
-        else f"{Colors.GREEN}{cache_status}{Colors.RESET}"
-    )
     if confirmed:
-        print(
-            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
-        )
+        print_results(Identify.confirmed , "CPDoSError", f"{main_status_code} > {req.status_code}", cache_tag_verify(req), url, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
             proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
         behavior = False
     elif behavior:
-        print(
-            f" {Identify.behavior} | CPDoSError {main_status_code} > {req.status_code} | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
-        )
+        print_results(Identify.behavior , "CPDoSError", f"{main_status_code} > {req.status_code}", cache_tag_verify(req), url, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
             proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
@@ -271,7 +215,7 @@ def check_cached_len(
     confirmed = False
     cache_status: bool = False
 
-    for _ in range(0, 5):
+    for _ in range(0, 3):
         req = safe_get(
             s,
             url,
@@ -292,31 +236,15 @@ def check_cached_len(
     ):
         confirmed = True
 
-    for rh in getattr(req_verify, "headers", {}) or {}:
-        try:
-            if "age" in rh.lower() or "hit" in str(req_verify.headers[rh]).lower():
-                cache_status = True
-        except Exception:
-            pass
-
-    cache_tag = (
-        f"{Colors.RED} {cache_status} {Colors.RESET}"
-        if not cache_status
-        else f"{Colors.GREEN} {cache_status} {Colors.RESET}"
-    )
 
     if confirmed:
-        print(
-            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
-        )
+        print_results(Identify.confirmed , "CPDoSError", f"{main_len}b > {len(req.content)}b", cache_tag_verify(req), url, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
             proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
         behavior = False
     elif behavior:
-        print(
-            f" {Identify.behavior} | CPDoSError {main_len}b > {len(req.content)}b | CACHETAG : {cache_tag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(pk)}{Colors.RESET}"
-        )
+        print_results(Identify.behavior , "CPDoSError", f"{main_len}b > {len(req.content)}b", cache_tag_verify(req), url, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
             proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
@@ -350,9 +278,7 @@ def cpdos_main(
             len_req = len(req.content)
 
             if req.status_code == 888:
-                print(
-                    f" {Identify.behavior} | CPDoSError 888 response | CACHETAG: N/A | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {format_payload(pk)}"
-                )
+                print_results(Identify.behavior , "CPDoSError", "888 response", cache_tag_verify(req), url, pk)
                 check_cached_status(uri, s, pk, main_status_code, authent)
             if req.status_code == 403 or req.status_code == 429:
                 uri_403 = f"{url}{random.randrange(999)}"

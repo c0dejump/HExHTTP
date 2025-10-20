@@ -1,6 +1,18 @@
 Changelog:
 ----------
 
+- 2.2
+---------
+	Updated:
+	- Menu in README.md
+	- Add payloads
+	- Remake paraminer list
+	- Linting
+	- Fixed bugs
+	News:
+	- print_utils.py in utils directory
+---------
+
 - 2.1
 ---------
 	Updated:

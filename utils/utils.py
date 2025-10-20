@@ -3,6 +3,7 @@
 import argparse  # noqa: F401
 import random
 import re  # noqa: F401
+import os
 import socket
 import ssl
 import string
@@ -19,7 +20,7 @@ import urllib3
 from bs4 import BeautifulSoup
 
 from modules.logging_config import configure_logger  # noqa: F401
-from utils.style import Colors
+
 
 import requests.utils
 
@@ -34,26 +35,6 @@ logger = configure_logger(__name__)
 
 CONTENT_DELTA_RANGE = 500
 BIG_CONTENT_DELTA_RANGE = 5000
-
-
-def format_payload(payload: dict[str, str], max_length: int = 60) -> str:
-    """Format payload dictionary with truncated keys and values for readable output"""
-    formatted_items = []
-    for key, value in payload.items():
-        # Truncate key if it's too long
-        if len(key) > max_length:
-            truncated_key = f"{key[:max_length]}...({len(key)} total chars)"
-        else:
-            truncated_key = key
-
-        # Truncate value if it's too long
-        if len(value) > max_length:
-            truncated_value = f"{value[:max_length]}...({len(value)} total chars)"
-        else:
-            truncated_value = value
-
-        formatted_items.append(f"'{truncated_key}': '{truncated_value}'")
-    return "{" + ", ".join(formatted_items) + "}"
 
 
 def get_domain_from_url(url: str) -> str:
@@ -82,19 +63,6 @@ def human_time(human: str) -> None:
         time.sleep(random.randrange(6))  # nosec B311
     else:
         pass
-
-
-def cache_tag_verify(req: requests.Response) -> str:
-    cachetag = False
-    for rh in req.headers:
-        if "age" in rh.lower() or "hit" in rh.lower() or "cache" in rh.lower():
-            cachetag = True
-        else:
-            pass
-    colored_cachetag = (
-        f"{Colors.GREEN}" if cachetag else f"{Colors.RED}"
-    ) + f"{str(cachetag)}{Colors.RESET}"
-    return colored_cachetag
 
 
 def check_auth(auth: str, url: str) -> tuple[str, str] | None:

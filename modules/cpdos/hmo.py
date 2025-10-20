@@ -7,7 +7,9 @@ https://cpdos.org/#HMO
 
 import utils.proxy as proxy
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, sys, format_payload, human_time, random, requests, range_exclusion, verify_405_waf, random_ua
+from utils.utils import configure_logger, sys, human_time, random, requests, range_exclusion, verify_405_waf, random_ua
+from utils.print_utils import cache_tag_verify, format_payload
+
 
 logger = configure_logger(__name__)
 
@@ -302,7 +304,7 @@ def HMO(
 
             if reason:
                 print(
-                    f" {status} | HMO DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{format_payload(probe_headers)}{Colors.RESET}"
+                    f" {status} | HMO DOS | {reason} | CACHETAG {cache_tag_verify(probe)} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(probe_headers)}{Colors.RESET}"
                 )
                 if proxy.proxy_enabled:
                     from utils.proxy import proxy_request

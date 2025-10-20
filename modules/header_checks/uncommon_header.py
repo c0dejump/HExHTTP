@@ -5,7 +5,8 @@ pour identifier des comportements d'erreur potentiels et détecter les réflexio
 """
 
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, format_payload, random, requests, sys, range_exclusion
+from utils.utils import configure_logger, random, requests, sys, range_exclusion
+from utils.print_utils import format_payload
 
 logger = configure_logger(__name__)
 

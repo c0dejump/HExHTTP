@@ -25,8 +25,8 @@ def crawl_files(
     human: str,
 ) -> None:
     try:
-        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|svg|txt))(?=")'
-        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|svg|txt))(?=")'
+        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
+        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
         # regexp3 = r'(?<=src=")(\/[^\/].+?)(?=")'
         # regexp4 = r'(?<=href=")(\/[^\/].+?)(?=")'
 
@@ -54,6 +54,7 @@ def crawl_files(
 
     except Exception as e:
         logger.exception(e)
+
 
 def randomiz_url(url):
     return f"{url}?CPDoS={random.randint(1, 99)}"
@@ -89,7 +90,7 @@ def run_cpdos_modules(
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")
         sys.exit()
     except Exception as e:
-        print(e)
+        #print(e)
         logger.exception(e)
 
 

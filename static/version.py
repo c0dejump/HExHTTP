@@ -2,7 +2,7 @@ import requests
 
 from utils.style import Colors
 
-__version__ = "v2.1"
+__version__ = "v2.2"
 
 
 OWNER = "c0dejump"

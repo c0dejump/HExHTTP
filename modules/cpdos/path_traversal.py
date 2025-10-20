@@ -8,11 +8,11 @@ From 0xrth research
 from utils.style import Colors, Identify
 from utils.utils import (
     range_exclusion,
-    cache_tag_verify,
     configure_logger,
     random,
     requests,
 )
+from utils.print_utils import cache_tag_verify
 from urllib.parse import urlparse, urlunparse
 
 try:

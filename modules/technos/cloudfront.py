@@ -20,12 +20,18 @@ def cloudfront(url: str, s: requests.Session) -> None:
 
     # Basic CloudFront cache testing
     headers = {"X-Forwarded-Proto": "nohttps"}
-    cf_test = s.get(url, headers=headers, verify=False, timeout=6)
+    try:
+        url = f"{url}?cb=123132"
+        cf_test = s.get(url, headers=headers, verify=False, timeout=6)
 
-    if cf_test.status_code in [301, 302, 303]:
+        if cf_test.status_code in [301, 302, 303]:
+            print(
+                f"{Colors.YELLOW} │   └── Potential CloudFront redirect behavior detected{Colors.RESET}"
+            )
+    except requests.exceptions.TooManyRedirects:
         print(
-            f"{Colors.YELLOW} │   └── Potential CloudFront redirect behavior detected{Colors.RESET}"
-        )
+                f"{Colors.YELLOW} │   └── TooManyRedirects / Potential CloudFront redirect behavior detected{Colors.RESET}"
+            )
 
     # Check for common CloudFront cache headers
     cf_headers = ["x-cache", "x-amz-cf-pop", "x-amz-cf-id", "via"]

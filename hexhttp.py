@@ -268,7 +268,7 @@ def cli_main() -> None:
         s.max_redirects = 60
         s.headers.update(
             {
-                "User-Agent": user_agent,
+                "User-Agent": f"{user_agent}-BugBounty",
                 #DECOMMENTHIS
                 #"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
                 #"Accept-Language": "en-US,en;q=0.5",
@@ -349,7 +349,7 @@ def cli_main() -> None:
                 print("Input file not found")
                 sys.exit()
             except Exception as e:
-                print(f"Error : {e}")
+                #print(f"Error : {e}")
                 logger.exception(e)
             print("Scan finish")
         elif url_file and threads == 1337:

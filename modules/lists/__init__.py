@@ -11,13 +11,15 @@ from modules.lists.payloads_errors import payloads_keys
 __all__ = [
     "load_payloads_from",
     "header_list",
-    "mobile_user_agents",
+    "user_agents_list",
     "payloads_keys",
     "all_payload_keys",
+    "paraminer_list",
 ]
 
 header_list = []
-mobile_user_agents = []
+user_agents_list = []
+paraminer_list = []
 
 
 def load_payloads_from(file_path: str) -> list[str]:
@@ -36,5 +38,6 @@ def load_payloads_from(file_path: str) -> list[str]:
     return results
 
 
-mobile_user_agents = load_payloads_from("./modules/lists/user-agent.lst")
+user_agents_list = load_payloads_from("./modules/lists/user-agent.lst")
 header_list = load_payloads_from("./modules/lists/lowercase-headers.lst")
+paraminer_list = load_payloads_from("./modules/lists/paraminer-wordlist.lst")

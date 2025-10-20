@@ -14,6 +14,7 @@ from utils.utils import (
     requests,
     random,
     range_exclusion,
+    random_ua,
 )
 
 logger = configure_logger(__name__)
@@ -102,6 +103,7 @@ def HBH(
 
         headers = {"Connection": f"keep-alive, {header}"}
         try:
+            s.headers.update(random_ua())
             response_2 = s.get(
                 uri,
                 headers=headers,
@@ -164,7 +166,7 @@ def HBH(
                     proxy_request(
                         s, "GET", uri, headers=headers, data=None, severity="behavior"
                     )
-                for _ in range(0, 5):
+                for _ in range(0, 3):
                     response_2 = s.get(
                         uri,
                         headers=headers,

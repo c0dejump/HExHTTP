@@ -347,6 +347,7 @@ def check_methods(url: str, custom_header: Any, authent: Any, human: bool) -> No
                 check_other_methods(ml, url, http, pad, results_tracker)
                 if human:
                     human_time("1")
+                print(f" {Colors.BLUE} Method: {ml} {Colors.RESET}   ", end="\r")
 
             display_deduplicated_results(results_tracker, pad, url, http)
 

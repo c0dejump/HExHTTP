@@ -6,9 +6,11 @@ https://portswigger.net/web-security/web-cache-poisoning/exploiting-design-flaws
 """
 
 import utils.proxy as proxy
-from modules.lists import header_list
+from modules.lists import paraminer_list
 from utils.style import Colors, Identify
+from utils.print_utils import print_results
 from utils.utils import configure_logger, random, requests, sys
+from utils.print_utils import cache_tag_verify
 
 logger = configure_logger(__name__)
 
@@ -20,7 +22,7 @@ def valid_reflection(
     authent: tuple[str, str] | None,
     matching_forward: str,
 ) -> None:
-    for _ in range(0, 10):
+    for _ in range(0, 3):
         s.get(
             uri,
             headers=pk,
@@ -37,17 +39,13 @@ def valid_reflection(
         allow_redirects=False,
     )
     if matching_forward in req_valid.text:
-        print(
-            f" {Identify.confirmed} | BODY REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {Colors.THISTLE}{pk if len(pk) < 60 else pk[0:60]}{Colors.RESET}"
-        )
+        print_results(Identify.confirmed , "BODY REFLECTION", "RESOURCE FILE", cache_tag_verify(req_valid), uri, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
 
             proxy_request(s, "GET", uri, headers=pk, data=None)
     elif matching_forward in req_valid.headers:
-        print(
-            f" {Identify.confirmed} | HEADER REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {Colors.THISTLE}{pk if len(pk) < 60 else pk[0:60]}{Colors.RESET}"
-        )
+        print_results(Identify.confirmed , "HEADER REFLECTION", "RESOURCE FILE", cache_tag_verify(req_valid), uri, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
 
@@ -60,7 +58,7 @@ def check_reflection(
     authent: tuple[str, str] | None,
     matching_forward: str,
 ) -> None:
-    for hl in header_list:
+    for hl in paraminer_list:
         uri = f"{url}?cb={random.randrange(9999)}"
         pk = {hl: matching_forward}
         req = s.get(
@@ -72,18 +70,14 @@ def check_reflection(
             allow_redirects=False,
         )
         if matching_forward in req.text:
-            print(
-                f" {Identify.behavior} | BODY REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {Colors.THISTLE}{str(pk) if len(str(pk)) < 60 else str(pk)[0:60]}{Colors.RESET}"
-            )
+            print_results(Identify.behavior , "BODY REFLECTION", "RESOURCE FILE", cache_tag_verify(req_valid), uri, pk)
             if proxy.proxy_enabled:
                 from utils.proxy import proxy_request
 
                 proxy_request(s, "GET", uri, headers=pk, data=None)
             valid_reflection(uri, s, pk, authent, matching_forward)
         elif matching_forward in req.headers:
-            print(
-                f" {Identify.behavior} | HEADER REFLECTION | RESOURCE FILE | \033[34m{uri}\033[0m | PAYLOAD: {Colors.THISTLE}{str(pk) if len(str(pk)) < 60 else str(pk)[0:60]}{Colors.RESET}"
-            )
+            print_results(Identify.behavior , "HEADER REFLECTION", "RESOURCE FILE", cache_tag_verify(req_valid), uri, pk)
             if proxy.proxy_enabled:
                 from utils.proxy import proxy_request
 
@@ -115,5 +109,5 @@ def check_cache_files(
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
             sys.exit()
         except Exception as e:
-            print(e)
+            #print(e)
             logger.exception(e)
