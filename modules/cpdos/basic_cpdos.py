@@ -195,13 +195,13 @@ def check_cached_status(
         print_results(Identify.confirmed , "CPDoSError", f"{main_status_code} > {req.status_code}", cache_tag_verify(req), url, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-            proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
+            proxy_request(s, url, "GET", headers=pk, data=None, severity="confirmed")
         behavior = False
     elif behavior:
         print_results(Identify.behavior , "CPDoSError", f"{main_status_code} > {req.status_code}", cache_tag_verify(req), url, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-            proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
+            proxy_request(s, url, "GET", headers=pk, data=None, severity="behavior")
 
 
 def check_cached_len(
@@ -241,13 +241,13 @@ def check_cached_len(
         print_results(Identify.confirmed , "CPDoSError", f"{main_len}b > {len(req.content)}b", cache_tag_verify(req), url, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-            proxy_request(s, "GET", url, headers=pk, data=None, severity="confirmed")
+            proxy_request(s, url, "GET", headers=pk, data=None, severity="confirmed")
         behavior = False
     elif behavior:
         print_results(Identify.behavior , "CPDoSError", f"{main_len}b > {len(req.content)}b", cache_tag_verify(req), url, pk)
         if proxy.proxy_enabled:
             from utils.proxy import proxy_request
-            proxy_request(s, "GET", url, headers=pk, data=None, severity="behavior")
+            proxy_request(s, url, "GET", headers=pk, data=None, severity="behavior")
 
 
 def cpdos_main(
@@ -296,8 +296,8 @@ def cpdos_main(
 
             if (
                 blocked < 3
-                and main_status_code not in [403, 401]
                 and req.status_code != main_status_code
+                and main_status_code not in [429, 304, 303, 403]
             ):
                 check_cached_status(uri, s, pk, main_status_code, authent)
             elif blocked < 3 and req.status_code == main_status_code:

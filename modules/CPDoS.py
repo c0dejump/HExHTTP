@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-from modules.cpdos.backslash import backslash_poisoning
+from modules.cpdos.bsf import backslash_poisoning
 from modules.cpdos.basic_cpdos import cpdos_main
 from modules.cpdos.mhc import MHC
 from modules.cpdos.hho import HHO
@@ -10,7 +10,7 @@ from modules.cpdos.hmo import HMO
 from modules.cpdos.hhcn import HHCN
 from modules.cpdos.hbh import HBH
 from modules.cpdos.ocd import OCD
-from modules.cpdos.path_traversal import path_traversal_check
+from modules.cpdos.ptp import path_traversal_check
 from utils.style import Colors
 from utils.utils import configure_logger, random, re, requests, sys, new_session
 
@@ -76,14 +76,14 @@ def run_cpdos_modules(
         s = new_session(s)
         logger.debug(req_main.content)
 
-        HHO(randomiz_url(url), s, req_main, authent, human)
-        HMC(randomiz_url(url), s, req_main, authent, human)
-        HMO(randomiz_url(url), s, req_main, authent, human)
-        HHCN(randomiz_url(url), s, req_main, authent)
-        HBH(randomiz_url(url), s, req_main, authent, human)
-        MHC(url, req_main, authent, human)
-        OCD(randomiz_url(url), authent)
-        path_traversal_check(url, s, req_main, authent)
+        #HHO(randomiz_url(url), s, req_main, authent, human)
+        #HMC(randomiz_url(url), s, req_main, authent, human)
+        #HMO(randomiz_url(url), s, req_main, authent, human)
+        #HHCN(randomiz_url(url), s, req_main, authent)
+        #HBH(randomiz_url(url), s, req_main, authent, human)
+        #MHC(url, req_main, authent, human)
+        #OCD(randomiz_url(url), authent)
+        #path_traversal_check(url, s, req_main, authent)
         cpdos_main(randomiz_url(url), s, req_main, authent, human)
         # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:

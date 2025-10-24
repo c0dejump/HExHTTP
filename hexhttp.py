@@ -149,7 +149,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
             get_server_error(url, authent)
             check_vhost(url)
             check_localhost(url, s, domain, authent)
-            check_methods(url, custom_header, authent, human is not None)
+            check_methods(url, custom_header, authent, human or "")
             check_http_version(url)
             get_technos(url, s, req_main, a_tech)
             
@@ -349,7 +349,7 @@ def cli_main() -> None:
                 print("Input file not found")
                 sys.exit()
             except Exception as e:
-                print(f"Error : {e}")
+                #print(f"Error : {e}")
                 logger.exception(e)
             print("Scan finish")
         elif url_file and threads == 1337:

@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+
+"""
+Attempts to find Multiple Header Cache
+"""
+
 import http.client
 
 from modules.lists import header_list

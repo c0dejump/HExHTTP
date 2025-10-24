@@ -7,6 +7,7 @@ from utils.print_utils import cache_tag_verify
 """
 Exemple:
 toto.com/static/toto.js => toto.com/static\toto.js
+https://hackerone.com/reports/1695604
 """
 
 VULN_NAME = "BACKSLASH "

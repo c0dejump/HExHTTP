@@ -8,6 +8,7 @@ Changelog:
 	- Add payloads
 	- Remake paraminer list
 	- Linting
+	- Fixed bugs
 	News:
 	- print_utils.py in utils directory
 ---------
