@@ -1,6 +1,15 @@
 Changelog:
 ----------
 
+- 2.3
+---------
+	Updated:
+	- Renames files
+	- Linting
+	- Fixed proxy bugs
+	- fixed basic_cpdos bugs
+---------
+
 - 2.2
 ---------
 	Updated:

@@ -178,9 +178,7 @@ def check_cached_status(
             auth=authent,
             timeout=10,
         )
-    req_verify = safe_get(
-        s, url, headers=None, verify=False, allow_redirects=False, auth=authent, timeout=10
-    )
+    req_verify = s.get(url, verify=False, allow_redirects=False, auth=authent, timeout=10)
     logger.debug(f"{req.status_code} :: {req_verify.status_code}")
     if (
         req_verify.status_code != main_status_code

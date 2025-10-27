@@ -401,6 +401,7 @@ DEBUG_HEADERS = [
     {"X-Django-Debug-Toolbar": "true"},
     {"Djdt-Store-Id": "1234567890"},
     {"X-GraphQL-Debug": "true"},
+    {"X-GraphQL-Debug": "1"},
     {"X-GraphQL-Tracing": "true"},
     {"X-Apollo-Tracing": "1"},
     {"X-WebSocket-Debug": "true"},

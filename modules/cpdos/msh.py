@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Attempts to find Multiple Header Cache
+Attempts to find Multiple Same Header Cache
 """
 
 import http.client
@@ -177,7 +177,7 @@ def host_duplicate_headers(
         return tuple()
 
 
-def MHC(
+def MSH(
     url: str, req_main: requests.Response, authent: tuple[str, str] | None, human: str
 ) -> None:
 

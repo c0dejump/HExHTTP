@@ -4,7 +4,7 @@ from utils.style import Colors, Identify
 from utils.utils import random, requests, sys
 
 """
-ORIGIN Cache Poisoning. 
+ORIGIN CORS poisoning. 
 by Geluchat
 
 """
@@ -112,7 +112,7 @@ def options_ocd(
         verify_ocd_caching(url, "OPTIONS", headers)
 
 
-def OCD(url: str, authent: tuple[str, str] | None) -> None:
+def OCP(url: str, authent: tuple[str, str] | None) -> None:
     headers = {"Origin": "https://geluorigin.chat"}
     get_ocd(f"{url}{random.randrange(999)}", headers, authent)
     options_ocd(f"{url}{random.randrange(999)}", headers, authent)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Methods poisoning
+Fat Methods Poisoning
 """
 
 from collections.abc import Sequence

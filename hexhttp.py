@@ -10,7 +10,7 @@ from cli import args
 
 # cp & cpdos
 from modules.cp_check.cache_poisoning_nf_files import check_cache_files
-from modules.cp_check.methods_poisoning import check_methods_poisoning
+from modules.cpdos.fmp import check_methods_poisoning
 from modules.CPDoS import check_CPDoS
 from modules.CVE import check_cpcve
 from modules.header_checks.cachetag_header import check_cachetag_header
