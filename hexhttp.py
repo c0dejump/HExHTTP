@@ -9,7 +9,8 @@ import utils.proxy as proxy
 from cli import args
 
 # cp & cpdos
-from modules.cp_check.cache_poisoning_nf_files import check_cache_files
+from modules.cachepoisoning.cache_poisoning_nf_files import check_cache_files
+from modules.cachepoisoning.cache_poisoning import check_cache_poisoning
 from modules.cpdos.fmp import check_methods_poisoning
 from modules.CPDoS import check_CPDoS
 from modules.CVE import check_cpcve
@@ -27,7 +28,6 @@ from modules.header_checks.debug_header import check_http_debug
 # others
 from modules.logging_config import configure_logging
 from modules.Technology import Technology
-from tools.autopoisoner.autopoisoner import check_cache_poisoning
 from utils.style import Colors
 from utils.utils import (
     check_auth,
@@ -158,13 +158,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
         check_cpcve(url, s, req_main, parse_headers(custom_header), authent, human or "")
         check_CPDoS(url, s, req_main, parse_headers(custom_header), authent, human or "")
         check_methods_poisoning(url, s, parse_headers(custom_header), authent)
-        check_cache_poisoning(
-            url,
-            parse_headers(custom_header),
-            behavior or False,
-            authent is not None,
-            human or "",
-        )
+        check_cache_poisoning(url, s, parse_headers(custom_header), authent, human or "")
         check_cache_files(url, s, parse_headers(custom_header), authent)
         # fuzz_x_header(url) #TODO
     # requests errors

@@ -61,7 +61,7 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
                 sys.stdout.write("\033[K")
     
     for key, data in behavior_groups.items():
-        if data['count'] == 1:
+        if data['count'] <= 3:
             print(f"\033[32m └── [DEBUG CONFIRMED]\033[0m | {data['msg'].replace('[INTERESTING BEHAVIOR]', '').strip()} | \033[34m{data['url']}\033[0m | PAYLOAD: {data['payloads'][0]}")
         else:
             similar_text = f" (+{data['count']-1} similar)"

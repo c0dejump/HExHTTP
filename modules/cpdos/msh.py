@@ -6,9 +6,10 @@ Attempts to find Multiple Same Header Cache
 
 import http.client
 
-from modules.lists import header_list
+from modules.lists import wcp_headers
 from utils.style import Colors, Identify
 from utils.utils import configure_logger, human_time, random, requests, urlparse
+from utils.print_utils import print_results, cache_tag_verify
 
 VULN_NAME = "Multiple Headers"
 EXCLUDE_RESPONSE = [200, 301, 302, 403, 404, 307, 308, 303, 429]
@@ -54,10 +55,9 @@ def verify_cache_poisoning(
         uri = f"{url}?CPDoS={cb}"
         req = requests.get(uri, auth=authent, verify=False, allow_redirects=False, timeout=10)
         if req.status_code == res_status and res_status != main_status_code:
-            reason = f"DIFFERENT STATUS-CODE  {main_status_code} > {response.status}"
-            print(
-                f" {Identify.confirmed} | {VULN_NAME} | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
-            )
+            reason = f"{main_status_code} > {response.status}"
+            cachetag = cache_tag_verify(req)
+            print_results(Identify.confirmed, VULN_NAME, reason, cachetag, uri, payload)
     except Exception as e:
         logger.exception(e)
 
@@ -205,23 +205,22 @@ def MSH(
                 and vuln_type_res is not None
                 and isinstance(vuln_type_res, tuple)
             ):
-                behavior = f"DIFFERENT STATUS-CODE  {main_status_code} > {vuln_type_res[0].status}"
+                reason = f"{main_status_code} > {vuln_type_res[0].status}"
+                cachetag = cache_tag_verify(req_main)
 
                 if vuln_type == "RDH":
                     payload = "[Referer: xy, Referer: x]"
                 elif vuln_type == "HDH":
                     payload = f"[Host: {host}, Host: toto.com]"
 
-                print(
-                    f" {Identify.behavior} | {VULN_NAME} | {Colors.BLUE}{url}?cb={vuln_type_res[1]}{Colors.RESET} | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
-                )
+                print_results(Identify.behavior, VULN_NAME, reason, cachetag, f"{url}?cb={vuln_type_res[1]}", payload)
                 conn.close()
                 verify_cache_poisoning(
                     vuln_type, conn, url, payload, main_status_code, authent, host
                 )
 
         # m_heads = ["Authorization", "Accept", "Content-Type", "Cookie", "X-Requested-With", "user-agent"]
-        m_heads = header_list
+        m_heads = wcp_headers
         for mh in m_heads:
             DH = duplicate_headers(conn, url, mh, main_status_code, authent)
             if DH and DH is not None and isinstance(DH, tuple):
