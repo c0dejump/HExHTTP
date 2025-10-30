@@ -47,7 +47,6 @@ enclosure_queue: Queue[str] = Queue()
 human: str | None = None
 url_file: str | None = None
 custom_header: list[str] | None = None
-behavior: bool | None = None
 only_cp: bool | None = None
 threads: int | None = None
 authent: tuple[str, str] | None = None
@@ -238,12 +237,11 @@ def cli_main() -> None:
     results = args()
 
     # Make variables global so they can be accessed by process_modules
-    global human, url_file, custom_header, behavior, only_cp, threads, authent
+    global human, url_file, custom_header, only_cp, threads, authent
 
     url = results.url
     url_file = results.url_file
     custom_header = results.custom_header
-    behavior = results.behavior
     auth = results.auth
     user_agent = results.user_agent
     threads = results.threads

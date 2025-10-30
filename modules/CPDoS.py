@@ -76,6 +76,7 @@ def run_cpdos_modules(
         s = new_session(s)
         logger.debug(req_main.content)
 
+        cpdos_main(randomiz_url(url), s, req_main, authent, human)
         HHO(randomiz_url(url), s, req_main, authent, human)
         HMC(randomiz_url(url), s, req_main, authent, human)
         HMO(randomiz_url(url), s, req_main, authent, human)
@@ -84,7 +85,6 @@ def run_cpdos_modules(
         MSH(url, req_main, authent, human)
         OCP(randomiz_url(url), authent)
         path_traversal_check(url, s, req_main, authent)
-        cpdos_main(randomiz_url(url), s, req_main, authent, human)
         # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")

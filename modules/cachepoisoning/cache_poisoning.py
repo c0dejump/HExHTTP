@@ -16,12 +16,55 @@ from utils.utils import (
     sys,
     range_exclusion,
     random_ua,
+    re,
 )
 from utils.print_utils import print_results, cache_tag_verify
 from modules.lists import wcp_headers
+import traceback
+
+logger = configure_logger(__name__)
 
 
 CANARY = "byhexhttpbzh.com"
+
+def crawl_files(
+    url: str,
+    s: requests.Session,
+    req_main: requests.Response,
+    custom_header,
+    authent: tuple[str, str] | None,
+    human: str,
+) -> None:
+    try:
+        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|htm)(?=")'
+        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|htm)(?=")'
+        # regexp3 = r'(?<=src=")(\/[^\/].+?)(?=")'
+        # regexp4 = r'(?<=href=")(\/[^\/].+?)(?=")'
+
+        responseText = req_main.text
+
+        filesURL = re.findall(regexp1, responseText)
+        filesURL += re.findall(regexp2, responseText)
+        # filesURL = re.findall(regexp3, responseText)
+        # filesURL += re.findall(regexp4, responseText)
+
+        for fu in filesURL:
+            if "<" not in fu[0]:
+                if len(url.split("/")) > 4:
+                    url = f"{'/'.join(url.split('/')[:3])}/"
+                uri = f"{url}{fu[0]}"
+                if uri.startswith("https://"):
+                    uri = f"https://{uri[8:].replace('//', '/')}"
+                elif uri.startswith("http://"):
+                    uri = f"https://{uri[7:].replace('//', '/')}"
+
+                # print(uri)
+                port_poisoning(uri, s, req_main, custom_header, authent, human)
+                reflected_cache_poisoning(uri, s, req_main, custom_header, authent, human)
+
+
+    except Exception as e:
+        logger.exception(e)
 
 
 def randomiz_url(url):
@@ -34,16 +77,23 @@ def dvcp(uri, s, headers, custom_header, authent, human):
             headers=headers,
             verify=False,
             allow_redirects=False,
-            timeout=6,
+            timeout=8,
         )
     verif_req = requests.get(
             uri,
             headers=custom_header,
             verify=False,
             allow_redirects=False,
-            timeout=6,
+            timeout=8,
         )
     return dup_req, verif_req
+
+
+def print_(identify, VULN_NAME, reason, cachetag, url, payload):
+    print_results(identify, VULN_NAME, reason, cachetag, url, payload)
+    if proxy.proxy_enabled:
+        from utils.proxy import proxy_request
+        proxy_request(s, url, "GET", headers=pk, data=None, severity="behavior" if "BEHAVIOR" in identify else "confirmed")
 
 
 def port_poisoning(url, s, initialResponse, custom_header, authent, human):
@@ -94,77 +144,82 @@ def port_poisoning(url, s, initialResponse, custom_header, authent, human):
                 response.status_code != initialResponse.status_code
                 and response.status_code not in [429, 401, 403]
             ):
-                print_results(Identify.behavior, VULN_NAME, f"{initialResponse.status_code} > {response.status_code}", ctv, uri, ph)
+                print_(Identify.behavior, VULN_NAME, f"{initialResponse.status_code} > {response.status_code}", ctv, uri, ph)
                 dup_req, verif_req = dvcp(uri, s, ph, custom_header, authent, human)
                 if (
                     dup_req.status_code == verif_req.status_code 
                    and verif_req.status_code != initialResponse.status_code
                    ):
-                    print_results(Identify.confirmed, VULN_NAME, f"{initialResponse.status_code} > {verif_req.status_code}", ctv, uri, ph)
+                    print_(Identify.confirmed, VULN_NAME, f"{initialResponse.status_code} > {verif_req.status_code}", ctv, uri, ph)
             if "31337" in response.text:
-                print_results(Identify.behavior, VULN_NAME, f"| 31337 IN BODY", ctv, uri, ph)
+                print_(Identify.behavior, VULN_NAME, f"| 31337 IN BODY", ctv, uri, ph)
                 dup_req, verif_req = dvcp(uri, s, ph, custom_header, authent, human)
                 if "31337" in verif_req.text:
-                    print_results(Identify.confirmed, VULN_NAME, f"| 31337 IN BODY", ctv, uri, ph)
+                    print_(Identify.confirmed, VULN_NAME, f"| 31337 IN BODY", ctv, uri, ph)
             if "31337" in response.headers:
                 print_results(Identify.behavior, VULN_NAME, f"| 31337 IN HEADER", ctv, uri, ph)
                 dup_req, verif_req = dvcp(uri, s, ph, custom_header, authent, human)
                 if "31337" in verif_req.headers:
-                    print_results(Identify.confirmed, VULN_NAME, f"| 31337 IN HEADER", ctv, uri, ph)
+                    print_(Identify.confirmed, VULN_NAME, f"| 31337 IN HEADER", ctv, uri, ph)
 
     except Exception as e:
-        #print(f" └── Error with Host: {host}:8888 header: {e}")
-        # traceback.print_exc()
+        #traceback.print_exc()
         print(f"Error: {e}")
+        pass
 
 
 
 def reflected_cache_poisoning(url, s, initialResponse, custom_header, authent, human):
-    VULN_NAME = "Web Cache Poisoning"
+    VULN_NAME = "WCP"
 
-    for pl in wcp_headers:
+    try:
+        for pl in wcp_headers:
         
-        headers = {pl: CANARY}
+            headers = {pl: CANARY}
 
-        uri = randomiz_url(url)
+            uri = randomiz_url(url)
 
-        if custom_header:
-            headers.update(custom_header)
+            if custom_header:
+                headers.update(custom_header)
 
-        s.headers.update(random_ua())
-        response = s.get(
-            uri,
-            headers=headers,
-            verify=False,
-            allow_redirects=False,
-            timeout=6,
-            )
+            s.headers.update(random_ua())
+            response = s.get(
+                uri,
+                headers=headers,
+                verify=False,
+                allow_redirects=False,
+                timeout=6,
+                )
 
-        ctv = cache_tag_verify(response)
+            ctv = cache_tag_verify(response)
 
-        if CANARY in response.text:
-            print_results(Identify.behavior, VULN_NAME, "BODY REFLECTION", ctv, uri, headers)
+            if CANARY in response.text:
+                print_(Identify.behavior, VULN_NAME, "BODY REFLECTION", ctv, uri, headers)
 
-            dup_req, verif_req = dvcp(uri, s, headers, custom_header, authent, human)
-            if CANARY in verif_req.headers:
-                print_results(Identify.confirmed, VULN_NAME, "BODY REFLECTION", ctv, uri, headers)
-        if CANARY in response.headers:
-            print_results(Identify.behavior, VULN_NAME, "HEADER REFLECTION", ctv, uri, headers)
+                dup_req, verif_req = dvcp(uri, s, headers, custom_header, authent, human)
+                if CANARY in verif_req.headers:
+                    print_(Identify.confirmed, VULN_NAME, "BODY REFLECTION", ctv, uri, headers)
+            if CANARY in response.headers:
+                print_(Identify.behavior, VULN_NAME, "HEADER REFLECTION", ctv, uri, headers)
 
-            dup_req, verif_req = dvcp(uri, s, headers, custom_header, authent, human)
-            if CANARY in verif_req.headers:
-                print_results(Identify.confirmed, VULN_NAME, "HEADER REFLECTION", ctv, uri, headers)
-        if response.status_code != initialResponse.status_code and response.status_code not in [429, 401]:
-            print_results(Identify.behavior, VULN_NAME, f"{initialResponse.status_code} > {response.status_code}", ctv, uri, headers)
-            dup_req, verif_req = dvcp(uri, s, headers, custom_header, authent, human)
-            if (
-                dup_req.status_code == verif_req.status_code 
-                and verif_req.status_code != initialResponse.status_code
-                ):
-                print_results(Identify.confirmed, VULN_NAME, f"{initialResponse.status_code} > {response.status_code}", ctv, uri, headers)
+                dup_req, verif_req = dvcp(uri, s, headers, custom_header, authent, human)
+                if CANARY in verif_req.headers:
+                    print_(Identify.confirmed, VULN_NAME, "HEADER REFLECTION", ctv, uri, headers)
+            if response.status_code != initialResponse.status_code and response.status_code not in [429, 401]:
+                print_(Identify.behavior, VULN_NAME, f"{initialResponse.status_code} > {response.status_code}", ctv, uri, headers)
+                dup_req, verif_req = dvcp(uri, s, headers, custom_header, authent, human)
+                if (
+                    dup_req.status_code == verif_req.status_code 
+                    and verif_req.status_code != initialResponse.status_code
+                    ):
+                    print_(Identify.confirmed, VULN_NAME, f"{initialResponse.status_code} > {response.status_code}", ctv, uri, headers)
 
-        print(f" {Colors.BLUE} {VULN_NAME} : {headers}{Colors.RESET}\r", end="")
-        print("\033[K", end="")
+            print(f" {Colors.BLUE} {VULN_NAME} : {headers}{Colors.RESET}\r", end="")
+            print("\033[K", end="")
+    except Exception as e:
+        #traceback.print_exc()
+        print(f"Error: {e}")
+        pass
 
 
 def check_cache_poisoning(url, s, custom_header, authent, human):
@@ -179,3 +234,4 @@ def check_cache_poisoning(url, s, custom_header, authent, human):
 
     port_poisoning(url, s, initialResponse, custom_header, authent, human)
     reflected_cache_poisoning(url, s, initialResponse, custom_header, authent, human)
+    crawl_files(url, s, initialResponse, custom_header, authent, human)

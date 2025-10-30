@@ -127,9 +127,9 @@ Use both options for maximum flexibility:
 ## Usage
 
 ```bash
-Usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-a AUTH] [-b] [-hu HUMANS] [-t THREADS] [-l LOG] [-L LOG_FILE] [-v] [-p PROXY] [--burp BURP] [--ocp]
+usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-a AUTH] [-hu HUMANS] [-t THREADS] [-l LOG] [-L LOG_FILE] [-v] [-p [PROXY]] [--burp [BURP]] [--ocp]
 
-HExHTTP is a tool designed to perform tests on HTTP headers.
+HExHTTP(v2.3) is a tool designed to perform tests on HTTP headers.
 
 options:
   -h, --help            show this help message and exit
@@ -138,7 +138,6 @@ options:
   -u URL, --url URL     URL to test [required] if no -f/--file provided
   -f URL_FILE, --file URL_FILE
                         File of URLs
-  -b, --behavior        Activates a simplified version of verbose, highlighting interesting cache behaviors
 
 > Request Settings:
   -H CUSTOM_HEADER, --header CUSTOM_HEADER
@@ -160,8 +159,7 @@ options:
 > Proxy Settings:
   -p [PROXY], --proxy [PROXY]
                         Proxy all requests through this proxy (format: host:port, default: 127.0.0.1:8080)
-  --burp [BURP]         Send behavior and confirmed requests to Burp proxy (format: host:port, default:
-                        127.0.0.1:8080)
+  --burp [BURP]         Send behavior and confirmed requests to Burp proxy (format: host:port, default: 127.0.0.1:8080)
 
 > Tips:
   --ocp, --only-cp      Only cache poisoning modules
@@ -175,7 +173,7 @@ options:
 » ./hexhttp.py -u 'https://target.tld/'
 
 # Scan a list of domains with behavior feature
-» ./hexhttp.py -b -f domains.lst
+» ./hexhttp.py -f domains.lst
 
 # if the application is very sensitive (waf or not)
 » ./hexhttp.py -u 'https://target.tld/' -hu r
