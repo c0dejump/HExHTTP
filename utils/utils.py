@@ -103,16 +103,20 @@ def range_exclusion(main_len):
     )
     return range_exlusion
 
-def verify_405_waf(req):
+def verify_waf(initialResponse, req):
     html = req.text
     soup = BeautifulSoup(html, "html.parser")
-    title = soup.title.string if soup.title else None
+    title = soup.title.string if soup.title else False
     amz_waf = req.headers.get("x-amzn-waf-action", "")
-    if title.lower() == "human verification":
-        return True
+    if title:
+        if title.lower() == "human verification":
+            return True
     if amz_waf:
         if amz_waf.lower() == "captcha":
             return True
+    if initialResponse.status_code != 403 and req.status_code == 403:
+        print(" └── [i] Rate limit WAF activated, wait a moment (60s) or try with -hu option")
+        time.sleep(60)
     else:
         return False
 

@@ -110,5 +110,6 @@ def test_proxy_connection(proxy_url_to_test: str | None = None) -> bool:
     try:
         requests.get("http://httpbin.org/ip", proxies=proxies, timeout=5, verify=False)
         return True
-    except Exception:
+    except Exception as e:
+        print(f" proxy error: {e}")
         return False

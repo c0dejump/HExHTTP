@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 
 
-from modules.cpdos.backslash import backslash_poisoning
+from modules.cpdos.bsf import backslash_poisoning
 from modules.cpdos.basic_cpdos import cpdos_main
-from modules.cpdos.mhc import MHC
+from modules.cpdos.msh import MSH
 from modules.cpdos.hho import HHO
 from modules.cpdos.hmc import HMC
 from modules.cpdos.hmo import HMO
 from modules.cpdos.hhcn import HHCN
 from modules.cpdos.hbh import HBH
-from modules.cpdos.ocd import OCD
-from modules.cpdos.path_traversal import path_traversal_check
+from modules.cpdos.ocp import OCP
+from modules.cpdos.ptp import path_traversal_check
 from utils.style import Colors
-from utils.utils import configure_logger, random, re, requests, sys, new_session
-
+from utils.utils import configure_logger, random, re, requests, sys, new_session, verify_waf
 logger = configure_logger(__name__)
 
 
@@ -75,16 +74,25 @@ def run_cpdos_modules(
 
         s = new_session(s)
         logger.debug(req_main.content)
-
+        
         HHO(randomiz_url(url), s, req_main, authent, human)
+        verify_waf(req_main, s.get(url))
         HMC(randomiz_url(url), s, req_main, authent, human)
+        verify_waf(req_main, s.get(url))
         HMO(randomiz_url(url), s, req_main, authent, human)
+        verify_waf(req_main, s.get(url))
         HHCN(randomiz_url(url), s, req_main, authent)
+        verify_waf(req_main, s.get(url))
         HBH(randomiz_url(url), s, req_main, authent, human)
-        MHC(url, req_main, authent, human)
-        OCD(randomiz_url(url), authent)
+        verify_waf(req_main, s.get(url))
+        MSH(url, req_main, authent, human)
+        verify_waf(req_main, s.get(url))
+        OCP(randomiz_url(url), authent)
+        verify_waf(req_main, s.get(url))
         path_traversal_check(url, s, req_main, authent)
+        verify_waf(req_main, s.get(url))
         cpdos_main(randomiz_url(url), s, req_main, authent, human)
+        verify_waf(req_main, s.get(url))
         # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")

@@ -7,7 +7,7 @@ https://cpdos.org/#HMO
 
 import utils.proxy as proxy
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, sys, human_time, random, requests, range_exclusion, verify_405_waf, random_ua
+from utils.utils import configure_logger, sys, human_time, random, requests, range_exclusion, verify_waf, random_ua
 from utils.print_utils import cache_tag_verify, format_payload
 
 
@@ -231,11 +231,8 @@ def HMO(
             )
             human_time(human)
 
-
-            logger.debug(rel)
-
             if probe.status_code == 405:
-                vw = verify_405_waf(probe)
+                vw = verify_waf(initial_response, probe)
                 if vw:
                     print(" └── [i] Human Verification waf activated ! wait a moment and try with -hu option")
                     break

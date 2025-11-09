@@ -25,17 +25,16 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
             if req_dh.status_code != main_status_code and req_dh.status_code not in [403, 401, 429]:
                 status_range = (req_dh.status_code // 10) * 10
                 behavior_key = f"STATUS_{main_status_code}_{status_range}"
-                behavior_msg = f"[INTERESTING BEHAVIOR] | {main_status_code} > {req_dh.status_code}"
+                behavior_msg = f"INTERESTING BEHAVIOR | {main_status_code} > {req_dh.status_code}"
                 
             elif len(req_dh.content) not in rel and req_dh.status_code not in [403, 401, 429]:
                 size_range = (len(req_dh.content) // 1000) * 1000
                 behavior_key = f"BODY_{main_len}_{size_range}"
-                behavior_msg = f"[INTERESTING BEHAVIOR] | BODY: {main_len}b > {len(req_dh.content)}b"
+                behavior_msg = f"INTERESTING BEHAVIOR | BODY: {main_len}b > {len(req_dh.content)}b"
                 
             elif len(req_dh.headers) != len(main_head) and len(req_dh.headers) not in range(len(main_head) - 10, len(main_head) + 10) and req_dh.status_code not in [403, 401, 429]:
-                # Regrouper par nombre de headers
                 behavior_key = f"HEADER_{len(main_head)}_{len(req_dh.headers)}"
-                behavior_msg = f"[INTERESTING BEHAVIOR] | HEADER: {len(main_head)}b > {len(req_dh.headers)}b"
+                behavior_msg = f"INTERESTING BEHAVIOR | HEADER: {len(main_head)}b > {len(req_dh.headers)}b"
             
             if behavior_key:
                 if behavior_key not in behavior_groups:
@@ -62,7 +61,7 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
                 sys.stdout.write("\033[K")
     
     for key, data in behavior_groups.items():
-        if data['count'] == 1:
+        if data['count'] <= 3:
             print(f"\033[32m └── [DEBUG CONFIRMED]\033[0m | {data['msg'].replace('[INTERESTING BEHAVIOR]', '').strip()} | \033[34m{data['url']}\033[0m | PAYLOAD: {data['payloads'][0]}")
         else:
             similar_text = f" (+{data['count']-1} similar)"

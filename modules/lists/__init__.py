@@ -10,11 +10,10 @@ from modules.lists.payloads_errors import payloads_keys
 
 __all__ = [
     "load_payloads_from",
-    "header_list",
     "user_agents_list",
     "payloads_keys",
     "all_payload_keys",
-    "paraminer_list",
+    "wcp_headers",
 ]
 
 header_list = []
@@ -39,5 +38,4 @@ def load_payloads_from(file_path: str) -> list[str]:
 
 
 user_agents_list = load_payloads_from("./modules/lists/user-agent.lst")
-header_list = load_payloads_from("./modules/lists/lowercase-headers.lst")
-paraminer_list = load_payloads_from("./modules/lists/paraminer-wordlist.lst")
+wcp_headers = load_payloads_from("./modules/lists/wcp_headers.lst")

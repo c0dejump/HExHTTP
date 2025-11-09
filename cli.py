@@ -33,8 +33,6 @@ def args() -> argparse.Namespace:
         -H, --header (str): Add a custom HTTP Header.
         -A, --user-agent (str): Add a custom User Agent.
         -a, --auth (str): Add an HTTP authentication. Ex: --auth admin:admin.
-        -b, --behavior (bool): Activates a simplified version of verbose,
-            highlighting interesting cache behaviors.
         -t, --threads (int): Threads numbers for multiple URLs. Default: 10.
         -l, --log (str): Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
             Default: WARNING.
@@ -63,14 +61,6 @@ def args() -> argparse.Namespace:
         dest="url_file",
         help="File of URLs",
         required=False,
-    )
-    group.add_argument(
-        "-b",
-        "--behavior",
-        dest="behavior",
-        help="Activates a simplified version of verbose, highlighting interesting cache behaviors",
-        required=False,
-        action="store_true",
     )
 
     group = parser.add_argument_group(f"{Colors.BLUE}> Request Settings{Colors.RESET}")

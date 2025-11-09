@@ -309,7 +309,7 @@ def display_deduplicated_results(
                 )
 
 
-def check_methods(url: str, custom_header: Any, authent: Any, human: bool) -> None:
+def check_methods(url: str, custom_header: Any, authent: Any, human) -> None:
     htimeout = Timeout(connect=7.0, read=7.0)
     http = PoolManager(timeout=htimeout)
 
@@ -345,8 +345,7 @@ def check_methods(url: str, custom_header: Any, authent: Any, human: bool) -> No
 
             for ml in method_list:
                 check_other_methods(ml, url, http, pad, results_tracker)
-                if human:
-                    human_time("1")
+                human_time(human)
                 print(f" {Colors.BLUE} Method: {ml} {Colors.RESET}   ", end="\r")
 
             display_deduplicated_results(results_tracker, pad, url, http)
@@ -356,4 +355,4 @@ def check_methods(url: str, custom_header: Any, authent: Any, human: bool) -> No
         print(f" ├── Error: Methods list file not found: {list_path}")
     except Exception as e:
         logger.exception(f"Error reading methods list {e}")
-        print(" ├── Error reading methods list")
+        print(f" ├── Error reading methods list: {e}")

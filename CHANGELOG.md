@@ -1,6 +1,22 @@
 Changelog:
 ----------
 
+- 2.3
+---------
+	Updated:
+	- Renames files and directory
+	- Linting
+	- Fixed proxy bugs
+	- fixed basic_cpdos bugs
+	Deleted:
+	- tools/*
+	- modules/lists/lowercase-headers.lst
+	- modules/lists/paraminer-wordlist.lst
+	New:
+	- cache_poisoning.py 
+	- modules/lists/wcp_headers.lst
+---------
+
 - 2.2
 ---------
 	Updated:

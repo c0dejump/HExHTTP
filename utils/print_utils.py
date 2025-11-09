@@ -10,7 +10,7 @@ def cache_tag_verify(req: requests.Response) -> str:
         else:
             pass
     colored_cachetag = (
-        f"{Colors.GREEN}" if cachetag else f"{Colors.RED}"
+        f"{Colors.GREEN} " if cachetag else f"{Colors.RED}"
     ) + f"{str(cachetag)}{Colors.RESET}"
     return colored_cachetag
     
@@ -58,4 +58,4 @@ def format_payload(payload: dict) -> str:
 
 
 def print_results(identify, vulnerability_type, reason, cachetag, url, payload):
-	print(f"{identify} | {vulnerability_type} {reason} | CACHETAG: {cachetag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}")
+	print(f" {identify} | {vulnerability_type} {reason} | CACHETAG: {cachetag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}")

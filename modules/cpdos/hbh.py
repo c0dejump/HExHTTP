@@ -6,7 +6,7 @@ https://nathandavison.com/blog/abusing-http-hop-by-hop-request-headers
 """
 
 import utils.proxy as proxy
-from modules.lists import header_list
+from modules.lists import wcp_headers
 from utils.style import Colors, Identify
 from utils.utils import (
     configure_logger,
@@ -98,7 +98,7 @@ def HBH(
     response_2_previous_size = 0
     response_2_count_size = 0
 
-    for header in header_list:
+    for header in wcp_headers:
         uri = f"{url}{random.randrange(9999)}"
 
         headers = {"Connection": f"keep-alive, {header}"}
