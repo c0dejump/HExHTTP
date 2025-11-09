@@ -2,6 +2,7 @@
 
 """
 From 0xrth research
+Path Traversal Poisoning
 """
 
 
@@ -93,6 +94,7 @@ def path_traversal_check(
             "cc%2f..%2f",
             "cc/..\\",
             "cc/..;/",
+            "cc%5C",
         ]
         for p in paths:
             cb = f"?cb={random.randrange(999)}"

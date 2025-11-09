@@ -470,4 +470,13 @@ DEBUG_HEADERS = [
     {"X-Serialization-Debug": "true"},
     {"X-JSON-Debug": "1"},
     {"X-XML-Debug": "true"},
+    {'X-Apollo-Tracing': '1'},
+    {'X-Hasura-Admin-Secret': "xxxxx"},
+    {'X-Hasura-Role': 'anonymous'},
+    {'X-Api-Key': 'xxxxx'},
+    {'X-Shopify-Storefront-Access-Token': 'xxxxx'},
+    {'X-GraphQL-Event-Stream': '1'},
+    {'X-MS-Original-URL': 'xxxxx'},
+    {'X-AspNet-Version': 'xxxx'},
+    {'X-AspNetMvc-Version': 'xxxx'},
 ]

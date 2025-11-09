@@ -2418,3 +2418,4 @@ X-TYPO3-Sitename
 X-Tengine-Forwarded-For
 X-Tengine-Request-ID
 Region
+X-Country-Code

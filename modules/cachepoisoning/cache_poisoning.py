@@ -104,6 +104,11 @@ def port_poisoning(url, s, initialResponse, custom_header, authent, human):
     pheaders = [
         {"Host": f"{host}:31337"},
         {"X-Forwarded-Port": "31337"},
+        {"X-Forwarded-Port": "99999"},
+        {"X-Forwarded-Port": "-1"},
+        {"X-Forwarded-Port": "abc"},
+        {"X-Forwarded-Port": "0x50"},
+        {"X-Forwarded-Port": "80 80"},
         {"x-forwarded-proto": "31337"},
         {"X-Forwarded-Host": f"{host}:31337"},
         {"X-Host": f"{host}:31337"},
@@ -152,20 +157,19 @@ def port_poisoning(url, s, initialResponse, custom_header, authent, human):
                    ):
                     print_(Identify.confirmed, VULN_NAME, f"{initialResponse.status_code} > {verif_req.status_code}", ctv, uri, ph)
             if "31337" in response.text:
-                print_(Identify.behavior, VULN_NAME, f"| 31337 IN BODY", ctv, uri, ph)
+                print_(Identify.behavior, VULN_NAME, f" 31337 IN BODY", ctv, uri, ph)
                 dup_req, verif_req = dvcp(uri, s, ph, custom_header, authent, human)
                 if "31337" in verif_req.text:
-                    print_(Identify.confirmed, VULN_NAME, f"| 31337 IN BODY", ctv, uri, ph)
+                    print_(Identify.confirmed, VULN_NAME, f" 31337 IN BODY", ctv, uri, ph)
             if "31337" in response.headers:
-                print_results(Identify.behavior, VULN_NAME, f"| 31337 IN HEADER", ctv, uri, ph)
+                print_results(Identify.behavior, VULN_NAME, f" 31337 IN HEADER", ctv, uri, ph)
                 dup_req, verif_req = dvcp(uri, s, ph, custom_header, authent, human)
                 if "31337" in verif_req.headers:
-                    print_(Identify.confirmed, VULN_NAME, f"| 31337 IN HEADER", ctv, uri, ph)
+                    print_(Identify.confirmed, VULN_NAME, f" 31337 IN HEADER", ctv, uri, ph)
 
     except Exception as e:
         #traceback.print_exc()
-        print(f"Error: {e}")
-        pass
+        logger.exception(e)
 
 
 
@@ -218,8 +222,7 @@ def reflected_cache_poisoning(url, s, initialResponse, custom_header, authent, h
             print("\033[K", end="")
     except Exception as e:
         #traceback.print_exc()
-        print(f"Error: {e}")
-        pass
+        logger.exception(e)
 
 
 def check_cache_poisoning(url, s, custom_header, authent, human):

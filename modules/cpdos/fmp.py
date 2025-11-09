@@ -94,9 +94,9 @@ def verify_fat_get_poisoning(
             url,
             d,
         )
-    elif d in req_main_check.text or "codejump" in req_main_check.text:
+    if d in req_main_check.text or "codejump" in req_main_check.text:
         print_result(Identify.confirmed, "FAT", f"{rm}", "BODY REFLECTION", "", url, d)
-    elif d in req_main_check.headers or "codejump" in req_main_check.headers:
+    if d in req_main_check.headers or "codejump" in req_main_check.headers:
         print_result(
             Identify.confirmed, "FAT", f"{rm}", "HEADERS REFLECTION", "", url, d
         )
@@ -155,13 +155,13 @@ def fat_methods_poisoning(
                 )
                 behavior_check = True
                 verify_fat_get_poisoning(s, url, d, rm, req_main, len_main, authent)
-            elif d in req_fg.text or "codejump" in req_fg.text:
+            if d in req_fg.text or "codejump" in req_fg.text:
                 print_result(
                     Identify.behavior, "FAT", f"{rm}", "BODY REFLECTION", "", f"CACHETAG: {cache_tag_verify(req_fg)}", url, d
                 )
                 behavior_check = True
                 verify_fat_get_poisoning(s, url, d, rm, req_main, len_main, authent)
-            elif d in req_fg.headers or "codejump" in req_fg.headers:
+            if d in req_fg.headers or "codejump" in req_fg.headers:
                 print_result(
                     Identify.behavior, "FAT", f"{rm}", "HEADERS REFLECTION", "", f"CACHETAG: {cache_tag_verify(req_fg)}", url, d
                 )
