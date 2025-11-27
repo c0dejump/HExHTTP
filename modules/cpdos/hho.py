@@ -8,6 +8,7 @@ https://cpdos.org/#HHO
 import utils.proxy as proxy
 from utils.style import Colors, Identify
 from utils.utils import configure_logger, human_time, requests, random
+from utils.print_utils import cache_tag_verify
 
 logger = configure_logger(__name__)
 
@@ -111,7 +112,7 @@ def HHO(
                 status = f"{Identify.behavior}"
                 severity = "behavior"
             print(
-                f" {status} | HHO DOS | {Colors.BLUE}{uri}{Colors.RESET} | {reason} | PAYLOAD: {Colors.THISTLE}X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}{Colors.RESET}"
+                f" {status} | HHO DOS | {reason} | CACHETAG {cache_tag_verify(verify)} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}X-Oversized-Header-x: Big-Value-0*{len(big_value) - len('Big-Value-0')}{Colors.RESET}"
             )
             if proxy.proxy_enabled:
                 from utils.proxy import proxy_request

@@ -109,6 +109,7 @@ def port_poisoning(url, s, initialResponse, custom_header, authent, human):
         {"X-Forwarded-Port": "abc"},
         {"X-Forwarded-Port": "0x50"},
         {"X-Forwarded-Port": "80 80"},
+        {"X-Forwarded-Port": "80@evil.com:443"},
         {"x-forwarded-proto": "31337"},
         {"X-Forwarded-Host": f"{host}:31337"},
         {"X-Host": f"{host}:31337"},

@@ -114,6 +114,8 @@ def verify_waf(initialResponse, req):
     if amz_waf:
         if amz_waf.lower() == "captcha":
             return True
+    if "verify that you are a real person" in html:
+        return True
     if initialResponse.status_code != 403 and req.status_code == 403:
         print(" └── [i] Rate limit WAF activated, wait a moment (60s) or try with -hu option")
         time.sleep(60)

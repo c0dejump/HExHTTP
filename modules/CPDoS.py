@@ -11,6 +11,7 @@ from modules.cpdos.hhcn import HHCN
 from modules.cpdos.hbh import HBH
 from modules.cpdos.ocp import OCP
 from modules.cpdos.ptp import path_traversal_check
+from modules.cpdos.cfp import format_poisoning
 from utils.style import Colors
 from utils.utils import configure_logger, random, re, requests, sys, new_session, verify_waf
 logger = configure_logger(__name__)
@@ -47,7 +48,7 @@ def crawl_files(
                     uri = f"https://{uri[7:].replace('//', '/')}"
 
                 # print(uri)
-                run_cpdos_modules(uri, s, authent, human)
+                run_cpdos_modules(uri, s, authent, human, crawl=True)
                 backslash_poisoning(uri, s, authent, human)
 
 
@@ -64,6 +65,7 @@ def run_cpdos_modules(
     s: requests.Session,
     authent: tuple[str, str] | None,
     human: str,
+    crawl = False
 ) -> None:
 
     uri = f"{url}?CPDoS={random.randint(1337, 7331)}"
@@ -93,6 +95,8 @@ def run_cpdos_modules(
         verify_waf(req_main, s.get(url))
         cpdos_main(randomiz_url(url), s, req_main, authent, human)
         verify_waf(req_main, s.get(url))
+        if not crawl:
+            format_poisoning(randomiz_url(url), s, req_main, authent, human)
         # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")

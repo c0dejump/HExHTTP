@@ -42,6 +42,9 @@ def verify_cache_poisoning(
             elif VULN_TYPE == "HDH":
                 conn.putheader("Host", f"{host}")
                 conn.putheader("Host", "toto.com")
+            elif VULN_TYPE == "XFH":
+                conn.putheader("x-forwarded-host", f"{host}")
+                conn.putheader("x-forwarded-host", "evil.com")
 
             else:
                 conn.putheader(f"{VULN_TYPE}", "xxxx")
@@ -194,7 +197,7 @@ def MSH(
         RDH = referer_duplicate_headers(conn, url, main_status_code, authent)
         HDH = host_duplicate_headers(conn, host, url, main_status_code, authent)
 
-        mhc_res = ["RDH", "HDH"]
+        mhc_res = ["RDH", "HDH", "XFH"]
 
         for vuln_type in mhc_res:
             vuln_type_res = locals()[vuln_type]

@@ -110,12 +110,13 @@ def path_traversal_check(
             url_cb = f"{url}{cb}"
 
             req_test = s.get(url_test, verify=False, timeout=10, allow_redirects=False)
+            cache_status = cache_tag_verify(req_test)
             if (
                 req_test.status_code != req_main.status_code
                 and req_test.status_code not in [403, 401, 429]
             ):
                 print(
-                    f" {Identify.behavior} | {VULN_NAME} {req_main.status_code} > {req_test.status_code} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
+                    f" {Identify.behavior} | {VULN_NAME} {req_main.status_code} > {req_test.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
                 )
                 verify(
                     req_main,
@@ -131,7 +132,7 @@ def path_traversal_check(
                 req_test.content
             ) not in rel and req_test.status_code not in [403, 401, 429]:
                 print(
-                    f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_test.content)}b | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
+                    f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_test.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
                 )
                 verify(
                     req_main,

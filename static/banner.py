@@ -1,21 +1,13 @@
 #!/usr/bin/env python3
-
-"""
-Prints a colorful ASCII art banner along with a brief description of the HExHTTP tool.
-"""
-
+import time
+import sys
+import random
+from datetime import datetime
 from static.version import __version__, check_for_update
 
 
-def print_banner() -> str:
-    """
-    The banner is displayed using ANSI escape codes for colors and formatting.
-    The description includes the tool's name and version.
 
-    Returns:
-        str: The subtitle banner string.
-    """
-    banner_text = """\033[0m                                                                                                                               \033[m
+BANNER_TEXT = """\033[0m                                                                                                                               \033[m
 \033[0m                                                             \033[38;5;78;48;5;78m▄\033[38;5;35;48;5;36m▄\033[0m\033[38;5;23;48;5;235m▄\033[38;5;29;48;5;235m▄\033[38;5;35;48;5;235m▄\033[38;5;235;48;5;235m▄\033[0m                                                          \033[m
 \033[0m                                                           \033[38;5;78;48;5;235m▄\033[48;5;78m \033[38;5;78;48;5;23m▄\033[0m\033[38;5;23;48;5;235m▄\033[38;5;29;48;5;235m▄\033[38;5;235;48;5;238m▄\033[0m\033[38;5;235;48;5;237m▄\033[0m                                                          \033[m
 \033[0m         \033[38;5;29;48;5;235m▄\033[38;5;236;48;5;235m▄\033[38;5;23;48;5;235m▄\033[38;5;29;48;5;235m▄\033[38;5;236;48;5;235m▄\033[38;5;29;48;5;235m▄\033[0m       \033[38;5;29;48;5;235m▄\033[0m\033[38;5;29;48;5;235m▄\033[0m\033[38;5;29;48;5;235m▄\033[0m\033[38;5;29;48;5;235m▄\033[0m \033[38;5;29;48;5;235m▄\033[0m\033[38;5;29;48;5;235m▄\033[0m\033[38;5;29;48;5;235m▄\033[0m\033[38;5;29;48;5;235m▄▄▄▄▄▄▄▄▄▄\033[0m         \033[38;5;42;48;5;235m▄\033[38;5;238;48;5;78m▄\033[38;5;235;48;5;78m▄▄\033[38;5;29;48;5;235m▄\033[0m\033[38;5;235;48;5;235m▄\033[38;5;78;48;5;235m▄▄\033[38;5;78;48;5;29m▄\033[38;5;35;48;5;29m▄\033[38;5;36;48;5;235m▄\033[38;5;29;48;5;235m▄\033[0m     \033[38;5;36;48;5;235m▄▄\033[38;5;237;48;5;235m▄\033[0m\033[38;5;36;48;5;235m▄\033[0m\033[38;5;36;48;5;235m▄▄▄▄▄▄▄▄▄▄\033[0m\033[38;5;36;48;5;235m▄▄▄▄▄▄▄▄▄▄\033[0m\033[38;5;35;48;5;235m▄\033[38;5;36;48;5;235m▄▄▄▄▄▄▄▄\033[38;5;35;48;5;235m▄\033[38;5;23;48;5;235m▄\033[0m          \033[m
@@ -30,15 +22,109 @@ def print_banner() -> str:
 \033[0m         \033[38;5;235;48;5;78m▄\033[38;5;235;48;5;237m▄\033[38;5;235;48;5;35m▄\033[38;5;235;48;5;36m▄\033[38;5;235;48;5;237m▄\033[38;5;235;48;5;78m▄\033[0m       \033[38;5;235;48;5;42m▄\033[0m\033[38;5;235;48;5;78m▄\033[0m\033[38;5;235;48;5;78m▄\033[0m\033[38;5;235;48;5;78m▄\033[0m \033[38;5;235;48;5;78m▄\033[0m\033[38;5;235;48;5;78m▄\033[0m\033[38;5;235;48;5;78m▄\033[0m\033[38;5;235;48;5;35m▄\033[38;5;235;48;5;29m▄▄▄▄▄▄▄▄▄\033[0m  \033[38;5;235;48;5;78m▄▄\033[0m      \033[38;5;235;48;5;237m▄\033[38;5;235;48;5;78m▄\033[38;5;235;48;5;42m▄\033[0m  \033[38;5;235;48;5;29m▄\033[0m\033[38;5;235;48;5;23m▄\033[38;5;235;48;5;78m▄\033[38;5;235;48;5;35m▄\033[0m     \033[38;5;235;48;5;78m▄▄\033[38;5;235;48;5;237m▄\033[0m\033[38;5;235;48;5;78m▄\033[0m    \033[38;5;235;48;5;36m▄\033[38;5;235;48;5;78m▄\033[38;5;235;48;5;238m▄\033[0m      \033[38;5;235;48;5;237m▄\033[38;5;235;48;5;78m▄▄\033[0m    \033[38;5;235;48;5;36m▄\033[38;5;235;48;5;235m▄\033[38;5;235;48;5;78m▄▄\033[0m                \033[m
 \033[0m"""
 
-    subtitle = (
-        f"HExHTTP({__version__}) is a tool designed to perform tests on HTTP headers."
-    )
+SUBTITLE_TEMPLATE = "HExHTTP({}) is a tool designed to perform tests on HTTP headers."
 
-    print(banner_text)
+
+
+def clear_full():
+    sys.stdout.write("\033[2J\033[H")
+    sys.stdout.flush()
+
+def move_cursor(y, x=1):
+    sys.stdout.write(f"\033[{y};{x}H")
+    sys.stdout.flush()
+
+def hide_cursor():
+    sys.stdout.write("\033[?25l")
+    sys.stdout.flush()
+
+def show_cursor():
+    sys.stdout.write("\033[?25h")
+    sys.stdout.flush()
+
+def erase_cell(y, x):
+    move_cursor(y, x)
+    sys.stdout.write(" ")
+    sys.stdout.flush()
+
+
+def is_christmas_period():
+    now = datetime.now()
+    return now.month == 12 or (now.month == 1 and now.day == 1)
+
+
+FALLING_OBJECTS = ["❄", "⭐", "🎄", "🎁", "✨", "🔵", "🟣", "🟢", "🔴", "🎅", "⛄", "🦌"]
+
+def falling_animation(start_y, height, width, density=0.15, duration=0.7):
+    hide_cursor()
+    start_time = time.time()
+
+    active = []
+
+    while time.time() - start_time < duration:
+
+        if random.random() < density:
+            active.append([start_y, random.randint(1, width), random.choice(FALLING_OBJECTS)])
+
+        new_active = []
+
+        for (y, x, symbol) in active:
+
+            erase_cell(y, x)
+
+            new_y = y + 1
+
+            if new_y < start_y + height:
+                move_cursor(new_y, x)
+                sys.stdout.write(symbol)
+                sys.stdout.flush()
+                new_active.append([new_y, x, symbol])
+            else:
+                erase_cell(y, x)
+
+        active = new_active
+        time.sleep(0.03)
+
+    for (y, x, _) in active:
+        erase_cell(y, x)
+
+    show_cursor()
+
+
+
+def print_final_banner():
+    #clear_full()
+    print(BANNER_TEXT)
+
+    subtitle = SUBTITLE_TEMPLATE.format(__version__)
+    print()
+
     print(subtitle)
+
+    print("\n")
     check_for_update(__version__)
-    return subtitle
+
+
+
+def run_banner():
+    if is_christmas_period():
+        clear_full()
+
+        print(BANNER_TEXT)
+
+        banner_lines = BANNER_TEXT.count("\n")
+        width = 120
+        top_y = 1
+        falling_animation(
+            start_y=top_y,
+            height=banner_lines,
+            width=width,
+            density=0.24,
+            duration=1.5
+        )
+
+    print_final_banner()
 
 
 if __name__ == "__main__":
-    print_banner()
+    run_banner()

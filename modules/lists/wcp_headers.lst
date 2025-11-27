@@ -905,8 +905,11 @@ X-Forwarded-Protocol
 X-Forwarded-Scheme
 X-Forwarded-Server
 X-Forwarded-Ssl
-X-Forwarded-Ssl 
+X-Forwarded-Ssl
+X-Forwarded-Context
 X-Forwarder-For
+X-Forwarded-Path-Prefix
+X-Base-Path
 X-From
 X-Gb-Shared-Secret
 X-Geoip-Country

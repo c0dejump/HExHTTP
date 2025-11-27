@@ -49,9 +49,9 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
                 
         except Exception as e:
             if "got more than 100 headers" in str(e):
-                print(f"\033[33m └── [WARNING]\033[0m | Server returned >100 headers | \033[34m{uri}\033[0m | PAYLOAD: {dh}")
+                print(f"\033[33m   └── [WARNING]\033[0m | Server returned >100 headers | \033[34m{uri}\033[0m | PAYLOAD: {dh}")
             elif "Connection aborted" in str(e):
-                print(f"\033[33m └── [WARNING]\033[0m | Connection aborted | \033[34m{uri}\033[0m | PAYLOAD: {dh}")
+                print(f"\033[33m   └── [WARNING]\033[0m | Connection aborted | \033[34m{uri}\033[0m | PAYLOAD: {dh}")
             else:
                 pass
                 #print(e)
@@ -62,8 +62,8 @@ def check_http_debug(url, s, main_status_code, main_len, main_head, authent, hum
     
     for key, data in behavior_groups.items():
         if data['count'] <= 3:
-            print(f"\033[32m └── [DEBUG CONFIRMED]\033[0m | {data['msg'].replace('[INTERESTING BEHAVIOR]', '').strip()} | \033[34m{data['url']}\033[0m | PAYLOAD: {data['payloads'][0]}")
+            print(f"\033[32m └──   [DEBUG CONFIRMED]\033[0m | {data['msg'].replace('[INTERESTING BEHAVIOR]', '').strip()} | \033[34m{data['url']}\033[0m | PAYLOAD: {data['payloads'][0]}")
         else:
             similar_text = f" (+{data['count']-1} similar)"
             payload_count = f"with {data['count']} payloads"
-            print(f"\033[33m └── {data['msg']}\033[0m | \033[34m{data['url']}\033[0m{similar_text} {payload_count}")
+            print(f"\033[33m └──   {data['msg']}\033[0m | \033[34m{data['url']}\033[0m{similar_text} {payload_count}")

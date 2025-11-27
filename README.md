@@ -230,9 +230,11 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 
 ## TODO
 
-- [x] Cache poisoning module (autopoisoner) remake
 - [ ] Remake "session" handler/wrapper
 - [ ] Filter False Positive on WAF blocking [WIP]
+- [ ] Make the arguments "global" to avoid calling them in each functions, which will make the script simpler and cleaner.
+- [ ] Prioritize scans to quickly test the main cache poisoning vectors before being triggered by the WAF
+- [ ] Add a depth option to scans of "static" files (js/css, etc.)
 - [ ] Host Header Injection analysis
 - [ ] Parameter Cloacking
 - [ ] Tests Bed for regression testing

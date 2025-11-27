@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from modules.logging_config import valid_log_level
-from static.banner import print_banner
+from static.banner import run_banner
 from utils.style import Colors
 from utils.utils import argparse, sys, random
 
@@ -46,7 +46,7 @@ def args() -> argparse.Namespace:
 
     If no argument is provided, the function will print the help message and exit.
     """
-    parser = argparse.ArgumentParser(description=print_banner())
+    parser = argparse.ArgumentParser(description=run_banner())
 
     group = parser.add_argument_group(f"{Colors.BLUE}> General{Colors.RESET}")
     group.add_argument(

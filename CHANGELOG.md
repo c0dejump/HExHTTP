@@ -1,6 +1,15 @@
 Changelog:
 ----------
 
+- 2.4
+---------
+	Updated:
+	- New payloads
+	- Fix bugs
+	News:
+	- CFP module: change format page poisoning (html > json....)
+---------
+
 - 2.3
 ---------
 	Updated:
@@ -12,7 +21,7 @@ Changelog:
 	- tools/*
 	- modules/lists/lowercase-headers.lst
 	- modules/lists/paraminer-wordlist.lst
-	New:
+	News:
 	- cache_poisoning.py 
 	- modules/lists/wcp_headers.lst
 ---------
