@@ -180,6 +180,43 @@ def host_duplicate_headers(
         return tuple()
 
 
+def xforwardedhost_duplicate_headers(
+    conn: http.client.HTTPConnection | http.client.HTTPSConnection,
+    host: str,
+    url: str,
+    main_status_code: int,
+    authent: tuple[str, str] | None,
+) -> tuple:
+    """VULN_TYPE = HDH"""
+    cb = random.randrange(9999)
+
+    try:
+        conn.putrequest("GET", f"/?cb={cb}")
+        conn.putheader("User-Agent", "xxxx")
+        conn.putheader("x-forwarded-host", f"{host}")
+        conn.putheader("x-forwarded-host", "toto.com")
+        conn.endheaders()
+
+        response = conn.getresponse()
+        if (
+            response.status != main_status_code
+            and response.status not in EXCLUDE_RESPONSE
+        ):
+            logger.debug(
+                f"[{url}?cb={cb}] Statut : {response.status}, Raison : {response.reason}"
+            )
+            for rh in response.headers:
+                if "age" in rh.lower() or "hit" in rh.lower():
+                    return response, cb
+
+    except Exception:
+        conn.close()
+        return tuple()
+    finally:
+        conn.close()
+        return tuple()
+
+
 def MSH(
     url: str, req_main: requests.Response, authent: tuple[str, str] | None, human: str
 ) -> None:
@@ -196,6 +233,7 @@ def MSH(
 
         RDH = referer_duplicate_headers(conn, url, main_status_code, authent)
         HDH = host_duplicate_headers(conn, host, url, main_status_code, authent)
+        XFH = xforwardedhost_duplicate_headers(conn, host, url, main_status_code, authent)
 
         mhc_res = ["RDH", "HDH", "XFH"]
 

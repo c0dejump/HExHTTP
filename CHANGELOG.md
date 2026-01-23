@@ -1,11 +1,24 @@
 Changelog:
 ----------
 
+- 2.5
+---------
+	Updated:
+	- centralization of the main requests made for CP/CPDoS scans in "global_requests.py"
+	- News payloads,
+	- Fixed bugs
+	- Linting
+	News:
+	- False positive baseline in "utils.py"
+	
+---------
+
 - 2.4
 ---------
 	Updated:
 	- New payloads
 	- Fix bugs
+	- Recalibration of WAF detection
 	News:
 	- CFP module: change format page poisoning (html > json....)
 ---------

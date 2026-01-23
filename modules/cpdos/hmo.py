@@ -5,10 +5,9 @@ Attempts to find Cache Poisoning with HTTP Method Override (HMO)
 https://cpdos.org/#HMO
 """
 
-import utils.proxy as proxy
-from utils.style import Colors, Identify
-from utils.utils import configure_logger, sys, human_time, random, requests, range_exclusion, verify_waf, random_ua
-from utils.print_utils import cache_tag_verify, format_payload
+from utils.style import Colors
+from utils.utils import configure_logger, random, requests
+from modules.global_requests import send_global_requests
 
 
 logger = configure_logger(__name__)
@@ -19,8 +18,9 @@ VULN_NAME = "HTTP Method Override"
 def HMO(
     url: str,
     s: requests.Session,
-    initial_response: requests.Response,
+    initialResponse: requests.Response,
     authent: tuple[str, str] | None,
+    fp_results: tuple[int, int] | None,
     human: str,
 ) -> None:
     """Function to test for HTTP Method Override vulnerabilities"""
@@ -203,117 +203,20 @@ def HMO(
         "Proxy-Method",
     ]
 
-    main_status_code = initial_response.status_code
-    main_len = len(initial_response.content)
-
-    rel = range_exclusion(main_len)
-
     for header, method in (
         (header, method) for header in hmo_headers for method in methods
     ):
         
-        reason = ""
         try:
             uri = f"{url}{random.randrange(999)}"
+
             probe_headers = {header: method}
-            print(
-                f" {Colors.BLUE} {VULN_NAME} : {probe_headers}{Colors.RESET}\r", end=""
-            )
+            
+            send_global_requests(uri, s, authent, fp_results, VULN_NAME, human, probe_headers, initialResponse)
+            
+            print(f" {Colors.BLUE} {VULN_NAME} : {probe_headers}{Colors.RESET}\r", end="")
             print("\033[K", end="")
-            s.headers.update(random_ua())
-            probe = s.get(
-                uri,
-                headers=probe_headers,
-                verify=False,
-                timeout=10,
-                auth=authent,
-                allow_redirects=False,
-            )
-            human_time(human)
-
-            if probe.status_code == 405:
-                vw = verify_waf(initial_response, probe)
-                if vw:
-                    print(" └── [i] Human Verification waf activated ! wait a moment and try with -hu option")
-                    break
-
-            if probe.status_code != main_status_code and probe.status_code not in [
-                main_status_code,
-                429,
-                401,
-                403,
-            ]:
-                reason = (
-                    f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code}"
-                )
-                status = f"{Identify.behavior}"
-                severity = "behavior"
-            elif (
-                len(probe.content) != main_len
-                and len(probe.content) not in rel
-                and probe.status_code not in [429, 401, 403]
-            ):
-                reason = (
-                    f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(probe.content)}b"
-                )
-                logger.debug(probe.content)
-                status = f"{Identify.behavior}"
-                severity = "behavior"
-            elif (
-                probe.status_code == main_status_code
-                and len(probe.content) in rel
-            ):
-                continue
-
-            for _ in range(3):
-                probe = s.get(
-                    uri,
-                    headers=probe_headers,
-                    timeout=10,
-                    auth=authent,
-                    allow_redirects=False,
-                )
-                human_time(human)
-                
-            s.headers.update(random_ua())
-            control = s.get(uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
-            if (
-                control.status_code == probe.status_code
-                and control.status_code not in [main_status_code, 429, 401, 403]
-            ):
-                reason = (
-                    f"DIFFERENT STATUS-CODE {main_status_code} > {control.status_code}"
-                )
-                status = f"{Identify.confirmed}"
-                severity = "confirmed"
-
-            elif (
-                len(control.content) == len(probe.content)
-                and len(control.content) not in rel
-                and control.status_code not in [429, 401, 403]
-            ):
-                reason = (
-                    f"DIFFERENT RESPONSE LENGTH {main_len}b > {len(control.content)}b"
-                )
-                # print(control.content)
-                status = f"{Identify.confirmed}"
-                severity = "confirmed"
-
-            if reason:
-                print(
-                    f" {status} | HMO DOS | {reason} | CACHETAG {cache_tag_verify(probe)} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(probe_headers)}{Colors.RESET}"
-                )
-                if proxy.proxy_enabled:
-                    from utils.proxy import proxy_request
-
-                    proxy_request(
-                        s,
-                        "GET",
-                        uri,
-                        headers=probe_headers,
-                        data=None,
-                        severity=severity,
-                    )
 
         except requests.exceptions.ConnectionError as e:
+            #print(e)
             logger.exception(e)

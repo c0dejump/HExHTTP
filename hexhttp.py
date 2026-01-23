@@ -36,7 +36,8 @@ from utils.utils import (
     requests,
     sys,
     time,
-    verify_waf
+    verify_waf,
+    fp_baseline
 )
 
 logger = configure_logger(__name__)
@@ -144,6 +145,13 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
                 sys.exit()
         for k in req_main.headers:
             resp_main_headers.append(f"{k}: {req_main.headers[k]}")
+
+        req_main = s.get(
+            url, verify=False, allow_redirects=False, timeout=10, auth=authent
+        )
+
+        fp_results = fp_baseline(f"{url}?cb=123byc0dejump", s)
+
         if not only_cp:
             check_cachetag_header(resp_main_headers)
             get_server_error(url, authent)
@@ -152,13 +160,15 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
             check_methods(url, custom_header, authent, human or "")
             check_http_version(url)
             get_technos(url, s, req_main, a_tech)
+            verify_waf(url, s, req_main)
             check_http_debug(url, s, main_status_code, main_len, main_head, authent, human or "")
+            verify_waf(url, s, req_main)
 
-        get_http_headers(url, s, main_status_code, main_len, dict(main_head), authent)
-        check_cpcve(url, s, req_main, parse_headers(custom_header), authent, human or "")
+        get_http_headers(url, s, req_main, dict(main_head), fp_results, authent)
+        check_cpcve(url, s, req_main, parse_headers(custom_header), authent, fp_results, human or "")
         check_CPDoS(url, s, req_main, parse_headers(custom_header), authent, human or "")
         check_methods_poisoning(url, s, parse_headers(custom_header), authent)
-        verify_waf(req_main, s.get(url))
+        verify_waf(url, s, req_main)
         check_cache_poisoning(url, s, parse_headers(custom_header), authent, human or "")
         check_cache_files(url, s, parse_headers(custom_header), authent)
         # fuzz_x_header(url) #TODO

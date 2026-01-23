@@ -5,17 +5,10 @@ Attempts to find Cache Poisoning with Host Header Case Normalization (HHCN)
 https://youst.in/posts/cache-key-normalization-denial-of-service/
 """
 
-import utils.proxy as proxy
+
 from utils.style import Colors, Identify
-from utils.utils import (
-    CONTENT_DELTA_RANGE,
-    BIG_CONTENT_DELTA_RANGE,
-    configure_logger,
-    get_domain_from_url,
-    random,
-    requests,
-    range_exclusion,
-)
+from utils.utils import configure_logger, get_domain_from_url, random, requests
+from modules.global_requests import send_global_requests
 
 logger = configure_logger(__name__)
 
@@ -41,119 +34,21 @@ def random_domain_capitalization(url: str) -> str:
 def HHCN(
     url: str,
     s: requests.Session,
-    main_response: requests.Response,
+    initialResponse: requests.Response,
     authent: tuple[str, str] | None,
-    content_delta_range: int = CONTENT_DELTA_RANGE,
+    fp_results: tuple[int, int] | None,
+    human: str,
 ) -> None:
     """Attempts to find Cache Poisoning with Host Header Case Normalization"""
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
 
-    headers = {"Host": random_domain_capitalization(url)}
-    payload = f"PAYLOAD: {headers}"
-    confirmed = ""
+    probe_headers = {"Host": random_domain_capitalization(url)}
 
     try:
-        main_response_size = len(main_response.content)
+        send_global_requests(url, s, authent, fp_results, VULN_NAME, human, probe_headers, initialResponse)
 
-        rel = range_exclusion(main_response_size)
-
-        probe = s.get(
-            url,
-            headers=headers,
-            verify=False,
-            timeout=10,
-            auth=authent,
-            allow_redirects=False,
-        )
-        probe_size = len(probe.content)
-        behavior = ""
-        if probe_size not in rel or (main_response.status_code != probe.status_code):
-            if len(probe.headers) > 0:
-                for rf in probe.headers:
-                    if "cache" in rf.lower() or "age" in rf.lower():
-                        for _ in range(5):
-                            req_hhcn_bis = s.get(
-                                url,
-                                headers=headers,
-                                verify=False,
-                                timeout=10,
-                                auth=authent,
-                                allow_redirects=False,
-                            )
-                    else:
-                        req_hhcn_bis = s.get(
-                            url,
-                            headers=headers,
-                            verify=False,
-                            timeout=10,
-                            auth=authent,
-                            allow_redirects=False,
-                        )
-                        break
-            else:
-                req_hhcn_bis = s.get(
-                    url,
-                    headers=headers,
-                    verify=False,
-                    timeout=10,
-                    auth=authent,
-                    allow_redirects=False,
-                )
-            if ( 
-                probe_size != main_response_size
-                and probe_size not in rel 
-                and probe.status_code not in [429, 401, 403]
-                ):
-                behavior = (
-                    f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {probe_size}b"
-                )
-                print(
-                    f" {Identify.behavior} | HHCN | {Colors.BLUE}{url}{Colors.RESET} | {behavior} | {Colors.THISTLE}{payload}{Colors.RESET}"
-                )
-
-            if main_response.status_code != probe.status_code and probe.status_code not in [429, 401, 403]:
-                behavior = (
-                    f"DIFFERENT STATUS-CODE | {main_response_size}b > {probe_size}b"
-                )
-                print(
-                    f" {Identify.behavior} | HHCN | {Colors.BLUE}{url}{Colors.RESET} | {behavior} | {Colors.THISTLE}{payload}{Colors.RESET}"
-                )
-
-            if behavior and proxy.proxy_enabled:
-                from utils.proxy import proxy_request
-                proxy_request(s, "GET", url, headers=headers, data=None)
-
-            control = s.get(url, verify=False, allow_redirects=False, timeout=10, auth=authent)
-
-            if (
-                behavior
-                and len(control.content) == len(req_hhcn_bis.content)
-                and len(control.content) != main_response_size 
-                and len(control.content) not in rel
-                and control.status_code not in [429, 401, 403]
-            ):
-                confirmed = f"DIFFERENT RESPONSE LENGTH | {main_response_size}b > {len(control.content)}b"
-                print(
-                    f" {Identify.confirmed} | HHCN | {Colors.BLUE}{url}{Colors.RESET} | {confirmed} | {Colors.THISTLE}{payload}{Colors.RESET}"
-                )
-
-            if (
-                behavior
-                and req_hhcn_bis.status_code == control.status_code
-                and control.status_code != main_response.status_code
-                and control.status_code not in [429, 401, 403]
-            ):
-                confirmed = f"DIFFERENT STATUS-CODE | {main_response.status_code} > {control.status_code}"
-                print(
-                    f" {Identify.confirmed} | HHCN | {Colors.BLUE}{url}{Colors.RESET} | {confirmed} | {Colors.THISTLE}{payload}{Colors.RESET}"
-                )
-            if confirmed and proxy.proxy_enabled:
-                from utils.proxy import proxy_request
-
-                proxy_request(s, "GET", url, headers=headers, data=None)
-
-        print(f" {Colors.BLUE} {VULN_NAME} : {headers}{Colors.RESET}\r", end="")
+        print(f" {Colors.BLUE} {VULN_NAME} : {probe_headers}{Colors.RESET}\r", end="")
         print("\033[K", end="")
     except requests.exceptions.ConnectionError as e:
         logger.exception(e)

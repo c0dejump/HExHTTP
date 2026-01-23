@@ -20,6 +20,7 @@ def HHO(
     s: requests.Session,
     main_response: requests.Response,
     authent: tuple[str, str] | None,
+    fp_results: tuple[int, int] | None,
     human: str,
 ) -> None:
     """

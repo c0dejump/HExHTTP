@@ -69,6 +69,7 @@ def check_cpcve(
     req_main: requests.Response,
     custom_header: dict,
     authent: tuple[str, str] | None,
+    fp_results: tuple[int, int] | None,
     human: str,
 ) -> None:
     if req_main.status_code in [301, 302]:

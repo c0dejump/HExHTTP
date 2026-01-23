@@ -5,8 +5,9 @@ pour identifier des comportements d'erreur potentiels et détecter les réflexio
 """
 
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, random, requests, sys, range_exclusion
+from utils.utils import configure_logger, random, requests, sys
 from utils.print_utils import format_payload
+from modules.global_requests import send_global_requests
 
 logger = configure_logger(__name__)
 
@@ -89,44 +90,6 @@ common_header = [
 errors_payload = ["A" * 1024, "xxxx", "©"]
 
 
-def verify_cp(
-    url: str,
-    s: requests.Session,
-    main_status_code: int,
-    main_len: int,
-    payload: dict[str, str],
-    authent: tuple[str, str] | None = None,
-) -> None:
-    uri = f"{url}{random.randrange(9999)}"
-
-    for _ in range(5):
-        s.get(
-            uri,
-            headers=payload,
-            verify=False,
-            allow_redirects=False,
-            timeout=10,
-            auth=authent,
-        )
-
-    req_verify = requests.get(
-        uri,
-        headers={"User-Agent": DEFAULT_USER_AGENT},
-        verify=False,
-        allow_redirects=False,
-        timeout=10,
-        auth=authent,
-    )
-
-    if req_verify.status_code != main_status_code:
-        print(
-            f" {Identify.confirmed} | CPDoSError {main_status_code} > {req_verify.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}"
-        )
-    elif len(req_verify.content) not in range(main_len - 200, main_len + 200):
-        print(
-            f" {Identify.confirmed} | CPDoSError {main_len}b > {len(req_verify.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}"
-        )
-
 
 def verify_cp_reflect(
     url: str,
@@ -187,40 +150,25 @@ def test_reflection(
 def uncommon_header_test(
     url: str,
     s: requests.Session,
-    main_status_code: int,
-    main_len: int,
-    main_head: dict,
+    initialResponse: requests.Response,
     uncommon_header: list[str],
+    fp_results: tuple[int, int] | None,
     authent: tuple[str, str] | None = None,
 ) -> None:
-    rel = range_exclusion(main_len)
     for uh in uncommon_header:
         for ep in errors_payload:
-            headers = {uh: ep}
+            probe_headers = {uh: ep}
 
             uri = f"{url}{random.randrange(9999)}"
-            req_uh = s.get(
-                uri, headers=headers, verify=False, allow_redirects=False, timeout=10
-            )
-            if req_uh.status_code not in [401, 403]:
-                if req_uh.status_code != main_status_code:
-                    print(
-                        f" {Identify.behavior} | CPDoSError {main_status_code} > {req_uh.status_code} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(headers)}{Colors.RESET}"
-                    )
-                    verify_cp(url, s, main_status_code, main_len, headers, authent)
-                elif len(req_uh.content) not in rel:
-                    print(
-                        f" {Identify.behavior} | CPDoSError {main_len}b > {len(req_uh.content)}b | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(headers)}{Colors.RESET}"
-                    )
-                    verify_cp(url, s, main_status_code, main_len, headers, authent)
+            send_global_requests(uri, s, authent, fp_results, "UH CPDoS", "0", probe_headers, initialResponse)
 
 
 def get_http_headers(
     url: str,
     s: requests.Session,
-    main_status_code: int,
-    main_len: int,
+    initialResponse: requests.Response,
     main_head: dict,
+    fp_results: tuple[int, int] | None,
     authent: tuple[str, str] | None = None,
 ) -> None:
     print(f"{Colors.CYAN} ├ Uncommon header analysis{Colors.RESET}")
@@ -241,7 +189,7 @@ def get_http_headers(
 
             test_reflection(url, s, uncommon_header, authent)
             uncommon_header_test(
-                url, s, main_status_code, main_len, main_head, uncommon_header, authent
+                url, s, initialResponse, uncommon_header, fp_results, authent
             )
 
     except requests.exceptions.RequestException as re:

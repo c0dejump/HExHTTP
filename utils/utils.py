@@ -18,11 +18,15 @@ from urllib.parse import (
 import requests
 import urllib3
 from bs4 import BeautifulSoup
+from bs4 import XMLParsedAsHTMLWarning
 
 from modules.logging_config import configure_logger  # noqa: F401
-
+from utils.style import spinner
 
 import requests.utils
+
+import warnings
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 def _noop_check_header_validity(header, value=None):
     return None
@@ -37,6 +41,7 @@ CONTENT_DELTA_RANGE = 500
 BIG_CONTENT_DELTA_RANGE = 5000
 
 
+## url tranformation ##
 def get_domain_from_url(url: str) -> str:
     domain = urlparse(url).netloc
     return domain
@@ -48,13 +53,8 @@ def get_ip_from_url(url: str) -> str:
     return ip
 
 
-"""def generate_cache_buster(length: int | None = 12) -> str:
-    if not isinstance(length, int) or length <= 0:
-        raise ValueError("[!] Lenght of cacheBuster be a positive integer")
-    return "".join(
-        random.choice(string.ascii_lowercase) for i in range(length)  # nosec B311
-    )"""
 
+## Timing requests ##
 
 def human_time(human: str) -> None:
     if human.isdigit():
@@ -64,6 +64,75 @@ def human_time(human: str) -> None:
     else:
         pass
 
+
+def verify_waf(url, s, initialResponse, payload=None):
+    url = f"{url}areuawaf" if "?" in url else f"{url}?cb=areuawaf"
+    req = s.get(url, verify=False, timeout=10)
+    #print(f"\n=== DEBUG verify_waf ===")
+    #print(f"URL: {url}")
+    #print(f"initialResponse.status_code: {initialResponse.status_code}")
+    #print(f"req.status_code: {req.status_code}")
+    #print(f"Session cookies: {s.cookies.get_dict()}")
+    #print(f"Session headers: {dict(s.headers)}")
+    #print(f"Request headers sent: {dict(req.request.headers)}")
+    #print(f"========================\n")
+    html = req.text
+    soup = BeautifulSoup(html, "html.parser")
+    title = soup.title.string if soup.title else False
+    amz_waf = req.headers.get("x-amzn-waf-action", "")
+
+    if title:
+        if title.lower() == "human verification":
+            print(f" └── [i] [human verification] WAF activated with {payload} payload, wait a moment (120s) or try with -hu option")
+            spinner(120)
+            verify_waf(url, s, initialResponse, payload=payload)
+
+    if amz_waf:
+        if amz_waf.lower() == "captcha":
+            print(f" └── [i] Amzn Rate limit WAF activated with {payload} payload, wait a moment (120s) or try with -hu option")
+            spinner(120)
+            verify_waf(url, s, initialResponse, payload=payload)
+
+    if "verify that you are a real person" in html:
+        print(f" └── [i] [verify that you are a real person] WAF activated with {payload} payload, wait a moment (120s) or try with -hu option")
+        spinner(120)
+        verify_waf(url, s, initialResponse, payload=payload)
+
+    if initialResponse.status_code not in [405, 403, 412, 429] and req.status_code in [405, 403, 412, 429]:
+        #print(s.headers)
+        print(f" └── [i] [{req.status_code}] Rate limit WAF activated with {payload} payload, wait a moment (120s) or try with -hu option")
+        spinner(120)
+        verify_waf(url, s, initialResponse, payload=payload)
+
+    else:
+        return False
+
+
+## Anti FP ##
+
+def range_exclusion(main_len):
+    range_exlusion = (
+        range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
+        if main_len < 10000
+        else range(
+            main_len - BIG_CONTENT_DELTA_RANGE,
+            main_len + BIG_CONTENT_DELTA_RANGE,
+        )
+    )
+    return range_exlusion
+
+
+def fp_baseline(url, s):
+    uri = f"{url}{random.randint(1, 99)}"
+    headers = {"X-Random-azertyuiop":"azertyuiop"}
+    req = s.get(uri, headers=headers, allow_redirects=False, timeout=10)
+
+    fp_base_status = req.status_code
+    fp_base_len = len(req.content)
+    return fp_base_status, fp_base_len
+    
+
+## requests settings ##
 
 def check_auth(auth: str, url: str) -> tuple[str, str] | None:
     try:
@@ -92,35 +161,12 @@ def check_auth(auth: str, url: str) -> tuple[str, str] | None:
         sys.exit()
 
 
-def range_exclusion(main_len):
-    range_exlusion = (
-        range(main_len - CONTENT_DELTA_RANGE, main_len + CONTENT_DELTA_RANGE)
-        if main_len < 10000
-        else range(
-            main_len - BIG_CONTENT_DELTA_RANGE,
-            main_len + BIG_CONTENT_DELTA_RANGE,
-        )
-    )
-    return range_exlusion
+def random_ua():
+    with open("./modules/lists/user-agent.lst", "r", encoding="utf-8") as f:
+        user_agents = [line.strip() for line in f if line.strip()]
 
-def verify_waf(initialResponse, req):
-    html = req.text
-    soup = BeautifulSoup(html, "html.parser")
-    title = soup.title.string if soup.title else False
-    amz_waf = req.headers.get("x-amzn-waf-action", "")
-    if title:
-        if title.lower() == "human verification":
-            return True
-    if amz_waf:
-        if amz_waf.lower() == "captcha":
-            return True
-    if "verify that you are a real person" in html:
-        return True
-    if initialResponse.status_code != 403 and req.status_code == 403:
-        print(" └── [i] Rate limit WAF activated, wait a moment (60s) or try with -hu option")
-        time.sleep(60)
-    else:
-        return False
+    random_user_agent = {"User-Agent": random.choice(user_agents)}
+    return(random_user_agent)
 
 
 def new_session(base_session=None):
@@ -139,10 +185,9 @@ def new_session(base_session=None):
 
     return s
 
-
-def random_ua():
-    with open("./modules/lists/user-agent.lst", "r", encoding="utf-8") as f:
-        user_agents = [line.strip() for line in f if line.strip()]
-
-    random_user_agent = {"User-Agent": random.choice(user_agents)}
-    return(random_user_agent)
+"""def generate_cache_buster(length: int | None = 12) -> str:
+    if not isinstance(length, int) or length <= 0:
+        raise ValueError("[!] Lenght of cacheBuster be a positive integer")
+    return "".join(
+        random.choice(string.ascii_lowercase) for i in range(length)  # nosec B311
+    )"""

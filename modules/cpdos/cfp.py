@@ -688,18 +688,15 @@ def detect_format(content, headers):
         return 'YAML'
     
     if content_stripped.startswith(b'---'):
-        # Vérifier que c'est vraiment du YAML
         lines = content_stripped.split(b'\n')[:5]
         yaml_patterns = [b':', b'- ']
         has_yaml = any(any(pattern in line for pattern in yaml_patterns) for line in lines[1:])
         if has_yaml:
             return 'YAML'
     
-    # RSS/Atom (type de XML mais distinct)
     if b'<rss' in content[:200].lower() or b'xmlns="http://www.w3.org/2005/atom"' in content[:500]:
         return 'RSS/ATOM'
     
-    # SOAP (type de XML mais distinct)
     if b'soap:envelope' in content[:500].lower() or b's:envelope' in content[:500].lower():
         return 'SOAP'
     
@@ -719,7 +716,7 @@ def format_poisoning(url, s, initial_response, authent, human):
     blocked = 0
 
     df_init = detect_format(initial_response.content, initial_response.headers)
-    if df != "JSON":
+    if df_init != "JSON":
         rel = range_exclusion(main_len)
         for cfp in cfp_payloads:
             uri = f"{url}{random.randrange(9999)}"
@@ -733,10 +730,13 @@ def format_poisoning(url, s, initial_response, authent, human):
                         print_results(Identify.confirmed , "CFP", f"HTML > {df}", cache_tag_verify(req), uri, cfp)
                 else:
                     pass
+                human_time(human)
             except UnicodeEncodeError as e:
                 print(f"invalid unicode: {e}")
                 logger.exception(e)
             except Exception as e:
                 print(e)
                 logger.exception(e)
+            print(f" {Colors.BLUE} CFP : {cfp}{Colors.RESET}\r", end="")
+            print("\033[K", end="")
     
