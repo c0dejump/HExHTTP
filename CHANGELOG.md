@@ -4,13 +4,14 @@ Changelog:
 - 2.5
 ---------
 	Updated:
-	- centralization of the main requests made for CP/CPDoS scans in "global_requests.py"
-	- News payloads,
+	- News payloads
 	- Fixed bugs
 	- Linting
+	- Technologies testing remake
+	- Correction of over half of false positives
 	News:
 	- False positive baseline in "utils.py"
-	
+	- Centralization of the main requests made for CP/CPDoS scans in "global_requests.py"
 ---------
 
 - 2.4

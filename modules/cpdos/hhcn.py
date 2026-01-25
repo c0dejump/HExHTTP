@@ -12,7 +12,7 @@ from modules.global_requests import send_global_requests
 
 logger = configure_logger(__name__)
 
-VULN_NAME = "Host Header Case Normalization"
+VULN_NAME = "HHCN"
 
 
 def random_domain_capitalization(url: str) -> str:

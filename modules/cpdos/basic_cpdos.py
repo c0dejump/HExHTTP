@@ -34,11 +34,7 @@ class SimpleResponse:
         self.content = content
 
 
-def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | None, timeout: int = 10) -> SimpleResponse:
-    """
-    Envoie une requête HTTP/HTTPS en raw (niveau socket) sans passer par requests.
-    Utile pour les payloads avec des caractères spéciaux ou des headers invalides.
-    """
+def raw_get(url: str, s: requests.Session, headers: dict[str, str] | None, auth: tuple[str, str] | None, timeout: int = 10) -> SimpleResponse:
     headers = headers or {}
 
     if getattr(proxy, "proxy_enabled", False):
@@ -50,7 +46,7 @@ def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | No
     if not host_port:
         raise ValueError(f"invalid URL: {url}")
 
-    # host et port
+    # host & port
     if ":" in host_port:
         host, port_str = host_port.rsplit(":", 1)
         try:
@@ -155,7 +151,6 @@ def cpdos_main(
     for pk in payloads_keys:
         uri = f"{url}{random.randrange(9999)}"
         try:
-            # Essayer d'abord avec requests.Session
             send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse)
 
             if len(list(pk.values())[0]) < 50 and len(list(pk.keys())[0]) < 50:
@@ -167,14 +162,15 @@ def cpdos_main(
             sys.exit()
             
         except requests.Timeout as t:
-            logger.exception(t)
+            pass
+            #logger.exception(t)
             
         except requests.exceptions.InvalidHeader as e:
-            # Fallback sur raw_get avec send_raw_requests pour le même format
             try:
-                send_raw_requests(uri, authent, fp_results, "CPDoS", human, pk, initialResponse)
+                send_raw_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse)
             except Exception as ee:
-                logger.exception(ee)
+                pass
+                #logger.exception(ee)
                 
         except UnicodeEncodeError as e:
             logger.exception(e)

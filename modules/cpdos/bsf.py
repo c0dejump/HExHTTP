@@ -10,7 +10,7 @@ toto.com/static/toto.js => toto.com/static\toto.js
 https://hackerone.com/reports/1695604
 """
 
-VULN_NAME = "BACKSLASH "
+VULN_NAME = "BACKSLASH"
 
 
 def parse_path(url_b: str) -> str | None:

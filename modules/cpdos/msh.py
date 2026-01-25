@@ -11,7 +11,7 @@ from utils.style import Colors, Identify
 from utils.utils import configure_logger, human_time, random, requests, urlparse
 from utils.print_utils import print_results, cache_tag_verify
 
-VULN_NAME = "Multiple Headers"
+VULN_NAME = "MSH"
 EXCLUDE_RESPONSE = [200, 301, 302, 403, 404, 307, 308, 303, 429]
 
 logger = configure_logger(__name__)

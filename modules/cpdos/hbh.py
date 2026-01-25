@@ -17,7 +17,7 @@ from modules.global_requests import send_global_requests
 
 logger = configure_logger(__name__)
 
-VULN_NAME = "Hop-By-Hop"
+VULN_NAME = "HBH"
 
 
 def HBH(

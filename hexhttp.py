@@ -121,7 +121,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
         main_head = req_main.headers
         main_len = len(req_main.content)
 
-        print(f"{Colors.BLUE}⟙{Colors.RESET}")
+        print(f"{Colors.BLUE} ⟙{Colors.RESET}")
         # print(s.headers)
         start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"{Colors.SALMON}[STARTED]{Colors.RESET} {start_time}")
@@ -134,8 +134,8 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
         if proxy.burp_enabled:
             proxy_status += f" | Burp: {Colors.GREEN}ON{Colors.RESET} ({proxy.burp_url})"
         print(proxy_status)
-        print(f"{Colors.BLUE}⟘{Colors.RESET}")
-        print(f"{Colors.BLUE}⟙{Colors.RESET}")
+        print(f"{Colors.BLUE} ⟘{Colors.RESET}")
+        print(f"{Colors.BLUE} ⟙{Colors.RESET}")
 
         if main_status_code not in [200, 302, 301, 403, 401] and not url_file:
             choice = input(

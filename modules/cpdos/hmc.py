@@ -11,7 +11,7 @@ from modules.global_requests import send_global_requests
 
 logger = configure_logger(__name__)
 
-VULN_NAME = "HTTP Meta Character"
+VULN_NAME = "HMC"
 
 
 

@@ -15,7 +15,7 @@ logger = configure_logger(__name__)
 combinations = {}
 exclude_combinations = set()
 
-def confirm_vuln(url, s, authent, fp_results, human, probe, payload_header, initialResponse, initialResponseLen, rangeLenExclusion):
+def confirm_vuln(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion):
     uri = f"{url}{random.randrange(9999)}"
     for _ in range(3):
         probe = s.get(
@@ -32,45 +32,50 @@ def confirm_vuln(url, s, authent, fp_results, human, probe, payload_header, init
         control = s.get(uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
         if (
             control.status_code == probe.status_code
-            and control.status_code not in [initialResponse, 429, 401, 403]
+            and control.status_code not in [initialStatusCode, 429]
         ):
-            return ("confirmed", f"DIFFERENT STATUS-CODE {initialResponse} > {control.status_code}")
+            return ("confirmed", f"DIFFERENT STATUS-CODE {initialStatusCode} > {control.status_code}")
 
         elif (
             len(control.content) == len(probe.content)
             and len(control.content) not in rangeLenExclusion
             and control.status_code != 429
         ):
-            return ("confirmed", f"DIFFERENT RESPONSE LENGTH {initialResponse}b > {len(control.content)}b")
+            return ("confirmed", f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(control.content)}b")
     
     return (None, None)
 
 
-def confirm_vuln_raw(url, authent, fp_results, human, probe, payload_header, initialResponse, initialResponseLen, rangeLenExclusion):
+def confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion):
     """Version raw de confirm_vuln pour les requêtes qui passent par raw_get"""
     from modules.cpdos.basic_cpdos import raw_get
     
     uri = f"{url}{random.randrange(9999)}"
+
     for _ in range(3):
+        merged_headers = dict(s.headers)
+        merged_headers.update(payload_header)
         probe = raw_get(uri, headers=payload_header, auth=authent, timeout=10)
         human_time(human)
-        
-        control = raw_get(uri, headers={}, auth=authent, timeout=10)
-        
-        if (
-            control.status_code == probe.status_code
-            and control.status_code not in [initialResponse, 429, 401, 403]
-        ):
-            return ("confirmed", f"DIFFERENT STATUS-CODE {initialResponse} > {control.status_code}")
-
-        elif (
-            len(control.content) == len(probe.content)
-            and len(control.content) not in rangeLenExclusion
-            and control.status_code != 429
-        ):
-            return ("confirmed", f"DIFFERENT RESPONSE LENGTH {initialResponse}b > {len(control.content)}b")
     
-    return (None, None)
+    control_headers = dict(s.headers)
+    control = raw_get(uri, headers=control_headers, auth=authent, timeout=10)        
+        
+    if (
+        control.status_code == probe.status_code
+        and control.status_code not in [initialStatusCode, 429]
+    ):
+        print(control.headers)
+        print(control.status_code)
+        return ("confirmed", f"DIFFERENT STATUS-CODE {initialStatusCode} > {control.status_code}")
+    elif (
+        len(control.content) == len(probe.content)
+        and len(control.content) not in rangeLenExclusion
+        and control.status_code != 429
+    ):
+        return ("confirmed", f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(control.content)}b")
+    else:
+        return (None, None)
 
 
 def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_header, initialResponse):
@@ -130,7 +135,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
                 severity = confirmed_severity
         
         elif len(probe.content) != initialResponseLen and len(probe.content) != fp_results[1]:
-            reason = f"DIFFERENT RESPONSE LENGTH {initialResponseLen}b > {len(probe.content)}b"
+            reason = f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(probe.content)}b"
             status = f"{Identify.behavior}"
             severity = "behavior"
             
@@ -150,7 +155,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
             potential_reason = f"DIFFERENT STATUS-CODE {initialStatusCode} > {probe.status_code}"
         
         elif len(probe.content) != initialResponseLen and len(probe.content) != fp_results[1]:
-            potential_reason = f"DIFFERENT RESPONSE LENGTH {initialResponseLen}b > {len(probe.content)}b"
+            potential_reason = f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(probe.content)}b"
         
         if potential_reason:
             confirmed_severity, confirmed_reason = confirm_vuln(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
@@ -164,7 +169,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
         #print(f"Combinations: {combinations}")
         #print(f"Excluded: {exclude_combinations}")
         print(
-            f" {status} | {VULN_NAME} {reason} | CACHETAG {cache_tag_verify(probe)} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload_header)}{Colors.RESET}"
+            f" {status} | {VULN_NAME} | {reason} | CACHETAG {cache_tag_verify(probe)} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload_header)}{Colors.RESET}"
         )
     
     if reason and proxy.proxy_enabled:
@@ -179,7 +184,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
         )
 
 
-def send_raw_requests(url, authent, fp_results, VULN_NAME, human, payload_header, initialResponse):
+def send_raw_requests(url, s, authent, fp_results, VULN_NAME, human, payload_header, initialResponse):
     from modules.cpdos.basic_cpdos import raw_get
     
     initialStatusCode = initialResponse.status_code
@@ -194,7 +199,10 @@ def send_raw_requests(url, authent, fp_results, VULN_NAME, human, payload_header
     uri = f"{url}{random.randrange(9999)}"
     rangeLenExclusion = range_exclusion(initialResponseLen)
 
-    probe = raw_get(uri, headers=payload_header, auth=authent, timeout=10)
+    merged_headers = dict(s.headers)
+    merged_headers.update(payload_header)
+
+    probe = raw_get(uri, headers=merged_headers, auth=authent, timeout=10)
 
     human_time(human)
 
@@ -221,7 +229,7 @@ def send_raw_requests(url, authent, fp_results, VULN_NAME, human, payload_header
             status = f"{Identify.behavior}"
             severity = "behavior"
             
-            confirmed_severity, confirmed_reason = confirm_vuln_raw(url, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
+            confirmed_severity, confirmed_reason = confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
             
             if confirmed_severity:
                 reason = confirmed_reason
@@ -229,11 +237,11 @@ def send_raw_requests(url, authent, fp_results, VULN_NAME, human, payload_header
                 severity = confirmed_severity
         
         elif len(probe.content) != initialResponseLen and len(probe.content) != fp_results[1]:
-            reason = f"DIFFERENT RESPONSE LENGTH {initialResponseLen}b > {len(probe.content)}b"
+            reason = f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(probe.content)}b"
             status = f"{Identify.behavior}"
             severity = "behavior"
             
-            confirmed_severity, confirmed_reason = confirm_vuln_raw(url, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
+            confirmed_severity, confirmed_reason = confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
             
             if confirmed_severity:
                 reason = confirmed_reason
@@ -249,7 +257,7 @@ def send_raw_requests(url, authent, fp_results, VULN_NAME, human, payload_header
             potential_reason = f"DIFFERENT STATUS-CODE {initialStatusCode} > {probe.status_code}"
         
         elif len(probe.content) != initialResponseLen and len(probe.content) != fp_results[1]:
-            potential_reason = f"DIFFERENT RESPONSE LENGTH {initialResponseLen}b > {len(probe.content)}b"
+            potential_reason = f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(probe.content)}b"
         
         if potential_reason:
             confirmed_severity, confirmed_reason = confirm_vuln_raw(url, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
@@ -263,13 +271,13 @@ def send_raw_requests(url, authent, fp_results, VULN_NAME, human, payload_header
         #print(f"Combinations: {combinations}")
         #print(f"Excluded: {exclude_combinations}")
         print(
-            f" {status} | {VULN_NAME} [RAW] {reason} | CACHETAG {cache_tag_verify(probe)} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload_header)}{Colors.RESET}"
+            f" {status} | {VULN_NAME} [RAW] | {reason} | CACHETAG {cache_tag_verify(probe)} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload_header)}{Colors.RESET}"
         )
     
     if reason and proxy.proxy_enabled:
         from utils.proxy import proxy_request
         proxy_request(
-            None,  # Pas de session pour raw
+            None,  # No session for raw
             "GET",
             uri,
             headers=payload_header,

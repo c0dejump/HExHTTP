@@ -68,6 +68,11 @@ def akamai(url: str, s: requests.Session) -> None:
         "akamai-x-ew-debug": "X-Akamai-EdgeWorker",
         "akamai-x-ew-onclientrequest": "X-Akamai-EdgeWorker",
         "akamai-x-ew-debug-subs": "X-Akamai-EdgeWorker",
+        "akamai-x-ew-debug-rp": "X-Akamai-EdgeWorker-RP",
+        "akamai-x-ew-onoriginrequest": "X-Akamai-EW-OnOriginRequest",
+        "akamai-x-ew-onoriginresponse": "X-Akamai-EW-OnOriginResponse",
+        "akamai-x-ew-onclientresponse": "X-Akamai-EW-OnClientResponse",
+        "akamai-x-feo-trace": "X-Akamai-FEO-Trace",
     }
 
     for pgl in pragma_list:
@@ -98,6 +103,7 @@ def akamai(url: str, s: requests.Session) -> None:
     req_smuggling(url, s)
     xss_akamai(url, s)
     cp_s3_akamai_raw(url)
+    edgekv_test(url, s)
 
 
 """
@@ -226,6 +232,21 @@ def cp_s3_akamai_raw(url: str) -> None:
                 logger.exception(
                     f"   [-] {fake_host} ({repr(ctrl)})  ->  Network error : {e}"
                 )
+
+
+def edgekv_test(url: str, s: requests.Session) -> None:
+    """Test EdgeKV debug headers"""
+    headers = {
+        "akamai-x-get-edgekv-trace": "1",
+        "akamai-x-edgekv-debug": "1"
+    }
+    try:
+        req = s.get(url, headers=headers, verify=False, timeout=10)
+        for h in req.headers:
+            if "edgekv" in h.lower():
+                print(f"{Colors.GREEN}   └── EdgeKV header found: {h}: {req.headers[h]}{Colors.RESET}")
+    except Exception as e:
+        logger.exception(e)
 
 
 if __name__ == "__main__":

@@ -12,8 +12,6 @@ from modules.global_requests import send_global_requests
 
 logger = configure_logger(__name__)
 
-VULN_NAME = "HTTP Method Override"
-
 
 def HMO(
     url: str,
@@ -23,6 +21,7 @@ def HMO(
     fp_results: tuple[int, int] | None,
     human: str,
 ) -> None:
+    VULN_NAME = "HMO"
     """Function to test for HTTP Method Override vulnerabilities"""
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
