@@ -36,6 +36,7 @@ requests.utils.check_header_validity = _noop_check_header_validity
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = configure_logger(__name__)
+from modules.lists import user_agents_list
 
 CONTENT_DELTA_RANGE = 500
 BIG_CONTENT_DELTA_RANGE = 5000
@@ -68,8 +69,8 @@ def human_time(human: str) -> None:
 def verify_waf(url, s, initialResponse, payload=None, wait_count=0):
     random_param = random.randint(0, 99)
 
-    test_url = f"{url}areuawaf{random_param}" if "?" in url else f"{url}?cb=areuawaf{random_param}"
-    req = requests.get(test_url, headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0'}, verify=False, timeout=10)
+    test_url = f"{url}areuawaaff{random_param}" if "?" in url else f"{url}?cb=areuawaaff{random_param}"
+    req = requests.get(test_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0'}, verify=False, timeout=10)
 
     #print(f"\n=== DEBUG verify_waf ===")
     #print(f"URL: {test_url}")
@@ -108,7 +109,7 @@ def verify_waf(url, s, initialResponse, payload=None, wait_count=0):
         if wait_count == 0:
             print(f" └── [i] [{waf_message}] WAF activated with {payload} payload, wait a moment or try with -hu option")
         spinner(waiting_time, f"        Waiting {waiting_time}s...", wait_count)
-        return verify_waf(url, s, initialResponse, payload=payload, wait_count=wait_count+1)
+        verify_waf(url, s, initialResponse, payload=payload, wait_count=wait_count+1)
     else:
         return False
 
@@ -139,6 +140,16 @@ def fp_baseline(url, s):
 
 ## requests settings ##
 
+def parse_headers(header_list: list[str] | None) -> dict[str, str]:
+    headers = {}
+    if header_list:
+        for header in header_list:
+            if ":" in header:
+                key, value = header.split(":", 1)
+                headers[key.strip()] = value.strip()
+    return headers
+    
+
 def check_auth(auth: str, url: str) -> tuple[str, str] | None:
     try:
         authent = (auth.split(":")[0], auth.split(":")[1])
@@ -167,10 +178,7 @@ def check_auth(auth: str, url: str) -> tuple[str, str] | None:
 
 
 def random_ua():
-    with open("./modules/lists/user-agent.lst", "r", encoding="utf-8") as f:
-        user_agents = [line.strip() for line in f if line.strip()]
-
-    random_user_agent = {"User-Agent": random.choice(user_agents)}
+    random_user_agent = {"User-Agent": random.choice(user_agents_list)}
     return(random_user_agent)
 
 
@@ -189,10 +197,3 @@ def new_session(base_session=None):
             s.mount(prefix, adapter)
 
     return s
-
-"""def generate_cache_buster(length: int | None = 12) -> str:
-    if not isinstance(length, int) or length <= 0:
-        raise ValueError("[!] Lenght of cacheBuster be a positive integer")
-    return "".join(
-        random.choice(string.ascii_lowercase) for i in range(length)  # nosec B311
-    )"""

@@ -5,6 +5,7 @@ This module provides functionality to load payloads from files into lists.
 """
 
 
+import os
 from modules.lists.all_payload_keys import all_payload_keys
 from modules.lists.payloads_errors import payloads_keys
 
@@ -20,6 +21,7 @@ header_list = []
 user_agents_list = []
 paraminer_list = []
 
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def load_payloads_from(file_path: str) -> list[str]:
     """
@@ -37,5 +39,5 @@ def load_payloads_from(file_path: str) -> list[str]:
     return results
 
 
-user_agents_list = load_payloads_from("./modules/lists/user-agent.lst")
-wcp_headers = load_payloads_from("./modules/lists/wcp_headers.lst")
+user_agents_list = load_payloads_from(os.path.join(_CURRENT_DIR, "user-agent.lst"))
+wcp_headers = load_payloads_from(os.path.join(_CURRENT_DIR, "wcp_headers.lst"))

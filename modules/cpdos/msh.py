@@ -62,7 +62,7 @@ def verify_cache_poisoning(
             cachetag = cache_tag_verify(req)
             print_results(Identify.confirmed, VULN_NAME, reason, cachetag, uri, payload)
     except Exception as e:
-        logger.exception(e)
+        logger.exception(f"{VULN_NAME}: {str(e)}")
 
 
 def duplicate_headers(
@@ -100,7 +100,7 @@ def duplicate_headers(
         raise
     except Exception as e:
         logger.exception(e)
-        return tuple()
+        return None, cb
     finally:
         try:
             conn.close()
@@ -137,10 +137,10 @@ def referer_duplicate_headers(
                     return response, cb
 
     except Exception:
-        return tuple()
+        return None, cb
     finally:
         conn.close()
-        return tuple()
+        return None, cb
 
 
 def host_duplicate_headers(
@@ -174,10 +174,10 @@ def host_duplicate_headers(
 
     except Exception:
         conn.close()
-        return tuple()
+        return None, cb
     finally:
         conn.close()
-        return tuple()
+        return None, cb
 
 
 def xforwardedhost_duplicate_headers(
@@ -211,10 +211,10 @@ def xforwardedhost_duplicate_headers(
 
     except Exception:
         conn.close()
-        return tuple()
+        return None, cb
     finally:
         conn.close()
-        return tuple()
+        return None, cb
 
 
 def MSH(
@@ -243,7 +243,7 @@ def MSH(
             print("\033[K", end="")
             if (
                 vuln_type_res
-                and vuln_type_res is not None
+                and vuln_type_res[0] is not None
                 and isinstance(vuln_type_res, tuple)
             ):
                 reason = f"{main_status_code} > {vuln_type_res[0].status}"
@@ -264,14 +264,12 @@ def MSH(
         m_heads = wcp_headers
         for mh in m_heads:
             DH = duplicate_headers(conn, url, mh, main_status_code, authent)
-            if DH and DH is not None and isinstance(DH, tuple):
-                behavior = f"DIFFERENT STATUS-CODE  {main_status_code} > {DH[0].status}"
-
+            if DH and DH[0] is not None and isinstance(DH, tuple):
+                reason = f"DIFFERENT STATUS-CODE  {main_status_code} > {DH[0].status}"
+                cachetag = cache_tag_verify(req_main)
                 payload = f"[{mh}: xxxx, {mh}: xxxx]"
 
-                print(
-                    f" {Identify.behavior} | {VULN_NAME} | {Colors.BLUE}{url}?cb={DH[1]}{Colors.RESET} | {behavior} | PAYLOAD: {Colors.THISTLE}{payload}{Colors.RESET}"
-                )
+                print_results(Identify.behavior, VULN_NAME, reason, cachetag, f"{url}?cb={vuln_type_res[1]}", payload)
                 conn.close()
                 verify_cache_poisoning(
                     mh, conn, url, payload, main_status_code, authent, host
@@ -281,6 +279,7 @@ def MSH(
             print("\033[K", end="")
 
     except requests.Timeout as t:
-        logger.error(t)
+        #logger.error(t)
+        pass
     except Exception as e:
-        logger.exception(e)
+        logger.exception(f"{VULN_NAME}: {str(e)}")

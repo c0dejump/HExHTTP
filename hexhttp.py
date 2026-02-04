@@ -17,17 +17,18 @@ from modules.CVE import check_cpcve
 from modules.header_checks.cachetag_header import check_cachetag_header
 
 # header checks
-from modules.header_checks.check_localhost import check_localhost
-from modules.header_checks.http_version import check_http_version
-from modules.header_checks.methods import check_methods
-from modules.header_checks.server_error import get_server_error
-from modules.header_checks.uncommon_header import get_http_headers
-from modules.header_checks.vhosts import check_vhost
-from modules.header_checks.debug_header import check_http_debug
+from modules.header_checks.scan_localhost import check_localhost
+from modules.header_checks.scan_http_version import check_http_version
+from modules.header_checks.scan_methods import check_methods
+from modules.header_checks.scan_server_error import check_server_error
+from modules.header_checks.scan_uncommon_header import check_uncommon_header
+from modules.header_checks.scan_vhosts import check_vhost
+from modules.header_checks.scan_debug_header import check_http_debug
 
 # others
 from modules.logging_config import configure_logging
-from modules.Technology import Technology
+from modules.Technology import get_technos, Technology
+
 from utils.style import Colors
 from utils.utils import (
     check_auth,
@@ -37,7 +38,8 @@ from utils.utils import (
     sys,
     time,
     verify_waf,
-    fp_baseline
+    fp_baseline,
+    parse_headers
 )
 
 logger = configure_logger(__name__)
@@ -51,70 +53,15 @@ url_file: str | None = None
 custom_header: list[str] | None = None
 only_cp: bool | None = None
 threads: int | None = None
-authent: tuple[str, str] | None = None
 
 
-def get_technos(
-    url: str, s: requests.Session, req_main: requests.Response, a_tech: Technology
-) -> None:
-    """
-    Check what is the reverse proxy/WAF/cached server... and test based on the result.
-    #TODO Cloudfoundry => https://hackerone.com/reports/728664
-    """
-    print(f"{Colors.CYAN} ├ Techno analysis{Colors.RESET}")
-    technos = {
-        "apache": ["apache", "tomcat"],
-        "nginx": ["nginx"],
-        "envoy": ["envoy"],
-        "akamai": [
-            "akamai",
-            "x-akamai",
-            "x-akamai-transformed",
-            "akamaighost",
-            "akamaiedge",
-            "edgesuite",
-        ],
-        "imperva": ["imperva"],
-        "fastly": ["fastly"],
-        "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"],
-        "cloudfront": ["x-amz-cf", "cloudfront", "x-amz-request-id"],
-        "vercel": ["vercel"],
-        # "cloudfoundry": ["cf-app"]
-    }
-
-    technologies_detected = False
-    for t in technos:
-        tech_hit: str | bool = False
-        for v in technos[t]:
-            for rt in req_main.headers:
-                # case-insensitive comparison
-                if (
-                    v.lower() in req_main.text.lower()
-                    or v.lower() in req_main.headers[rt].lower()
-                    or v.lower() in rt.lower()
-                ):
-                    tech_hit = t
-                    break  # Exit inner loops once we find a match
-            if tech_hit:
-                break
-        if tech_hit and isinstance(tech_hit, str):
-            getattr(a_tech, tech_hit)(url, s)
-            technologies_detected = True
-            tech_hit = False
-
-    if not technologies_detected:
-        print(
-            f"{Colors.YELLOW} │ └── No specific technologies detected{Colors.RESET}"
-        )
-
-
-def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
+def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tuple[str, str] | None = None) -> None:
     domain = get_domain_from_url(url)
     resp_main_headers = []
 
     try:
         req_main = s.get(
-            url, verify=False, allow_redirects=False, timeout=10, auth=authent
+            url, verify=False, allow_redirects=False, timeout=10, auth=auth
         )
 
         main_status_code = req_main.status_code
@@ -122,7 +69,6 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
         main_len = len(req_main.content)
 
         print(f"{Colors.BLUE} ⟙{Colors.RESET}")
-        # print(s.headers)
         start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"{Colors.SALMON}[STARTED]{Colors.RESET} {start_time}")
         print(f" URL: {url}")
@@ -142,37 +88,37 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
                 f" {Colors.YELLOW}The url does not seem to answer correctly, continue anyway ?{Colors.RESET} [y/n]"
             )
             if choice not in ["y", "Y"]:
-                sys.exit()
+                return
+
         for k in req_main.headers:
             resp_main_headers.append(f"{k}: {req_main.headers[k]}")
 
         req_main = s.get(
-            url, verify=False, allow_redirects=False, timeout=10, auth=authent
+            url, verify=False, allow_redirects=False, timeout=10, auth=auth
         )
 
         fp_results = fp_baseline(f"{url}?cb=123byc0dejump", s)
+        if main_status_code != 403:
+            if not only_cp:
+                check_cachetag_header(resp_main_headers)
+                check_server_error(url, auth)
+                check_vhost(url)
+                check_localhost(url, s, domain, auth)
+                check_methods(url, custom_header, auth, human or "")
+                check_http_version(url)
+                get_technos(url, s, req_main, a_tech)
+                verify_waf(url, s, req_main)
+                check_http_debug(url, s, main_status_code, main_len, main_head, auth, human or "")
+                verify_waf(url, s, req_main)
 
-        if not only_cp:
-            check_cachetag_header(resp_main_headers)
-            get_server_error(url, authent)
-            check_vhost(url)
-            check_localhost(url, s, domain, authent)
-            check_methods(url, custom_header, authent, human or "")
-            check_http_version(url)
-            get_technos(url, s, req_main, a_tech)
+            check_uncommon_header(url, s, req_main, dict(main_head), fp_results, auth)
+            check_cpcve(url, s, req_main, parse_headers(custom_header), auth, fp_results, human or "")
+            check_CPDoS(url, s, req_main, parse_headers(custom_header), auth, human or "")
+            check_methods_poisoning(url, s, parse_headers(custom_header), auth)
             verify_waf(url, s, req_main)
-            check_http_debug(url, s, main_status_code, main_len, main_head, authent, human or "")
-            verify_waf(url, s, req_main)
-
-        get_http_headers(url, s, req_main, dict(main_head), fp_results, authent)
-        check_cpcve(url, s, req_main, parse_headers(custom_header), authent, fp_results, human or "")
-        check_CPDoS(url, s, req_main, parse_headers(custom_header), authent, human or "")
-        check_methods_poisoning(url, s, parse_headers(custom_header), authent)
-        verify_waf(url, s, req_main)
-        check_cache_poisoning(url, s, parse_headers(custom_header), authent, human or "")
-        check_cache_files(url, s, parse_headers(custom_header), authent)
-        # fuzz_x_header(url) #TODO
-    # requests errors
+            check_cache_poisoning(url, s, parse_headers(custom_header), auth, human or "")
+            check_cache_files(url, s, parse_headers(custom_header), auth)
+        
     except requests.ConnectionError as e:
         if "Connection refused" in str(e):
             print(f"Error, connection refused by target host: {e}")
@@ -184,72 +130,51 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology) -> None:
         print("Error, missing http:// or https:// schema")
     except Exception as e:
         print(f"Error : {e}")
-        logger.exception(e)
+        logger.exception(f"hexhttp.py: {e}")
 
 
-def parse_headers(header_list: list[str] | None) -> dict[str, str]:
-    headers = {}
-    if header_list:
-        for header in header_list:
-            if ":" in header:
-                key, value = header.split(":", 1)
-                headers[key.strip()] = value.strip()
-    return headers
 
-
-def main(urli: str, s: requests.Session, auth: str | None) -> None:
-    global authent
-
+def worker_main(s: requests.Session, auth: str | None) -> None:
+    """Worker function for thread pool."""
     a_tech = Technology()
-
-    if auth:
-        authent = check_auth(auth, urli)
-    else:
-        authent = None
-    if url_file and threads != 1337:
+    
+    while True:
         try:
-            while True:
-                try:
-                    if isinstance(urli, Queue):
-                        url = urli.get_nowait()
-                    else:
-                        url = urli
-                        # For single URL, break after processing
-                        process_modules(url, s, a_tech)
-                        break
-                except Empty:
-                    break
-                try:
-                    process_modules(url, s, a_tech)
-                except Exception:
-                    logger.exception(f"Error processing URL {url}")
-                finally:
-                    if isinstance(urli, Queue):
-                        urli.task_done()
-        except KeyboardInterrupt:
-            print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-            sys.exit()
-        except Exception as e:
-            print(f"Worker thread error: {e}")
-            logger.exception(e)
-    else:
+            url = enclosure_queue.get_nowait()
+        except Empty:
+            break
+        
         try:
-            process_modules(urli, s, a_tech)
-        except KeyboardInterrupt:
-            print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-            sys.exit()
+            # Create a new session for each URL to avoid sharing issues
+            worker_session = requests.Session()
+            worker_session.verify = False
+            worker_session.max_redirects = 60
+            
+            # Copy headers from main session
+            worker_session.headers.update(dict(s.headers))
+            
+            # Copy proxies
+            if hasattr(s, 'proxies') and s.proxies:
+                worker_session.proxies = s.proxies.copy()
+            
+            # Handle auth
+            auth_tuple = check_auth(auth, url) if auth else None
+            
+            process_modules(url, worker_session, a_tech, auth_tuple)
+            
         except Exception as e:
-            print(f"Error : {e}")
-            logger.exception(e)
+            logger.exception(f"Error processing URL {url}: {e}")
+        finally:
+            enclosure_queue.task_done()
+            if 'worker_session' in locals():
+                worker_session.close()
 
 
 def cli_main() -> None:
     """Entry point for the CLI command."""
-    # Parse arguments
     results = args()
 
-    # Make variables global so they can be accessed by process_modules
-    global human, url_file, custom_header, only_cp, threads, authent
+    global human, url_file, custom_header, only_cp, threads
 
     url = results.url
     url_file = results.url_file
@@ -298,20 +223,17 @@ def cli_main() -> None:
 
         # Handle proxy configuration
         if proxy_arg is not None or burp_arg is not None:
-            # Configure main proxy
-            if proxy_arg is not None:  # Handle both empty string (default) and provided value
+            if proxy_arg is not None:
                 proxy.proxy_url = proxy.parse_proxy_url(proxy_arg)
                 test_proxy = proxy.test_proxy_connection(proxy.proxy_url)
                 if test_proxy:
                     proxy.proxy_enabled = True
                     print(f" Proxy configured: {proxy.proxy_url}")
                 else:
-                    # For regular proxy, just warn but continue (some proxies might not allow httpbin.org)
                     print(f" {Colors.YELLOW}Proxy connection test failed, but continuing: {proxy.proxy_url}{Colors.RESET}")
                     proxy.proxy_enabled = True
             
-            # Configure Burp proxy
-            if burp_arg is not None:  # Handle both empty string (default) and provided value
+            if burp_arg is not None:
                 proxy.burp_url = proxy.parse_proxy_url(burp_arg)
                 test_burp = proxy.test_proxy_connection(proxy.burp_url)
                 if test_burp:
@@ -321,7 +243,6 @@ def cli_main() -> None:
                     print(f" {Colors.RED}Burp proxy connection failed: {proxy.burp_url}{Colors.RESET}")
                     sys.exit(1)
             
-            # If only burp is specified, also enable general proxying through burp
             if burp_arg is not None and proxy_arg is None:
                 proxy.proxy_enabled = True
                 proxy.proxy_url = proxy.burp_url
@@ -331,12 +252,14 @@ def cli_main() -> None:
         if url_file and threads != 1337:
             with open(url_file) as url_file_handle:
                 urls = url_file_handle.read().splitlines()
+            
             try:
                 for url in urls:
                     enclosure_queue.put(url)
+                
                 worker_threads = []
                 for _ in range(threads or 1):
-                    worker = Thread(target=main, args=(enclosure_queue, s, auth))
+                    worker = Thread(target=worker_main, args=(s, auth))
                     worker.daemon = True
                     worker.start()
                     worker_threads.append(worker)
@@ -353,17 +276,19 @@ def cli_main() -> None:
                 print("Input file not found")
                 sys.exit()
             except Exception as e:
-                #print(f"Error : {e}")
                 logger.exception(e)
             print("Scan finish")
+            
         elif url_file and threads == 1337:
             with open(url_file) as url_file_handle:
                 urls = url_file_handle.read().splitlines()
                 for url in urls:
-                    main(url, s, auth)
+                    auth_tuple = check_auth(auth, url) if auth else None
+                    process_modules(url, s, Technology(), auth_tuple)
         else:
-            main(url, s, auth)
-        # basic errors
+            auth_tuple = check_auth(auth, url) if auth else None
+            process_modules(url, s, Technology(), auth_tuple)
+
     except KeyboardInterrupt:
         print("Exiting")
         sys.exit()

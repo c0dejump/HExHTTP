@@ -104,10 +104,11 @@ def check_cache_files(
         try:
             check_reflection(url, s, authent, matching_forward)
         except requests.Timeout:
-            print(f" └── Timeout Error with {endpoints}")
+            pass
+            #print(f" └── Timeout Error with {endpoints}")
         except KeyboardInterrupt:
             print(" ! Canceled by keyboard interrupt (Ctrl-C)")
             sys.exit()
         except Exception as e:
             #print(e)
-            logger.exception(e)
+            logger.exception(f"CP NF Files: {str(e)}")

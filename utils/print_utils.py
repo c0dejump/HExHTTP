@@ -47,14 +47,17 @@ def _escape_bytewise(s: str) -> str:
 
 
 def format_payload(payload: dict) -> str:
-    parts = []
-    for k, v in payload.items():
-        ks_escaped = _escape_bytewise(str(k))
-        vs_escaped = _escape_bytewise(str(v))
-        if len(vs_escaped) > 60:
-            vs_escaped = f"{vs_escaped[:60]}...({len(vs_escaped)} total chars)"
-        parts.append(f"{ks_escaped}: {vs_escaped}")
-    return "" + ", ".join(parts) + ""
+    if not isinstance(payload, str):
+        parts = []
+        for k, v in payload.items():
+            ks_escaped = _escape_bytewise(str(k))
+            vs_escaped = _escape_bytewise(str(v))
+            if len(vs_escaped) > 60:
+                vs_escaped = f"{vs_escaped[:60]}...({len(vs_escaped)} total chars)"
+            parts.append(f"{ks_escaped}: {vs_escaped}")
+        return "" + ", ".join(parts) + ""
+    else:
+        return payload
 
 
 def print_results(identify, vulnerability_type, reason, cachetag, url, payload):

@@ -31,7 +31,7 @@ def HBH(
     """Function to test for Hop by Hop vulnerabilities"""
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
-
+    
     for header in wcp_headers:
         try:
             uri = f"{url}{random.randrange(9999)}"

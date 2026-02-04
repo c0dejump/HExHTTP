@@ -102,7 +102,8 @@ def check_localhost(
             print(f" ├─ {Colors.BLUE}{lt}:{req.status_code}{Colors.RESET}\r", end="")
             print("\033[K", end="")
         except Exception:
-            logger.exception(f"Request error with Host header: {lt}")
+            pass
+            #logger.exception(f"Request error with Host header: {lt}")
 
     # Display deduplicated results
     displayed_groups: set[tuple] = set()

@@ -7,13 +7,13 @@ https://cpdos.org/
 
 import utils.proxy as proxy
 from modules.lists import payloads_keys
+from modules.global_requests import send_global_requests
 from utils.style import Colors
 from utils.utils import (
     configure_logger,
     random,
     requests,
     sys,
-    random_ua,
 )
 from utils.print_utils import print_results, cache_tag_verify
 
@@ -22,7 +22,9 @@ import socket
 import ssl
 from urllib.parse import urlsplit
 import base64
-from modules.global_requests import send_global_requests, send_raw_requests
+
+from http.client import RemoteDisconnected
+from urllib3.exceptions import ProtocolError
 
 logger = configure_logger(__name__)
 
@@ -34,7 +36,7 @@ class SimpleResponse:
         self.content = content
 
 
-def raw_get(url: str, s: requests.Session, headers: dict[str, str] | None, auth: tuple[str, str] | None, timeout: int = 10) -> SimpleResponse:
+def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | None, timeout: int = 10) -> SimpleResponse:
     headers = headers or {}
 
     if getattr(proxy, "proxy_enabled", False):
@@ -161,21 +163,29 @@ def cpdos_main(
             print("Exiting")
             sys.exit()
             
+        except requests.exceptions.InvalidHeader as ih:
+            try:
+                raw = True
+                send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse, raw)
+            except Exception as ihi:
+                #print(ihi)
+                #logger.exception(ihi)
+                pass
+        except UnicodeEncodeError as u:
+            try:
+                raw = True
+                send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse, raw)
+            except Exception as uu:
+                #print(uu)
+                #logger.exception(uu)
+                pass
+        except (requests.exceptions.ConnectionError, RemoteDisconnected, ProtocolError) as c:
+            #logger.exception(f"Connection closed by remote server for header {pk}: {str(c)}")
+            pass
         except requests.Timeout as t:
             pass
-            #logger.exception(t)
-            
-        except requests.exceptions.InvalidHeader as e:
-            try:
-                send_raw_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse)
-            except Exception as ee:
-                pass
-                #logger.exception(ee)
-                
-        except UnicodeEncodeError as e:
-            logger.exception(e)
-            
+            #logger.exception(t)    
         except Exception as e:
-            logger.exception(e)
+            logger.exception(f"Basic CPDoS with {pk} payload: {str(e)}")
             
         uri = url

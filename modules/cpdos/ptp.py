@@ -71,9 +71,9 @@ def verify(
                 f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_cb.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
             )
     except requests.Timeout as t:
-        logger.error(t)
+        pass
     except Exception as e:
-        logger.exception(e)
+        logger.exception(f"{VULN_NAME}: {str(e)}")
 
 
 def path_traversal_check(
@@ -146,6 +146,6 @@ def path_traversal_check(
                 )
 
     except requests.Timeout as t:
-        logger.error(t)
+        pass
     except Exception as e:
-        logger.exception(e)
+        logger.exception(f"{VULN_NAME}: {str(e)}")

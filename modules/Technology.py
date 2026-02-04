@@ -67,3 +67,58 @@ class Technology:
     def vercel(self, url: str, s: requests.Session) -> None:
         print(f"{Colors.CYAN} ├── Vercel analysis{Colors.RESET}")
         vercel(url, s)
+
+
+
+def get_technos(
+    url: str, s: requests.Session, req_main: requests.Response, a_tech: Technology
+) -> None:
+    """
+    Check what is the reverse proxy/WAF/cached server... and test based on the result.
+    #TODO Cloudfoundry => https://hackerone.com/reports/728664
+    """
+    print(f"{Colors.CYAN} ├ Techno analysis{Colors.RESET}")
+    technos = {
+        "apache": ["apache", "tomcat"],
+        "nginx": ["nginx"],
+        "envoy": ["envoy"],
+        "akamai": [
+            "akamai",
+            "x-akamai",
+            "x-akamai-transformed",
+            "akamaighost",
+            "akamaiedge",
+            "edgesuite",
+        ],
+        "imperva": ["imperva"],
+        "fastly": ["fastly"],
+        "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"],
+        "cloudfront": ["x-amz-cf", "cloudfront", "x-amz-request-id"],
+        "vercel": ["vercel"],
+        # "cloudfoundry": ["cf-app"]
+    }
+
+    technologies_detected = False
+    for t in technos:
+        tech_hit: str | bool = False
+        for v in technos[t]:
+            for rt in req_main.headers:
+                # case-insensitive comparison
+                if (
+                    v.lower() in req_main.text.lower()
+                    or v.lower() in req_main.headers[rt].lower()
+                    or v.lower() in rt.lower()
+                ):
+                    tech_hit = t
+                    break  # Exit inner loops once we find a match
+            if tech_hit:
+                break
+        if tech_hit and isinstance(tech_hit, str):
+            getattr(a_tech, tech_hit)(url, s)
+            technologies_detected = True
+            tech_hit = False
+
+    if not technologies_detected:
+        print(
+            f"{Colors.YELLOW} │ └── No specific technologies detected{Colors.RESET}"
+        )

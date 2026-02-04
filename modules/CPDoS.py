@@ -114,7 +114,8 @@ def run_cpdos_modules(
         sys.exit()
     except Exception as e:
         #print(e)
-        logger.exception(e)
+        logger.exception(f"CPDoS: {str(e)}")
+        pass
 
 
 def check_CPDoS(

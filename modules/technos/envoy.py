@@ -92,7 +92,7 @@ def envoy(url: str, s: requests.Session) -> None:
             print(f"   └── {headers[0]}{'→':^3} {status:>3} [{size} bytes] (+{len(headers)-1} similar)")
 
     if reflections:
-        print(f"\n{Colors.YELLOW}   └── INTERESTING BEHAVIOR - HEADER REFLECTION{Colors.RESET}")
+        print(f"{Colors.YELLOW}   └── INTERESTING BEHAVIOR - HEADER REFLECTION{Colors.RESET}")
         if len(reflections) <= 3:
             for ref in reflections:
                 print(

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from utils.utils import configure_logger, requests
+from utils.utils import configure_logger, requests, urlparse
 
 logger = configure_logger(__name__)
 

@@ -41,7 +41,6 @@ def HHO(
     while header_size < max_size:
         big_value = "A" * header_size
         
-        # Test avec plusieurs headers pour simuler un cas réaliste
         headers = {}
         for i in range(5):  # 5 headers oversized
             headers[f"X-Oversized-{i}"] = big_value
@@ -67,7 +66,6 @@ def HHO(
             )
             print("\033[K", end="")
             
-            # Détection d'erreur
             if (
                 probe.status_code in [400, 413, 431, 500, 502, 503]
                 and probe.status_code != main_status_code
@@ -78,11 +76,10 @@ def HHO(
                 logger.info(f"Error detected at size {header_size}b: status {error_status}")
                 break
             
-            # Augmentation progressive (exponentielle au début, linéaire à la fin)
             if header_size < 10000:
-                header_size *= 2  # Doublement rapide
+                header_size *= 2 
             else:
-                header_size += 5000  # Incréments de 5KB
+                header_size += 5000 
             
             human_time(human)
             
@@ -104,11 +101,11 @@ def HHO(
         logger.info(f"[HHO] No error detected up to {max_size}b")
         return
     
-    low = error_size // 2  # Dernière taille qui fonctionnait
+    low = error_size // 2
     high = error_size
     exact_threshold = error_size
     
-    for _ in range(10):  # Max 10 itérations de binary search
+    for _ in range(10):
         mid = (low + high) // 2
         big_value = "A" * mid
         
@@ -137,7 +134,7 @@ def HHO(
             else:
                 low = mid
             
-            if high - low < 100:  # Précision de 100 bytes
+            if high - low < 100:
                 break
                 
             human_time(human)
@@ -154,7 +151,6 @@ def HHO(
     
     uri = f"{url}{random.randrange(9999)}"
     
-    # Test 1: Requête avec headers oversized
     try:
         probe = s.get(
             uri,
@@ -167,7 +163,6 @@ def HHO(
         
         human_time(human)
         
-        # Test 2: Requête de contrôle sans headers oversized
         control = s.get(
             uri,
             auth=authent,
@@ -176,7 +171,6 @@ def HHO(
             timeout=10,
         )
         
-        # Confirmation si l'erreur persiste après la requête de contrôle
         if (
             probe.status_code in [400, 413, 431, 500, 502, 503]
             and probe.status_code == control.status_code
@@ -216,9 +210,6 @@ def HHO_single_header(
     fp_results: tuple[int, int] | None,
     human: str,
 ) -> None:
-    """
-    Variante qui teste avec un seul header gigantesque au lieu de plusieurs
-    """
     
     main_status_code = main_response.status_code
     
@@ -256,7 +247,6 @@ def HHO_single_header(
             ):
                 print()
                 
-                # Confirmation
                 control = s.get(uri, auth=authent, allow_redirects=False, verify=False, timeout=10)
                 
                 if probe.status_code == control.status_code:
@@ -278,7 +268,6 @@ def HHO_single_header(
                 
                 break
             
-            # Augmentation progressive
             if header_size < 10000:
                 header_size *= 2
             else:

@@ -97,7 +97,7 @@ def verify_cp_reflect(
     payload: dict[str, str],
     authent: tuple[str, str] | None = None,
 ) -> None:
-    uri = f"{url}{random.randrange(9999)}"
+    uri = f"{url}{random.randrange(999)}"
 
     for _ in range(5):
         s.get(
@@ -131,7 +131,7 @@ def test_reflection(
     for uh in uncommon_header:
         headers = {uh: reflect_word}
 
-        uri = f"{url}{random.randrange(9999)}"
+        uri = f"{url}{random.randrange(999)}"
         req_reflected = s.get(
             url, headers=headers, verify=False, allow_redirects=False, timeout=10
         )
@@ -159,11 +159,11 @@ def uncommon_header_test(
         for ep in errors_payload:
             probe_headers = {uh: ep}
 
-            uri = f"{url}{random.randrange(9999)}"
+            uri = f"{url}{random.randrange(999)}"
             send_global_requests(uri, s, authent, fp_results, "UH CPDoS", "0", probe_headers, initialResponse)
 
 
-def get_http_headers(
+def check_uncommon_header(
     url: str,
     s: requests.Session,
     initialResponse: requests.Response,
@@ -172,7 +172,7 @@ def get_http_headers(
     authent: tuple[str, str] | None = None,
 ) -> None:
     print(f"{Colors.CYAN} ├ Uncommon header analysis{Colors.RESET}")
-    url = f"{url}?cb={random.randrange(9999)}"
+    url = f"{url}?cb={random.randrange(999)}"
 
     uncommon_header = []
 
