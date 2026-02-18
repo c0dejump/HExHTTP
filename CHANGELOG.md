@@ -10,6 +10,7 @@ Changelog:
 	- Technologies testing remake
 	- Correction of over half of false positives
 	- Rename modules header_checks
+	- Better WAF detection & timeout
 	News:
 	- False positive baseline in "utils.py"
 	- Centralization of the main requests made for CP/CPDoS scans in "global_requests.py"

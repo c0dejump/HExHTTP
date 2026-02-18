@@ -130,7 +130,7 @@ def datareq_check(
                 
                 if not exploitable:
                     print(
-                        " └─ [i] Cache poisoning detected but exploitation failed. Manual verification recommended."
+                        f" └─ [i] Cache poisoning detected but exploitation failed. Manual verification recommended with `x-now-route-matches: 1` payload on `{uri_exploit}` url."
                     )
             else:
                 print(

@@ -3,12 +3,15 @@
 
 from modules.technos.akamai import akamai
 from modules.technos.apache import apache
+from modules.technos.azure import azure
 from modules.technos.cloudflare import cloudflare
 from modules.technos.cloudfront import cloudfront
 from modules.technos.envoy import envoy
 from modules.technos.fastly import fastly
+from modules.technos.gcp import gcp
 from modules.technos.imperva import imperva
 from modules.technos.nginx import nginx
+from modules.technos.varnish import varnish
 from modules.technos.vercel import vercel
 from utils.style import Colors
 from utils.utils import requests
@@ -64,6 +67,18 @@ class Technology:
         print(f"{Colors.CYAN} ├── Imperva analysis{Colors.RESET}")
         imperva(url, s)
 
+    def varnish(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── Varnish analysis{Colors.RESET}")
+        varnish(url, s)
+
+    def azure(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── Azure Front Door analysis{Colors.RESET}")
+        azure(url, s)
+
+    def gcp(self, url: str, s: requests.Session) -> None:
+        print(f"{Colors.CYAN} ├── GCP CDN analysis{Colors.RESET}")
+        gcp(url, s)
+
     def vercel(self, url: str, s: requests.Session) -> None:
         print(f"{Colors.CYAN} ├── Vercel analysis{Colors.RESET}")
         vercel(url, s)
@@ -95,6 +110,9 @@ def get_technos(
         "cloudflare": ["cf-ray", "cloudflare", "cf-cache-status", "cf-ray"],
         "cloudfront": ["x-amz-cf", "cloudfront", "x-amz-request-id"],
         "vercel": ["vercel"],
+        "varnish": ["x-varnish", "varnish"],
+        "azure": ["x-azure-ref", "x-fd-", "x-msedge-ref", "x-azure-fdid"],
+        "gcp": ["x-google-cache", "x-gfe", "x-goog-", "google frontend", "x-cloud-trace"],
         # "cloudfoundry": ["cf-app"]
     }
 

@@ -66,7 +66,7 @@ def litespeed(base_url: str) -> None:
         logger.debug("Target doesn't appear to be WordPress with LiteSpeed Cache")
         return
     
-    print(f" ├── WordPress with LiteSpeed Cache detected")
+    print(f" ├── CVE-2024-47374 WordPress with LiteSpeed Cache detected")
     
     # Utiliser un marqueur unique au lieu d'un payload XSS
     test_marker = "x-cve-2024-47374-test"

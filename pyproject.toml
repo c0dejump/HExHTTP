@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "HExHTTP"
-version = "2.0"
+version = "2.5"
 description = "HExHTTP is a tool designed to perform tests on HTTP headers and analyze the results to identify vulnerabilities and interesting behaviors."
 readme = "README.md"
 authors = [
@@ -29,11 +29,10 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.31.0,<3.0.0",
-    "wafw00f>=2.2.0",
     "urllib3>=2.2.0,<3.0.0",
-    "pync>=2.0.3",
     "beautifulsoup4>=4.12,<5",
-    "httpx>=0.24.0"
+    "httpx>=0.24.0",
+    'pync>=2.0.3; sys_platform == "darwin"',  # only MacOS
 ]
 
 [project.urls]

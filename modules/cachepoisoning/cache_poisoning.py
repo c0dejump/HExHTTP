@@ -59,12 +59,15 @@ def crawl_files(
                     uri = f"https://{uri[7:].replace('//', '/')}"
 
                 # print(uri)
-                port_poisoning(uri, s, req_main, custom_header, authent, human)
-                reflected_cache_poisoning(uri, s, req_main, custom_header, authent, human)
+                req_ext = s.get(uri)
+                if req_ext.status_code in [200, 301, 302]: 
+                    port_poisoning(uri, s, req_main, custom_header, authent, human)
+                    reflected_cache_poisoning(uri, s, req_main, custom_header, authent, human)
 
 
     except Exception as e:
-        logger.exception(e)
+        pass
+        #logger.exception(e)
 
 
 def randomiz_url(url):
@@ -170,7 +173,7 @@ def port_poisoning(url, s, initialResponse, custom_header, authent, human):
 
     except Exception as e:
         #traceback.print_exc()
-        logger.exception(e)
+        logger.exception(f"{VULN_NAME}: {str(e)}")
 
 
 

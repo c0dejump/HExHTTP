@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from utils.utils import configure_logger, requests, urlparse
+from utils.style import Colors
 
 logger = configure_logger(__name__)
 

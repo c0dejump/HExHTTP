@@ -7,7 +7,6 @@ https://cpdos.org/
 """
 
 import utils.proxy as proxy
-from modules.lists import payloads_keys
 from utils.style import Identify, Colors
 from utils.utils import (
     configure_logger,
@@ -16,7 +15,6 @@ from utils.utils import (
     requests,
     sys,
     re,
-    range_exclusion,
     random_ua,
 )
 from utils.print_utils import print_results, cache_tag_verify
@@ -590,7 +588,6 @@ def detect_format(content, headers):
     content_stripped = content.strip()
     
     
-    # JSON - strict
     if 'application/json' in content_type or 'application/ld+json' in content_type:
         return 'JSON'
     
@@ -601,15 +598,11 @@ def detect_format(content, headers):
         except:
             pass
     
-    # XML - TRÈS strict maintenant
     if 'application/xml' in content_type or 'text/xml' in content_type:
-        # Vérifier que c'est vraiment du XML et pas du HTML mal étiqueté
         if b'<!DOCTYPE html' not in content[:500].lower() and b'<html' not in content[:500].lower():
             return 'XML'
     
-    # XML avec déclaration explicite
     if content_stripped.startswith(b'<?xml'):
-        # Double vérification : pas de tags HTML après la déclaration
         html_tags_strict = [b'<html', b'<head', b'<body', b'<title', b'<meta', b'<link', b'<script', b'<style']
         has_html_tags = any(tag in content[:2000].lower() for tag in html_tags_strict)
         if not has_html_tags:
@@ -617,9 +610,7 @@ def detect_format(content, headers):
         else:
             return False
     
-    # XML sans déclaration - ULTRA strict
     if re.match(rb'^\s*<[a-zA-Z0-9_-]+[^>]*>', content[:100]):
-        # Liste complète des tags HTML courants
         html_tags_complete = [
             b'<head', b'<body', b'<div', b'<span', b'<p>', b'<a ', b'<img',
             b'<script', b'<style', b'<meta', b'<title', b'<link', b'<form',
@@ -634,46 +625,33 @@ def detect_format(content, headers):
         has_html = any(tag in content[:3000].lower() for tag in html_tags_complete)
         
         if not has_html:
-            # Vérifier des patterns XML typiques
             xml_patterns = [
-                rb'<\?xml',  # Déclaration XML
-                rb'xmlns:',  # Namespace XML
-                rb'<[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+',  # Tags avec namespace (ex: soap:Envelope)
+                rb'<\?xml',
+                rb'xmlns:',
+                rb'<[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+',
             ]
             has_xml_patterns = any(re.search(pattern, content[:1000]) for pattern in xml_patterns)
             
-            # Vérifier la structure : doit avoir une racine unique
             root_tags = re.findall(rb'^<([a-zA-Z0-9_-]+)', content_stripped)
             if root_tags and len(root_tags) > 0:
-                # C'est probablement du XML si :
-                # 1. Pas de tags HTML
-                # 2. A des patterns XML OU a une structure cohérente
                 if has_xml_patterns or (not has_html and b'</' in content):
                     return 'XML'
     
-    # CSV - BEAUCOUP plus strict
     if 'text/csv' in content_type or 'application/csv' in content_type:
-        # Vérifier qu'il n'y a pas de HTML
         if b'<' not in content[:1000] and b'>' not in content[:1000]:
             return 'CSV'
     
     if b',' in content and b'\n' in content:
         lines = content.split(b'\n')[:10]  # Analyser les 10 premières lignes
         
-        # Vérifications strictes pour CSV
         if len(lines) >= 2:  # Au moins 2 lignes
             
-            # Vérifier la cohérence des colonnes
             non_empty_lines = [line for line in lines if line.strip()]
             if len(non_empty_lines) >= 2:
-                # Compter les virgules dans chaque ligne
                 comma_counts = [line.count(b',') for line in non_empty_lines]
                 
-                # Les lignes CSV doivent avoir un nombre similaire de colonnes
                 if len(set(comma_counts)) <= 2:  # Max 2 variations (header peut être différent)
-                    # Vérifier qu'il y a au moins 2 colonnes
                     if min(comma_counts) >= 1:
-                        # Vérifier que ce n'est pas du code (JavaScript, Python, etc.)
                         code_patterns = [
                             b'function', b'var ', b'const ', b'let ', b'return',
                             b'import ', b'def ', b'class ', b'if ', b'for ', b'while '
@@ -705,22 +683,20 @@ def detect_format(content, headers):
 
 def verify_cp(s, uri, cfp, authent):
     for _ in range(5):
-        req_verify = s.get(uri, headers=cfp, verify=False, auth=authent, timeout=10, allow_redirects=False)
+        s.get(uri, headers=cfp, verify=False, auth=authent, timeout=10, allow_redirects=False)
     req_2fa_verify = s.get(uri, verify=False, auth=authent, timeout=10, allow_redirects=False)
     return detect_format(req_2fa_verify.content, req_2fa_verify.headers)
 
 
 def format_poisoning(url, s, initial_response, authent, human):
-    main_status_code = initial_response.status_code
     main_len = len(initial_response.content)
-    blocked = 0
 
     df_init = detect_format(initial_response.content, initial_response.headers)
     if df_init != "JSON":
-        rel = range_exclusion(main_len)
         for cfp in cfp_payloads:
             uri = f"{url}{random.randrange(9999)}"
             try:
+                s.headers.update(random_ua())
                 req = s.get(uri, headers=cfp, verify=False, auth=authent, timeout=10, allow_redirects=False)
                 df = detect_format(req.content, req.headers)
                 if df:
@@ -731,12 +707,14 @@ def format_poisoning(url, s, initial_response, authent, human):
                 else:
                     pass
                 human_time(human)
-            except UnicodeEncodeError as e:
-                print(f"invalid unicode: {e}")
-                logger.exception(e)
+            except UnicodeEncodeError as u:
+                #print(f"invalid unicode: {u}")
+                pass
+                #logger.exception(u)
             except Exception as e:
-                print(e)
-                logger.exception(e)
+                #print(e)
+                #logger.exception(e)
+                pass
             print(f" {Colors.BLUE} CFP : {cfp}{Colors.RESET}\r", end="")
             print("\033[K", end="")
     

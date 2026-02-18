@@ -48,8 +48,10 @@ def crawl_files(
                     uri = f"https://{uri[7:].replace('//', '/')}"
 
                 # print(uri)
-                run_cpdos_modules(uri, s, authent, human, crawl=True)
-                backslash_poisoning(uri, s, authent, human)
+                req_ext = s.get(uri)
+                if req_ext.status_code in [200, 301, 302]: 
+                    run_cpdos_modules(uri, s, authent, human, crawl=True)
+                    backslash_poisoning(uri, s, authent, human)
 
 
     except Exception as e:

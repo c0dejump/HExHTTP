@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from utils.utils import requests
+from utils.style import Colors
 
 
 def vercel_edge_functions_test(url: str, s: requests.Session) -> None:

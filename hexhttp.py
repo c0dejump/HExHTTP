@@ -36,11 +36,13 @@ from utils.utils import (
     get_domain_from_url,
     requests,
     sys,
-    time,
     verify_waf,
     fp_baseline,
-    parse_headers
+    parse_headers,
+    urllib3
 )
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = configure_logger(__name__)
 
@@ -83,7 +85,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
         print(f"{Colors.BLUE} ⟘{Colors.RESET}")
         print(f"{Colors.BLUE} ⟙{Colors.RESET}")
 
-        if main_status_code not in [200, 302, 301, 403, 401] and not url_file:
+        if main_status_code not in [200, 302, 301] and not url_file:
             choice = input(
                 f" {Colors.YELLOW}The url does not seem to answer correctly, continue anyway ?{Colors.RESET} [y/n]"
             )
@@ -98,26 +100,25 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
         )
 
         fp_results = fp_baseline(f"{url}?cb=123byc0dejump", s)
-        if main_status_code != 403:
-            if not only_cp:
-                check_cachetag_header(resp_main_headers)
-                check_server_error(url, auth)
-                check_vhost(url)
-                check_localhost(url, s, domain, auth)
-                check_methods(url, custom_header, auth, human or "")
-                check_http_version(url)
-                get_technos(url, s, req_main, a_tech)
-                verify_waf(url, s, req_main)
-                check_http_debug(url, s, main_status_code, main_len, main_head, auth, human or "")
-                verify_waf(url, s, req_main)
-
-            check_uncommon_header(url, s, req_main, dict(main_head), fp_results, auth)
-            check_cpcve(url, s, req_main, parse_headers(custom_header), auth, fp_results, human or "")
-            check_CPDoS(url, s, req_main, parse_headers(custom_header), auth, human or "")
-            check_methods_poisoning(url, s, parse_headers(custom_header), auth)
+        if not only_cp:
+            check_cachetag_header(resp_main_headers)
+            check_server_error(url, auth)
+            check_vhost(url)
+            check_localhost(url, s, domain, auth)
+            check_methods(url, custom_header, auth, human or "")
+            check_http_version(url)
+            get_technos(url, s, req_main, a_tech)
             verify_waf(url, s, req_main)
-            check_cache_poisoning(url, s, parse_headers(custom_header), auth, human or "")
-            check_cache_files(url, s, parse_headers(custom_header), auth)
+            check_http_debug(url, s, main_status_code, main_len, main_head, auth, human or "")
+            verify_waf(url, s, req_main)
+
+        check_uncommon_header(url, s, req_main, dict(main_head), fp_results, auth)
+        check_cpcve(url, s, req_main, parse_headers(custom_header), auth, fp_results, human or "")
+        check_CPDoS(url, s, req_main, parse_headers(custom_header), auth, human or "")
+        check_methods_poisoning(url, s, parse_headers(custom_header), auth)
+        verify_waf(url, s, req_main)
+        check_cache_poisoning(url, s, parse_headers(custom_header), auth, human or "")
+        check_cache_files(url, s, parse_headers(custom_header), auth)
         
     except requests.ConnectionError as e:
         if "Connection refused" in str(e):
@@ -197,7 +198,7 @@ def cli_main() -> None:
         s.max_redirects = 60
         s.headers.update(
             {
-                "User-Agent": f"{user_agent}-BugBounty",
+                "User-Agent": f"{user_agent}-BugBounty-pagesjaunes/ywh",
                 #DECOMMENTHIS
                 #"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
                 #"Accept-Language": "en-US,en;q=0.5",

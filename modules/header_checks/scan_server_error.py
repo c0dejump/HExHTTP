@@ -272,7 +272,6 @@ class ServerErrorAnalyzer:
                     r"(development.*mode|debug.*mode)",
                     r"(\$_GET\[|\$_POST\[|\$_SESSION\[)",
                     r"(var_dump\(|print_r\()",
-                    r"(console\.log\(|console\.error\()",
                     r"(xdebug|X-Debug)",
                     r"(WP_DEBUG|SCRIPT_DEBUG)",
                     r"(Flask.*Debug|Django.*Debug)",
@@ -384,7 +383,6 @@ class ServerErrorAnalyzer:
                     r"(GraphQL\.ExecutionError)",
                     r"(GraphQLError:)",
                     r"(Query validation error)",
-                    r"(__schema|__type|__typename)",
                     r"(graphql\.error\.)",
                     r"(Cannot query field)",
                     r"(Syntax Error: Expected)",
@@ -417,7 +415,6 @@ class ServerErrorAnalyzer:
 
         self.user_agent = DEFAULT_USER_AGENT
         self.timeout = 10
-        # Groupe les réponses par (status_code, taille_range)
         self.response_groups: dict[tuple[int, int], list[dict]] = defaultdict(list)
         self.baseline_response = None
 
@@ -462,7 +459,6 @@ class ServerErrorAnalyzer:
             }
 
     def _get_size_range(self, size: int, tolerance: int = 100) -> int:
-        """Groupe les tailles similaires (avec tolérance de +/- tolerance bytes)"""
         return (size // tolerance) * tolerance
 
     def _is_response_interesting(self, status_code: int, content_length: int) -> bool:
@@ -474,7 +470,6 @@ class ServerErrorAnalyzer:
         if status_code != self.baseline_response["status_code"]:
             return True
         
-        # Very different size (more than 20% difference)
         baseline_size = self.baseline_response["content_length"]
         if baseline_size > 0:
             size_diff_ratio = abs(content_length - baseline_size) / baseline_size

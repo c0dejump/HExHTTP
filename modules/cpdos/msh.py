@@ -99,7 +99,7 @@ def duplicate_headers(
         conn.close()
         raise
     except Exception as e:
-        logger.exception(e)
+        #logger.exception(e)
         return None, cb
     finally:
         try:

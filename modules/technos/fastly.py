@@ -32,13 +32,13 @@ def fastly(url: str, s: requests.Session) -> None:
         {"Fastly-Debug-TTL": "1"},
         {"Surrogate-Capability": "abc=ESI/1.0"},
         {"Fastly-Client-IP": "127.0.0.1"},
-        {"Fastly-FF": "!"},  # Force miss
+        {"Fastly-FF": "!"}, 
     ]
     
     for fl in fastly_list:
         try:
             req = s.get(url, headers=fl, verify=False, timeout=10)
-            print(f"   └── {fl} -> {req.status_code}")
+            print(f" └── {fl} -> {req.status_code}")
             
             # Check for Fastly-specific response headers
             fastly_resp_headers = [

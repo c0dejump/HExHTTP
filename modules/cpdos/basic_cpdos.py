@@ -8,7 +8,7 @@ https://cpdos.org/
 import utils.proxy as proxy
 from modules.lists import payloads_keys
 from modules.global_requests import send_global_requests
-from utils.style import Colors
+from utils.style import Colors, Identify
 from utils.utils import (
     configure_logger,
     random,
@@ -25,6 +25,7 @@ import base64
 
 from http.client import RemoteDisconnected
 from urllib3.exceptions import ProtocolError
+from requests.exceptions import ContentDecodingError
 
 logger = configure_logger(__name__)
 
@@ -59,7 +60,7 @@ def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | No
         host = host_port
         port = 443 if scheme == "https" else 80
 
-    # chemin + query
+    # path + query
     path = u.path or "/"
     if u.query:
         path = f"{path}?{u.query}"
@@ -168,8 +169,8 @@ def cpdos_main(
                 raw = True
                 send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse, raw)
             except Exception as ihi:
-                #print(ihi)
-                #logger.exception(ihi)
+                #print(ih)
+                #logger.exception(ih)
                 pass
         except UnicodeEncodeError as u:
             try:
@@ -184,8 +185,39 @@ def cpdos_main(
             pass
         except requests.Timeout as t:
             pass
-            #logger.exception(t)    
+            #logger.exception(t)
+
+        except ContentDecodingError as cde:
+            print(f" {Identify.behavior} | Server returned corrupted gzip | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}")
+            try:
+                cache_test = s.get(
+                    uri,
+                    allow_redirects=False,
+                    verify=False
+                )
+            except ContentDecodingError:
+                print(f" {Identify.confirmed} | Server returned corrupted gzip | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}")
+                
+            except Exception as e:
+                pass
+
+        except ValueError as ve:
+            # Skip payloads with invalid IP addresses
+            if "does not appear to be an IPv4 or IPv6 address" in str(ve):
+                raw = True
+                send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse, raw)
+            else:
+                pass
+                #logger.exception(f"Basic CPDoS with {pk} payload: {str(ve)}")
+                
+        except AttributeError as ae:
+            # Skip payloads that are malformed (set instead of dict)
+            if "'set' object has no attribute" in str(ae):
+                logger.error(f"Malformed payload (set instead of dict): {pk}")
+            else:
+                logger.exception(f"Basic CPDoS with {pk} payload: {str(ae)}")
+                
         except Exception as e:
             logger.exception(f"Basic CPDoS with {pk} payload: {str(e)}")
-            
+                    
         uri = url

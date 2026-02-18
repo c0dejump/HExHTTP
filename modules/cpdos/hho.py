@@ -7,7 +7,7 @@ import utils.proxy as proxy
 from utils.style import Colors, Identify
 from utils.utils import configure_logger, human_time, requests, random, random_ua
 from utils.print_utils import cache_tag_verify
-from modules.global_requests import combinations, exclude_combinations
+from modules.global_requests import exclude_combinations
 
 logger = configure_logger(__name__)
 VULN_NAME = "HHO"
@@ -199,7 +199,8 @@ def HHO(
             proxy_request(s, "GET", uri, headers=headers, data=None, severity=severity)
             
     except Exception as e:
-        logger.exception(e)
+        pass
+        #logger.exception(e)
 
 
 def HHO_single_header(
@@ -244,9 +245,7 @@ def HHO_single_header(
             if (
                 probe.status_code in [400, 413, 431, 500, 502, 503]
                 and probe.status_code != main_status_code
-            ):
-                print()
-                
+            ):                
                 control = s.get(uri, auth=authent, allow_redirects=False, verify=False, timeout=10)
                 
                 if probe.status_code == control.status_code:
@@ -278,5 +277,3 @@ def HHO_single_header(
         except Exception as e:
             logger.exception(e)
             break
-    
-    print()

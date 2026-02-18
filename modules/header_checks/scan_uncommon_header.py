@@ -87,7 +87,7 @@ common_header = [
     "cache-status",
 ]
 
-errors_payload = ["A" * 1024, "xxxx", "©"]
+errors_payload = ["A" * 1024, "xxxx", "©", "®"]
 
 
 

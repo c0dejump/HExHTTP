@@ -24,20 +24,17 @@ def envoy_admin_test(url: str, s: requests.Session) -> None:
         try:
             req = s.get(test_url, verify=False, timeout=10, allow_redirects=False)
             
-            # Vérification stricte : vraiment 200 et contenu Envoy
             if req.status_code == 200:
                 text_lower = req.text.lower()
                 
-                # Vérifier que c'est vraiment du contenu Envoy, pas une page d'erreur
                 envoy_keywords = ["envoy", "cluster", "listener", "route", "upstream"]
                 error_keywords = ["error", "404", "not found", "aspxerrorpath"]
                 
                 has_envoy = any(keyword in text_lower for keyword in envoy_keywords)
                 has_error = any(keyword in text_lower for keyword in error_keywords)
                 
-                # Alert seulement si vraiment du contenu Envoy et pas d'erreur
                 if has_envoy and not has_error:
-                    print(f"{Colors.RED}   └── [CRITICAL] Envoy admin exposed: {path}{Colors.RESET}")
+                    print(f"{Colors.YELLOW}   └── Envoy admin potentialy exposed: {path}{Colors.RESET}")
                     print(f"       URL: {test_url}")
         except Exception:
             pass
