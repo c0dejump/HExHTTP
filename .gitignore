@@ -5,7 +5,7 @@ __pycache__
 dist/
 build/
 dev/
-logs/*.log
+error_logs/*.log
 *.txt
 todo.md
 *.egg-info/

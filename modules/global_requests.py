@@ -30,6 +30,16 @@ def confirm_vuln(url, s, authent, fp_results, human, probe, payload_header, init
         s.headers.update(random_ua())
 
         control = s.get(uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
+
+        canary_session = requests.Session()
+        canary_session.headers.update(random_ua())
+        canary_uri = f"{url}{random.randrange(9999)}"
+        canary = canary_session.get(canary_uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
+        canary_session.close()
+        
+        if canary.status_code != initialStatusCode and canary.status_code != 429:
+            return (None, None)
+
         if (
             control.status_code == probe.status_code
             and control.status_code not in [initialStatusCode, 429]
@@ -58,6 +68,15 @@ def confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, 
         human_time(human)
     
     control = s.get(uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
+
+    canary_session = requests.Session()
+    canary_session.headers.update(random_ua())
+    canary_uri = f"{url}{random.randrange(9999)}"
+    canary = canary_session.get(canary_uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
+    canary_session.close()
+
+    if canary.status_code != initialStatusCode and canary.status_code != 429:
+        return (None, None)
         
     if (
         control.status_code == probe.status_code
