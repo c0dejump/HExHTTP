@@ -33,6 +33,7 @@ dependencies = [
     "beautifulsoup4>=4.12,<5",
     "httpx>=0.24.0",
     'pync>=2.0.3; sys_platform == "darwin"',  # only MacOS
+    "tldextract"
 ]
 
 [project.urls]

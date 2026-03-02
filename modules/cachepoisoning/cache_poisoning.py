@@ -82,9 +82,8 @@ def dvcp(uri, s, headers, custom_header, authent, human):
             allow_redirects=False,
             timeout=8,
         )
-    verif_req = requests.get(
+    verif_req = s.get(
             uri,
-            headers=custom_header,
             verify=False,
             allow_redirects=False,
             timeout=8,
@@ -207,12 +206,14 @@ def reflected_cache_poisoning(url, s, initialResponse, custom_header, authent, h
                 dup_req, verif_req = dvcp(uri, s, header, custom_header, authent, human)
                 if CANARY in verif_req.headers:
                     print_(Identify.confirmed, VULN_NAME, "BODY REFLECTION", ctv, uri, header)
+
             if CANARY in response.headers:
                 print_(Identify.behavior, VULN_NAME, "HEADER REFLECTION", ctv, uri, header)
 
                 dup_req, verif_req = dvcp(uri, s, header, custom_header, authent, human)
                 if CANARY in verif_req.headers:
                     print_(Identify.confirmed, VULN_NAME, "HEADER REFLECTION", ctv, uri, header)
+                    
             if response.status_code != initialResponse.status_code and response.status_code not in [429, 401]:
                 print_(Identify.behavior, VULN_NAME, f"{initialResponse.status_code} > {response.status_code}", ctv, uri, header)
                 dup_req, verif_req = dvcp(uri, s, header, custom_header, authent, human)

@@ -14,7 +14,6 @@ def azure_rules_engine_test(url: str, s: requests.Session) -> None:
     """
     probe_value = "bycodejump"
     injection_headers = [
-        {"X-FD-HealthProbe": "1"},
         {"X-Azure-FDID": probe_value},
         {"X-FD-ClientIP": "127.0.0.1"},
         {"X-Original-URL": f"/{probe_value}"},
@@ -26,11 +25,38 @@ def azure_rules_engine_test(url: str, s: requests.Session) -> None:
             uri = f"{url}?cb={random.randrange(9999)}"
             req = s.get(uri, headers=h, verify=False, timeout=10, allow_redirects=False)
             val = list(h.values())[0]
-            if val in req.text:
+            header_name = list(h.keys())[0]
+
+            reflected_in_body = val in req.text
+            reflected_in_headers = any(
+                val in v for v in req.headers.values()
+            )
+            header_echoed = header_name.lower() in (
+                rh.lower() for rh in req.headers
+            )
+
+            if reflected_in_body:
                 print(
-                    f"{Colors.GREEN}   └── [REFLECTION] {h} reflected in body{Colors.RESET}"
+                    f"{Colors.GREEN}   └── [REFLECTION:BODY] {h} reflected in response body{Colors.RESET}"
                 )
-            print(f"   └── {h} -> {req.status_code} [{len(req.content)}b]")
+            if reflected_in_headers:
+                matching = [
+                    f"{rh}: {req.headers[rh]}"
+                    for rh in req.headers
+                    if val in req.headers[rh]
+                ]
+                for m in matching:
+                    print(
+                        f"{Colors.GREEN}   └── [REFLECTION:HEADER] {h} -> {m}{Colors.RESET}"
+                    )
+            if header_echoed:
+                echo_val = req.headers.get(header_name, "")
+                print(
+                    f"{Colors.GREEN}   └── [ECHO] {header_name} echoed back: {echo_val}{Colors.RESET}"
+                )
+
+            if not reflected_in_body and not reflected_in_headers and not header_echoed:
+                print(f"   └── {h} -> {req.status_code} [{len(req.content)}b]")
     except Exception as e:
         logger.exception(e)
 
@@ -87,12 +113,17 @@ def azure_fd_debug_headers(url: str, s: requests.Session) -> None:
         {"X-Azure-DebugInfo": "1"},
         {"Pragma": "afd-debug"},
     ]
+    afd_keywords = ["x-fd-", "x-azure-", "x-msedge", "x-cache"]
+    seen = {}
     try:
         for h in debug_headers:
             req = s.get(url, headers=h, verify=False, timeout=10)
             for rh in req.headers:
-                if any(k in rh.lower() for k in ["x-fd-", "x-azure-", "x-msedge", "x-cache"]):
-                    print(f"{Colors.CYAN}   └── AFD header: {rh}: {req.headers[rh]}{Colors.RESET}")
+                rh_lower = rh.lower()
+                if any(k in rh_lower for k in afd_keywords) and rh_lower not in seen:
+                    seen[rh_lower] = (rh, req.headers[rh])
+        for rh, val in seen.values():
+            print(f"{Colors.CYAN}   └── AFD header: {rh}: {val}{Colors.RESET}")
     except Exception as e:
         logger.exception(e)
 

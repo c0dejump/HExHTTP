@@ -226,7 +226,6 @@ class ServerErrorAnalyzer:
                     r"(development\s+mode|debug\s+mode)",
                     r"(\$_GET\[|\$_POST\[|\$_SESSION\[)",
                     r"(var_dump\(|print_r\()",
-                    r"(xdebug|X-Debug)",
                     r"(WP_DEBUG|SCRIPT_DEBUG)",
                     r"(Flask.*Debug|Django.*Debug)",
                     r"(RAILS_ENV.*development)",

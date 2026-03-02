@@ -32,7 +32,6 @@ def nginx_proxy_headers(url: str, s: requests.Session) -> None:
         {"X-Real-IP": "127.0.0.1"},
         {"X-Forwarded-For": "127.0.0.1"},
         {"X-Forwarded-Host": "evil.com"},
-        {"X-Forwarded-Proto": "https"},
         {"X-Original-URL": "/admin"},
         {"X-Rewrite-URL": "/admin"},
         {"Forwarded": "for=127.0.0.1;host=evil.com;proto=https"}

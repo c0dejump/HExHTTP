@@ -642,6 +642,7 @@ payloads_keys = [
     {"X-Forwarded-Method": "HEAD"},
     {"X-Forwarded-Method": "PLOP"},
     {"X-Forwarded-Port": "31337"},
+    {"X-Forwarded-Port": "1"},
     {"X-Forwarded-Timeout": "120"},
     {"X-Forwarded-User": "xxx"},
     {"x-forwarded-host": "xxx"},

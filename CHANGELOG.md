@@ -14,6 +14,7 @@ Changelog:
 	News:
 	- False positive baseline in "utils.py"
 	- Centralization of the main requests made for CP/CPDoS scans in "global_requests.py"
+	- HHMP CPDoS module, Host Header Manipulation Poisoning, likely host header injection but some different
 ---------
 
 - 2.4
@@ -191,7 +192,6 @@ Changelog:
 	Updated:
 	- News payloads and fix on HMO modules (~800)
 	- Fixed issues
-
 ---------
 
 - 1.7.2

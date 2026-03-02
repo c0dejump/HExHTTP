@@ -3,6 +3,7 @@
 
 from modules.cpdos.bsf import backslash_poisoning
 from modules.cpdos.basic_cpdos import cpdos_main
+from modules.cpdos.hhmp import HHMP
 from modules.cpdos.msh import MSH
 from modules.cpdos.hho import HHO
 from modules.cpdos.hmc import HMC
@@ -79,6 +80,8 @@ def run_cpdos_modules(
 
         s = new_session(s)
         logger.debug(req_main.content)
+        HHMP(randomiz_url(url), s, req_main, authent, fp_results, human)
+        verify_waf(url, s, req_main)
         #HTTP Header Oversize
         HHO(randomiz_url(url), s, req_main, authent, fp_results, human)
         verify_waf(url, s, req_main)

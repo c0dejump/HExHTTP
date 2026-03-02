@@ -15,14 +15,19 @@ def varnish_debug_headers(url: str, s: requests.Session) -> None:
         "x-varnish-trace",
         "x-varnish",
     ]
+    varnish_keywords = ["varnish", "x-hits", "x-grace"]
+    seen = {}
     for p in pragma_payloads:
         try:
             req = s.get(url, headers={"Pragma": p}, verify=False, timeout=10)
             for h in req.headers:
-                if "varnish" in h.lower() or "x-hits" in h.lower() or "x-grace" in h.lower():
-                    print(f"{Colors.CYAN}   └── Varnish debug header: {h}: {req.headers[h]}{Colors.RESET}")
+                h_lower = h.lower()
+                if any(k in h_lower for k in varnish_keywords) and h_lower not in seen:
+                    seen[h_lower] = (h, req.headers[h])
         except Exception as e:
             logger.exception(e)
+    for h, val in seen.values():
+        print(f"{Colors.CYAN}   └── Varnish debug header: {h}: {val}{Colors.RESET}")
 
 
 def varnish_esi_injection(url: str, s: requests.Session) -> None:
