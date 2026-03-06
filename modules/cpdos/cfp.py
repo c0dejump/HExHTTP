@@ -178,7 +178,7 @@ cfp_payloads = [
     {"Type":"xml"},
     {"Datatype":"json"},
     {"Datatype":"xml"},
-        {"Accept":"application/jsonlines"},
+    {"Accept":"application/jsonlines"},
     {"Accept":"text/jsonlines"},
     {"Accept":"application/x-jsonlines"},
     {"Accept":"application/vnd.apache.parquet"},
@@ -677,32 +677,38 @@ def detect_format(content, headers):
     
     if b'soap:envelope' in content[:500].lower() or b's:envelope' in content[:500].lower():
         return 'SOAP'
+
+    if "text/plain" in content_type:
+        return 'PLAINTEXT'
+    if "text/html" not in content_type:
+        return content_type
     
     return False
 
 
 def verify_cp(s, uri, cfp, authent):
-    for _ in range(5):
+    for _ in range(3):
         s.get(uri, headers=cfp, verify=False, auth=authent, timeout=10, allow_redirects=False)
-    req_2fa_verify = s.get(uri, verify=False, auth=authent, timeout=10, allow_redirects=False)
-    return detect_format(req_2fa_verify.content, req_2fa_verify.headers)
+    req_2fa_verify = requests.get(uri, verify=False, auth=authent, timeout=10, allow_redirects=False)
+    df_verify = detect_format(req_2fa_verify.content, req_2fa_verify.headers)
+    return df_verify
 
 
 def format_poisoning(url, s, initial_response, authent, human):
     main_len = len(initial_response.content)
 
     df_init = detect_format(initial_response.content, initial_response.headers)
-    if df_init != "JSON":
+    if df_init and df_init != "JSON":
         for cfp in cfp_payloads:
             uri = f"{url}{random.randrange(9999)}"
             try:
                 s.headers.update(random_ua())
                 req = s.get(uri, headers=cfp, verify=False, auth=authent, timeout=10, allow_redirects=False)
                 df = detect_format(req.content, req.headers)
-                if df:
+                if df and df != df_init:
                     print_results(Identify.behavior , "CFP", f"HTML > {df}", cache_tag_verify(req), uri, cfp)
                     vcp = verify_cp(s, uri, cfp, authent)
-                    if vcp:
+                    if vcp != df_init:
                         print_results(Identify.confirmed , "CFP", f"HTML > {df}", cache_tag_verify(req), uri, cfp)
                 else:
                     pass
@@ -712,7 +718,7 @@ def format_poisoning(url, s, initial_response, authent, human):
                 pass
                 #logger.exception(u)
             except Exception as e:
-                #print(e)
+                print(e)
                 #logger.exception(e)
                 pass
             print(f" {Colors.BLUE} CFP : {cfp}{Colors.RESET}\r", end="")

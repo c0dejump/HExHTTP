@@ -214,10 +214,13 @@ def cpdos_main(
             # Skip payloads that are malformed (set instead of dict)
             if "'set' object has no attribute" in str(ae):
                 logger.error(f"Malformed payload (set instead of dict): {pk}")
+                pass
             else:
                 logger.exception(f"Basic CPDoS with {pk} payload: {str(ae)}")
+                pass
                 
         except Exception as e:
             logger.exception(f"Basic CPDoS with {pk} payload: {str(e)}")
+            pass
                     
         uri = url

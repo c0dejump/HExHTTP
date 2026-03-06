@@ -80,6 +80,15 @@ def run_cpdos_modules(
 
         s = new_session(s)
         logger.debug(req_main.content)
+
+        cpdos_main(randomiz_url(url), s, req_main, authent, fp_results, human)
+        verify_waf(url, s, req_main)
+
+        if not crawl:
+            format_poisoning(randomiz_url(url), s, req_main, authent, human)
+            verify_waf(url, s, req_main)
+            
+        #Host Header Manipulation poisoning
         HHMP(randomiz_url(url), s, req_main, authent, fp_results, human)
         verify_waf(url, s, req_main)
         #HTTP Header Oversize
@@ -107,12 +116,6 @@ def run_cpdos_modules(
         path_traversal_check(url, s, req_main, authent)
         verify_waf(url, s, req_main)
 
-        cpdos_main(randomiz_url(url), s, req_main, authent, fp_results, human)
-        verify_waf(url, s, req_main)
-
-        if not crawl:
-            format_poisoning(randomiz_url(url), s, req_main, authent, human)
-            verify_waf(url, s, req_main)
         # waf_rules(url, s, req_main, authent)
     except KeyboardInterrupt:
         print(" ! Canceled by keyboard interrupt (Ctrl-C)")

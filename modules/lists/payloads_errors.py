@@ -290,6 +290,7 @@ payloads_keys = [
     {"Content-Encoding": "gzip", "Content-Encoding": "identity"},
     {"Transfer-Encoding": "chunked", "Content-Length": "100"},
     {"Content-Type": ""},
+    {'Invalid,Comma': 'coucoucou'},
     {"Content-Disposition": ""},
     {"Content-Length": ""},
     {"Content-Type": " "},
