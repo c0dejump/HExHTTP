@@ -117,9 +117,6 @@ def run_cpdos_modules(
         verify_waf(url, s, req_main)
 
         # waf_rules(url, s, req_main, authent)
-    except KeyboardInterrupt:
-        print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-        sys.exit()
     except Exception as e:
         #print(e)
         logger.exception(f"CPDoS: {str(e)}")

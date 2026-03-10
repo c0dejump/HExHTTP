@@ -160,10 +160,6 @@ def cpdos_main(
                 sys.stdout.write(f"{Colors.BLUE}CPDoS : {pk}{Colors.RESET}\r")
                 sys.stdout.write("\033[K")
                 
-        except KeyboardInterrupt:
-            print("Exiting")
-            sys.exit()
-            
         except requests.exceptions.InvalidHeader as ih:
             try:
                 raw = True

@@ -135,6 +135,7 @@ def get_technos(
             getattr(a_tech, tech_hit)(url, s)
             technologies_detected = True
             tech_hit = False
+            return tech_hit
 
     if not technologies_detected:
         print(

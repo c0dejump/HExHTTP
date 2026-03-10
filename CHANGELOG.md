@@ -15,6 +15,7 @@ Changelog:
 	- False positive baseline in "utils.py"
 	- Centralization of the main requests made for CP/CPDoS scans in "global_requests.py"
 	- HHMP CPDoS module, Host Header Manipulation Poisoning, likely host header injection but some different
+	- Generates an interactive HTML report from scan results with -o option (export json/csv in HTML)
 ---------
 
 - 2.4

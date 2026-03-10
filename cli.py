@@ -127,6 +127,16 @@ def args() -> argparse.Namespace:
         default=0,
         help="Increase verbosity (can be used multiple times)",
     )
+    group.add_argument(
+        "-o",
+        "--output-html",
+        dest="output_html",
+        type=str, nargs='?', const='default',
+        metavar='FILE',
+        help='Generate HTML report (default: results/<date>_report.html)'
+    )
+
+
 
     group = parser.add_argument_group(f"{Colors.BLUE}> Proxy Settings{Colors.RESET}")
     group.add_argument(

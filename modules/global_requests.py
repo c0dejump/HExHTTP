@@ -8,7 +8,7 @@ import utils.proxy as proxy
 from utils.style import Colors, Identify
 from utils.utils import configure_logger, sys, human_time, random, requests, range_exclusion, verify_waf, random_ua
 from utils.print_utils import cache_tag_verify, format_payload
-
+from utils.collect import add_finding
 
 logger = configure_logger(__name__)
 
@@ -82,8 +82,6 @@ def confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, 
         control.status_code == probe.status_code
         and control.status_code not in [initialStatusCode, 429]
     ):
-        print(control.headers)
-        print(control.status_code)
         return ("confirmed", f"DIFFERENT STATUS-CODE {initialStatusCode} > {control.status_code}")
     elif (
         len(control.content) == len(probe.content)
@@ -151,20 +149,19 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
             status = f"{Identify.behavior}"
             severity = "behavior"
 
-            if raw:
-                confirmed_severity, confirmed_reason = confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
-            else:
-                confirmed_severity, confirmed_reason = confirm_vuln(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
-            
-            if confirmed_severity:
-                reason = confirmed_reason
-                status = f"{Identify.confirmed}"
-                severity = confirmed_severity
-        
-        elif len(probe.content) != initialResponseLen and len(probe.content) != fp_results[1]:
-            reason = f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(probe.content)}b"
-            status = f"{Identify.behavior}"
-            severity = "behavior"
+            add_finding(url, {
+                "type": "CPDoS",
+                "severity": "info",
+                "title": VULN_NAME,
+                "description": reason,
+                "payload": payload_header,
+                "evidence": {
+                        "status_code": probe.status_code,
+                        "response_size": len(probe.content),
+                        "initial_status": initialStatusCode,
+                        "initial_size": initialResponseLen,
+                    }
+            })
 
             if raw:
                 confirmed_severity, confirmed_reason = confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
@@ -175,6 +172,63 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
                 reason = confirmed_reason
                 status = f"{Identify.confirmed}"
                 severity = confirmed_severity
+
+                add_finding(url, {
+                    "type": "CPDoS",
+                    "severity": "critical",
+                    "title": VULN_NAME,
+                    "description": reason,
+                    "payload": payload_header,
+                    "evidence": {
+                        "status_code": probe.status_code,
+                        "response_size": len(probe.content),
+                        "initial_status": initialStatusCode,
+                        "initial_size": initialResponseLen,
+                    }
+                })
+        
+        elif len(probe.content) != initialResponseLen and len(probe.content) != fp_results[1]:
+            reason = f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(probe.content)}b"
+            status = f"{Identify.behavior}"
+            severity = "behavior"
+
+            add_finding(url, {
+                "type": "CPDoS",
+                "severity": "info",
+                "title": VULN_NAME,
+                "description": reason,
+                "payload": payload_header,
+                "evidence": {
+                        "status_code": probe.status_code,
+                        "response_size": len(probe.content),
+                        "initial_status": initialStatusCode,
+                        "initial_size": initialResponseLen,
+                    }
+            })
+
+            if raw:
+                confirmed_severity, confirmed_reason = confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
+            else:
+                confirmed_severity, confirmed_reason = confirm_vuln(url, s, authent, fp_results, human, probe, payload_header, initialStatusCode, initialResponseLen, rangeLenExclusion)
+            
+            if confirmed_severity:
+                reason = confirmed_reason
+                status = f"{Identify.confirmed}"
+                severity = confirmed_severity
+
+                add_finding(url, {
+                    "type": "CPDoS",
+                    "severity": "critical",
+                    "title": VULN_NAME,
+                    "description": reason,
+                    "payload": payload_header,
+                    "evidence": {
+                        "status_code": probe.status_code,
+                        "response_size": len(probe.content),
+                        "initial_status": initialStatusCode,
+                        "initial_size": initialResponseLen,
+                    }
+                })
     
     elif combo_key in exclude_combinations:
         potential_reason = None
@@ -194,6 +248,20 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
                 reason = confirmed_reason
                 status = f"{Identify.confirmed}"
                 severity = confirmed_severity
+
+                add_finding(url, {
+                    "type": "CPDoS",
+                    "severity": "critical",
+                    "title": VULN_NAME,
+                    "description": reason,
+                    "payload": payload_header,
+                    "evidence": {
+                        "status_code": probe.status_code,
+                        "response_size": len(probe.content),
+                        "initial_status": initialStatusCode,
+                        "initial_size": initialResponseLen,
+                    }
+                })
 
     if reason:
         #print(f"Combinations: {combinations}")

@@ -41,7 +41,6 @@ from modules.lists import user_agents_list
 CONTENT_DELTA_RANGE = 500
 BIG_CONTENT_DELTA_RANGE = 5000
 
-
 ## url tranformation ##
 def get_domain_from_url(url: str) -> str:
     domain = urlparse(url).netloc

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from datetime import datetime
+import time
 from queue import Empty, Queue
 from threading import Thread
 
@@ -39,8 +40,9 @@ from utils.utils import (
     verify_waf,
     fp_baseline,
     parse_headers,
-    urllib3
+    urllib3,
 )
+from utils.collect import init_url, update_url, add_finding, add_error, get_results
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -60,6 +62,13 @@ threads: int | None = None
 def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tuple[str, str] | None = None) -> None:
     domain = get_domain_from_url(url)
     resp_main_headers = []
+    main_status_code = 0
+    main_len = 0
+    main_head = {}
+    detected_tech = "Unknown"
+
+    # Register URL immediately — findings will be collected in real-time
+    init_url(url)
 
     try:
         req_main = s.get(
@@ -100,6 +109,9 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
         )
 
         fp_results = fp_baseline(f"{url}?cb=123byc0dejump", s)
+
+        detected_tech = "Unknown"
+
         if not only_cp:
             check_cachetag_header(resp_main_headers)
             check_server_error(url, auth)
@@ -107,7 +119,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
             check_localhost(url, s, domain, auth)
             check_methods(url, custom_header, auth, human or "")
             check_http_version(url)
-            get_technos(url, s, req_main, a_tech)
+            detected_tech = get_technos(url, s, req_main, a_tech) or "Unknown"
             verify_waf(url, s, req_main)
             check_http_debug(url, s, main_status_code, main_len, main_head, auth, human or "")
             verify_waf(url, s, req_main)
@@ -121,18 +133,31 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
         check_cache_files(url, s, parse_headers(custom_header), auth)
         
     except requests.ConnectionError as e:
+        add_error(url, str(e))
         if "Connection refused" in str(e):
             print(f"Error, connection refused by target host: {e}")
         else:
             print(f"Error, cannot connect to target: {e}")
     except requests.Timeout:
+        add_error(url, "Request timeout (10s)")
         print("Error, request timeout (10s)")
     except requests.exceptions.MissingSchema:
+        add_error(url, "Missing http:// or https:// schema")
         print("Error, missing http:// or https:// schema")
     except Exception as e:
+        add_error(url, str(e))
         print(f"Error : {e}")
         logger.exception(f"hexhttp.py: {e}")
-
+    finally:
+        update_url(
+            url=url,
+            status_code=main_status_code,
+            response_size=main_len,
+            technology=detected_tech,
+            cache_headers={k: v for k, v in main_head.items() 
+                          if 'cache' in k.lower() or k.lower() in 
+                          ('age', 'x-varnish', 'x-cache', 'cf-cache-status', 'x-cache-hits')},
+        )
 
 
 def worker_main(s: requests.Session, auth: str | None) -> None:
@@ -173,24 +198,26 @@ def worker_main(s: requests.Session, auth: str | None) -> None:
 
 def cli_main() -> None:
     """Entry point for the CLI command."""
-    results = args()
+    parser = args()
 
     global human, url_file, custom_header, only_cp, threads
 
-    url = results.url
-    url_file = results.url_file
-    custom_header = results.custom_header
-    auth = results.auth
-    user_agent = results.user_agent
-    threads = results.threads
-    humans = results.humans
-    proxy_arg = results.proxy
-    burp_arg = results.burp
-    only_cp = results.only_cp
+    url = parser.url
+    url_file = parser.url_file
+    custom_header = parser.custom_header
+    auth = parser.auth
+    user_agent = parser.user_agent
+    threads = parser.threads
+    humans = parser.humans
+    proxy_arg = parser.proxy
+    burp_arg = parser.burp
+    only_cp = parser.only_cp
+    output_html = parser.output_html
 
-    configure_logging(results.verbose, results.log, results.log_file)
+    configure_logging(parser.verbose, parser.log, parser.log_file)
 
     human = humans
+    start_time = time.time()
 
     try:
         s = requests.Session()
@@ -272,6 +299,12 @@ def cli_main() -> None:
 
             except KeyboardInterrupt:
                 print("Exiting")
+                if output_html:
+                    from modules.html_report import generate_html_report, build_scan_meta
+                    meta = build_scan_meta(parser, start_time)
+                    path = None if parser.output_html == 'default' else parser.output_html
+                    report = generate_html_report(get_results(), path, meta)
+                    print(f" Report: {report}")
                 sys.exit()
             except FileNotFoundError:
                 print("Input file not found")
@@ -290,8 +323,22 @@ def cli_main() -> None:
             auth_tuple = check_auth(auth, url) if auth else None
             process_modules(url, s, Technology(), auth_tuple)
 
+        if output_html:
+            from modules.html_report import generate_html_report, build_scan_meta
+            meta = build_scan_meta(parser, start_time)
+            path = None if parser.output_html == 'default' else parser.output_html
+            report = generate_html_report(get_results(), path, meta)
+            print(f" Report: {report}")
+
+
     except KeyboardInterrupt:
-        print("Exiting")
+        print("Exiting5")
+        if output_html:
+            from modules.html_report import generate_html_report, build_scan_meta
+            meta = build_scan_meta(parser, start_time)
+            path = None if parser.output_html == 'default' else parser.output_html
+            report = generate_html_report(get_results(), path, meta)
+            print(f" Report: {report}")
         sys.exit()
     except Exception as e:
         print(f"Error : {e}")
