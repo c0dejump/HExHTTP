@@ -160,6 +160,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
                         "response_size": len(probe.content),
                         "initial_status": initialStatusCode,
                         "initial_size": initialResponseLen,
+                        "uri": uri,
                     }
             })
 
@@ -184,6 +185,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
                         "response_size": len(probe.content),
                         "initial_status": initialStatusCode,
                         "initial_size": initialResponseLen,
+                        "uri": uri,
                     }
                 })
         
@@ -203,6 +205,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
                         "response_size": len(probe.content),
                         "initial_status": initialStatusCode,
                         "initial_size": initialResponseLen,
+                        "uri": uri,
                     }
             })
 
@@ -227,6 +230,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
                         "response_size": len(probe.content),
                         "initial_status": initialStatusCode,
                         "initial_size": initialResponseLen,
+                        "uri": uri,
                     }
                 })
     
@@ -260,6 +264,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
                         "response_size": len(probe.content),
                         "initial_status": initialStatusCode,
                         "initial_size": initialResponseLen,
+                        "uri": uri,
                     }
                 })
 
