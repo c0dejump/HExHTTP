@@ -57,22 +57,23 @@ def init_url(url: str, status_code: int = 0, response_size: int = 0,
         }
 
 
-def update_url(url: str, status_code: int = 0, response_size: int = 0,
-               technology: str = "Unknown", cache_headers: dict | None = None) -> None:
-    """Update URL metadata (call in finally once you have the real values)."""
+def update_url(url: str, status_code: int | None = None, response_size: int | None = None,
+               technology: str | None = None, cache_headers: dict | None = None) -> None:
+    """Update URL metadata. Always overwrites with provided values."""
     with _lock:
         key = _resolve_url(url)
         if key not in _results:
-            init_url(url, status_code, response_size, technology, cache_headers)
+            init_url(url, status_code or 0, response_size or 0,
+                     technology or "Unknown", cache_headers)
             return
         r = _results[key]
-        if status_code:
+        if status_code is not None:
             r["status_code"] = status_code
-        if response_size:
+        if response_size is not None:
             r["response_size"] = response_size
-        if technology and technology != "Unknown":
+        if technology is not None and technology != "Unknown":
             r["technology"] = technology
-        if cache_headers:
+        if cache_headers is not None:
             r["cache_headers"].update(cache_headers)
 
 

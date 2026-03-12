@@ -134,9 +134,8 @@ def get_technos(
         if tech_hit and isinstance(tech_hit, str):
             getattr(a_tech, tech_hit)(url, s)
             technologies_detected = True
-            tech_hit = False
-            return tech_hit
-
+            return t
+            
     if not technologies_detected:
         print(
             f"{Colors.YELLOW} │ └── No specific technologies detected{Colors.RESET}"

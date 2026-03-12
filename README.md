@@ -209,6 +209,9 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 
 ![example poisoner](./static/docs/_media/example_02.png)
 
+### HExHTTP HTML report exemple
+![report poisoner](./static/docs/_media/html_report_exemple.png)
+
 ### TOOL TIPS
 - If the base URL responds with a 403, try removing the comments in hexhttp.py (search DECOMMENTHIS) and restarting.
 

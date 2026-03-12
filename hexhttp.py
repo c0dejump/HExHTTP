@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3*
+
+import sys
+sys.dont_write_bytecode = True
 
 from datetime import datetime
 import time
@@ -36,7 +39,6 @@ from utils.utils import (
     configure_logger,
     get_domain_from_url,
     requests,
-    sys,
     verify_waf,
     fp_baseline,
     parse_headers,
@@ -79,6 +81,13 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
         main_head = req_main.headers
         main_len = len(req_main.content)
 
+        # Store status immediately — don't wait for finally
+        cache_hdrs = {k: v for k, v in main_head.items()
+                      if 'cache' in k.lower() or k.lower() in
+                      ('age', 'x-varnish', 'x-cache', 'cf-cache-status', 'x-cache-hits')}
+
+        update_url(url, status_code=main_status_code, response_size=main_len, cache_headers=cache_hdrs)
+
         print(f"{Colors.BLUE} ⟙{Colors.RESET}")
         start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"{Colors.SALMON}[STARTED]{Colors.RESET} {start_time}")
@@ -112,25 +121,29 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
 
         detected_tech = "Unknown"
 
-        if not only_cp:
-            check_cachetag_header(resp_main_headers)
-            check_server_error(url, auth)
-            check_vhost(url)
-            check_localhost(url, s, domain, auth)
-            check_methods(url, custom_header, auth, human or "")
-            check_http_version(url)
+        if main_status_code == 403 and url_file:
             detected_tech = get_technos(url, s, req_main, a_tech) or "Unknown"
-            verify_waf(url, s, req_main)
-            check_http_debug(url, s, main_status_code, main_len, main_head, auth, human or "")
-            verify_waf(url, s, req_main)
-            check_cpcve(url, s, req_main, parse_headers(custom_header), auth, fp_results, human or "")
+        else:
+            if not only_cp:
+                check_cachetag_header(resp_main_headers)
+                check_server_error(url, auth)
+                check_vhost(url)
+                check_localhost(url, s, domain, auth)
+                check_methods(url, custom_header, auth, human or "")
+                check_http_version(url)
+                verify_waf(url, s, req_main)
+                check_http_debug(url, s, main_status_code, main_len, main_head, auth, human or "")
+                verify_waf(url, s, req_main)
+                check_cpcve(url, s, req_main, parse_headers(custom_header), auth, fp_results, human or "")
 
-        check_uncommon_header(url, s, req_main, dict(main_head), fp_results, auth)
-        check_CPDoS(url, s, req_main, parse_headers(custom_header), auth, human or "")
-        check_methods_poisoning(url, s, parse_headers(custom_header), auth)
-        verify_waf(url, s, req_main)
-        check_cache_poisoning(url, s, parse_headers(custom_header), auth, human or "")
-        check_cache_files(url, s, parse_headers(custom_header), auth)
+            detected_tech = get_technos(url, s, req_main, a_tech) or "Unknown"
+
+            check_uncommon_header(url, s, req_main, dict(main_head), fp_results, auth)
+            check_CPDoS(url, s, req_main, parse_headers(custom_header), auth, human or "")
+            check_methods_poisoning(url, s, parse_headers(custom_header), auth)
+            verify_waf(url, s, req_main)
+            check_cache_poisoning(url, s, parse_headers(custom_header), auth, human or "")
+            check_cache_files(url, s, parse_headers(custom_header), auth)
         
     except requests.ConnectionError as e:
         add_error(url, str(e))
@@ -217,7 +230,7 @@ def cli_main() -> None:
     configure_logging(parser.verbose, parser.log, parser.log_file)
 
     human = humans
-    start_time = time.time()
+    start_time_report = time.time()
 
     try:
         s = requests.Session()
@@ -301,10 +314,10 @@ def cli_main() -> None:
                 print("Exiting")
                 if output_html:
                     from modules.html_report import generate_html_report, build_scan_meta
-                    meta = build_scan_meta(parser, start_time)
+                    meta = build_scan_meta(parser, start_time_report)
                     path = None if parser.output_html == 'default' else parser.output_html
                     report = generate_html_report(get_results(), path, meta)
-                    print(f" Report: {report}")
+                    print(f" Report saved: {report}")
                 sys.exit()
             except FileNotFoundError:
                 print("Input file not found")
@@ -325,20 +338,20 @@ def cli_main() -> None:
 
         if output_html:
             from modules.html_report import generate_html_report, build_scan_meta
-            meta = build_scan_meta(parser, start_time)
+            meta = build_scan_meta(parser, start_time_report)
             path = None if parser.output_html == 'default' else parser.output_html
             report = generate_html_report(get_results(), path, meta)
-            print(f" Report: {report}")
+            print(f" Report saved: {report}")
 
 
     except KeyboardInterrupt:
-        print("Exiting5")
+        print("Exiting")
         if output_html:
             from modules.html_report import generate_html_report, build_scan_meta
-            meta = build_scan_meta(parser, start_time)
+            meta = build_scan_meta(parser, start_time_report)
             path = None if parser.output_html == 'default' else parser.output_html
             report = generate_html_report(get_results(), path, meta)
-            print(f" Report: {report}")
+            print(f" Report saved: {report}")
         sys.exit()
     except Exception as e:
         print(f"Error : {e}")

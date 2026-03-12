@@ -37,7 +37,7 @@ def confirm_vuln(url, s, authent, fp_results, human, probe, payload_header, init
         canary = canary_session.get(canary_uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
         canary_session.close()
         
-        if canary.status_code != initialStatusCode and canary.status_code != 429:
+        if canary.status_code != initialStatusCode and canary.status_code not in [403, 419]:
             return (None, None)
 
         if (
@@ -49,7 +49,7 @@ def confirm_vuln(url, s, authent, fp_results, human, probe, payload_header, init
         elif (
             len(control.content) == len(probe.content)
             and len(control.content) not in rangeLenExclusion
-            and control.status_code != 429
+            and control.status_code not in [403, 419]
         ):
             return ("confirmed", f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(control.content)}b")
     
@@ -75,7 +75,7 @@ def confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, 
     canary = canary_session.get(canary_uri, verify=False, timeout=10, auth=authent, allow_redirects=False)
     canary_session.close()
 
-    if canary.status_code != initialStatusCode and canary.status_code != 429:
+    if canary.status_code != initialStatusCode and canary.status_code not in [403, 419]:
         return (None, None)
         
     if (
@@ -86,7 +86,7 @@ def confirm_vuln_raw(url, s, authent, fp_results, human, probe, payload_header, 
     elif (
         len(control.content) == len(probe.content)
         and len(control.content) not in rangeLenExclusion
-        and control.status_code != 429
+        and control.status_code not in [403, 419]
     ):
         return ("confirmed", f"DIFFERENT RESP-LENGTH {initialResponseLen}b > {len(control.content)}b")
     else:
@@ -129,6 +129,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
     if probe.status_code in [405, 403, 412, 429]:
         verify_waf(url, s, initialResponse, payload=payload_header)
 
+
     combo_key = (probe.status_code, len(probe.content))
     
     if len(probe.content) not in rangeLenExclusion:
@@ -143,7 +144,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
     if combo_key not in exclude_combinations and len(probe.content) not in rangeLenExclusion:
         if (probe.status_code != initialStatusCode 
             and probe.status_code != fp_results[0]
-            and probe.status_code != 429
+            and probe.status_code not in [403, 419]
         ):
             reason = f"DIFFERENT STATUS-CODE {initialStatusCode} > {probe.status_code}"
             status = f"{Identify.behavior}"
@@ -238,7 +239,7 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
         potential_reason = None
         if (probe.status_code != initialStatusCode 
             and probe.status_code != fp_results[0]
-            and probe.status_code != 429
+            and probe.status_code not in [403, 419]
         ):
             potential_reason = f"DIFFERENT STATUS-CODE {initialStatusCode} > {probe.status_code}"
         
