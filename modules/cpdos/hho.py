@@ -7,6 +7,7 @@ import utils.proxy as proxy
 from utils.style import Colors, Identify
 from utils.utils import configure_logger, human_time, requests, random, random_ua
 from utils.print_utils import cache_tag_verify
+from utils.collect import add_finding
 from modules.global_requests import exclude_combinations
 
 logger = configure_logger(__name__)
@@ -180,11 +181,39 @@ def HHO(
             status = f"{Identify.confirmed}"
             severity = "confirmed"
             confirmed = True
+            add_finding(url, {
+                "type": "CPDoS",
+                "severity": "critical",
+                "title": VULN_NAME,
+                "description": reason,
+                "payload": payload_header,
+                "evidence": {
+                        "status_code": control.status_code,
+                        "response_size": len(control.content),
+                        "initial_status": main_status_code,
+                        "initial_size": main_response_len,
+                        "uri": uri,
+                    }
+            })
             
         elif probe.status_code in [400, 413, 431, 500, 502, 503]:
             reason = f"DIFFERENT STATUS-CODE {main_status_code} > {probe.status_code} (threshold: {exact_threshold}b × 5 = {exact_threshold * 5}b total)"
             status = f"{Identify.behavior}"
             severity = "behavior"
+            add_finding(url, {
+                "type": "CPDoS",
+                "severity": "info",
+                "title": VULN_NAME,
+                "description": reason,
+                "payload": payload_header,
+                "evidence": {
+                        "status_code": control.status_code,
+                        "response_size": len(control.content),
+                        "initial_status": main_status_code,
+                        "initial_size": main_response_len,
+                        "uri": uri,
+                    }
+            })
             
         else:
             logger.info("[HHO] Could not confirm vulnerability")

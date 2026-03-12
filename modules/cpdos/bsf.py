@@ -3,6 +3,7 @@
 from utils.style import Colors, Identify
 from utils.utils import random, requests, urlparse, range_exclusion
 from utils.print_utils import cache_tag_verify
+from utils.collect import add_finding
 
 """
 Exemple:
@@ -41,20 +42,76 @@ def backslash_test(
         print(
             f" {Identify.behavior} | {VULN_NAME} {req_main.status_code} > {req_b.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
         )
-        vcp_c = vcp_code(url_b, s, req_b)
+        add_finding(uri, {
+            "type": "CPDoS",
+            "severity": "info",
+            "title": VULN_NAME,
+            "description": "DIFF STATUS_CODE",
+            "payload": pp,
+            "evidence": {
+                    "status_code": req_b.status_code,
+                    "response_size": len(req_b.content),
+                    "initial_status": req_main.status_code,
+                    "initial_size": main_len,
+                    "uri": url_b,
+                }
+        })
+        vcp_c = vcp_code(uri, s, req_b)
         if vcp_c:
             print(
                 f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_b.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
             )
+            add_finding(uri, {
+                "type": "CPDoS",
+                "severity": "critical",
+                "title": VULN_NAME,
+                "description": "DIFF STATUS_CODE",
+                "payload": pp,
+                "evidence": {
+                        "status_code": req_b.status_code,
+                        "response_size": len(req_b.content),
+                        "initial_status": req_main.status_code,
+                        "initial_size": main_len,
+                        "uri": url_b,
+                    }
+            })
     elif len(req_b.content) not in rel:
         print(
             f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_b.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
         )
+        add_finding(uri, {
+            "type": "CPDoS",
+            "severity": "info",
+            "title": VULN_NAME,
+            "description": "DIFF LENGHT",
+            "payload": pp,
+            "evidence": {
+                    "status_code": req_b.status_code,
+                    "response_size": len(req_b.content),
+                    "initial_status": req_main.status_code,
+                    "initial_size": main_len,
+                    "uri": url_b,
+                }
+        })
         vcp_l = vcp_len(url_b, s, req_b)
         if vcp_l:
             print(
                 f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_b.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
             )
+            add_finding(url, {
+                "type": "CPDoS",
+                "severity": "critical",
+                "title": VULN_NAME,
+                "description": "DIFF LENGHT",
+                "payload": pp,
+                "evidence": {
+                        "status_code": req_b.status_code,
+                        "response_size": len(req_b.content),
+                        "initial_status": req_main.status_code,
+                        "initial_size": main_len,
+                        "uri": url_b,
+                    }
+            })
 
 
 def vcp_code(url_b: str, s: requests.Session, req_b: requests.Response) -> bool:

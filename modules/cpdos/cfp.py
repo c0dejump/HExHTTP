@@ -18,6 +18,7 @@ from utils.utils import (
     random_ua,
 )
 from utils.print_utils import print_results, cache_tag_verify
+from utils.collect import add_finding
 
 
 logger = configure_logger(__name__)
@@ -698,7 +699,7 @@ def format_poisoning(url, s, initial_response, authent, human):
     main_len = len(initial_response.content)
 
     df_init = detect_format(initial_response.content, initial_response.headers)
-    if df_init and df_init != "JSON":
+    if df_init != "JSON":
         for cfp in cfp_payloads:
             uri = f"{url}{random.randrange(9999)}"
             try:
@@ -707,19 +708,47 @@ def format_poisoning(url, s, initial_response, authent, human):
                 df = detect_format(req.content, req.headers)
                 if df and df != df_init:
                     print_results(Identify.behavior , "CFP", f"HTML > {df}", cache_tag_verify(req), uri, cfp)
+                    add_finding(url, {
+                        "type": "CPDoS",
+                        "severity": "info",
+                        "title": "CFP",
+                        "description": f"HTML > {df}",
+                        "payload": cfp,
+                        "evidence": {
+                                "status_code": req.status_code,
+                                "response_size": len(req.content),
+                                "initial_status": initial_response.status_code,
+                                "initial_size": main_len,
+                                "uri": uri,
+                            }
+                    })
                     vcp = verify_cp(s, uri, cfp, authent)
                     if vcp != df_init:
                         print_results(Identify.confirmed , "CFP", f"HTML > {df}", cache_tag_verify(req), uri, cfp)
+                        add_finding(url, {
+                        "type": "CPDoS",
+                            "severity": "critical",
+                            "title": "CFP",
+                            "description": f"HTML > {df}",
+                            "payload": cfp,
+                            "evidence": {
+                                    "status_code": req.status_code,
+                                    "response_size": len(req.content),
+                                    "initial_status": initial_response.status_code,
+                                    "initial_size": main_len,
+                                    "uri": uri,
+                                }
+                        })
                 else:
                     pass
                 human_time(human)
             except UnicodeEncodeError as u:
-                #print(f"invalid unicode: {u}")
+                print(f"invalid unicode: {u}")
                 pass
                 #logger.exception(u)
             except Exception as e:
                 print(e)
-                #logger.exception(e)
+                logger.exception(e)
                 pass
             print(f" {Colors.BLUE} CFP : {cfp}{Colors.RESET}\r", end="")
             print("\033[K", end="")
