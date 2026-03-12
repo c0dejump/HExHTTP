@@ -75,7 +75,7 @@ def generate_html_report(scan_results: list[dict], output_path: str | None = Non
     all_reasons = set()
     for r in scan_results:
         for f in r.get("findings", []):
-            all_types.add(f.get("type", "Unknown"))
+            all_types.add(f.get("title", f.get("type", "Unknown")))
             ev = f.get("evidence", {})
             sc = ev.get("status_code")
             if sc and str(sc) != "0":
@@ -87,8 +87,10 @@ def generate_html_report(scan_results: list[dict], output_path: str | None = Non
                 all_reasons.add("resp-length")
 
     # Build filter tag HTML
-    type_tags = "".join(f'<button class="ftag" data-fgroup="type" data-fval="{html.escape(t)}">{html.escape(t)}</button>' for t in sorted(all_types))
-    status_tags = "".join(f'<button class="ftag" data-fgroup="status" data-fval="{s}">{s}</button>' for s in sorted(all_statuses, key=lambda x: int(x) if x.isdigit() else 0))
+    type_tags_btns = "".join(f'<button class="ftag" data-fgroup="type" data-fval="{html.escape(t)}">{html.escape(t)}</button>' for t in sorted(all_types))
+    type_tags = f'<button class="ftag ftag-selall" data-selall="type">All</button>{type_tags_btns}' if type_tags_btns else ""
+    status_tags_btns = "".join(f'<button class="ftag" data-fgroup="status" data-fval="{s}">{s}</button>' for s in sorted(all_statuses, key=lambda x: int(x) if x.isdigit() else 0))
+    status_tags = f'<button class="ftag ftag-selall" data-selall="status">All</button>{status_tags_btns}' if status_tags_btns else ""
     reason_tags = "".join(f'<button class="ftag" data-fgroup="reason" data-fval="{html.escape(r)}">{html.escape(r)}</button>' for r in sorted(all_reasons))
 
     err_card = ""
@@ -216,10 +218,8 @@ def _format_bytes(b: int) -> str:
 
 
 def _build_curl(uri: str, payload: dict) -> str:
-    """Build a curl command from URI and payload headers."""
     parts = [f"curl -sk -o /dev/null -w '%{{http_code}} %{{size_download}}' \\"]
     for k, v in payload.items():
-        # Escape single quotes in header values
         safe_k = str(k).replace("'", "'\\''")
         safe_v = str(v).replace("'", "'\\''")
         parts.append(f"  -H '{safe_k}: {safe_v}' \\")
@@ -311,9 +311,7 @@ def _build_finding_card(finding: dict) -> str:
     payload = finding.get("payload", {})
     evidence = finding.get("evidence", {})
 
-    # Extract status code from evidence or description
     ev_status = str(evidence.get("status_code", ""))
-    # Extract reason keyword from description (e.g. "DIFFERENT STATUS-CODE 200 > 500")
     reason = ""
     if desc:
         if "STATUS-CODE" in desc:
@@ -325,13 +323,11 @@ def _build_finding_card(finding: dict) -> str:
     if payload:
         payload_html = f'<div class="finding-payload"><span class="payload-label">Payload</span><pre class="code-block">{html.escape(json.dumps(payload, indent=2, ensure_ascii=False))}</pre></div>'
 
-    # Clickable poisoned URI
     uri = evidence.get("uri", "")
     uri_html = ""
     if uri:
         uri_html = f'<div class="finding-uri"><span class="uri-label">Poisoned URL</span><a href="{html.escape(uri)}" target="_blank" rel="noopener" class="uri-link">{html.escape(uri)}</a></div>'
 
-    # Build curl replay command
     curl_html = ""
     if uri and payload:
         curl_cmd = _build_curl(uri, payload)
@@ -346,7 +342,7 @@ def _build_finding_card(finding: dict) -> str:
         parts = []
         for k, v in evidence.items():
             if k == "uri":
-                continue  # already shown above
+                continue
             if k == "interesting_headers" and isinstance(v, dict):
                 for hk, hv in v.items():
                     parts.append(f"<div class='ev-row'><span class='ev-key'>{html.escape(hk)}</span><span class='ev-val'>{html.escape(str(hv))}</span></div>")
@@ -357,7 +353,7 @@ def _build_finding_card(finding: dict) -> str:
         ev_html = f'<div class="finding-evidence"><span class="evidence-label">Evidence</span>{"".join(parts)}</div>'
 
     return f"""
-    <div class="finding-card {_sev_class(sev)}" data-f-sev="{html.escape(sev.lower())}" data-f-type="{html.escape(ftype)}" data-f-status="{html.escape(ev_status)}" data-f-reason="{html.escape(reason)}">
+    <div class="finding-card {_sev_class(sev)}" data-f-sev="{html.escape(sev.lower())}" data-f-type="{html.escape(title)}" data-f-status="{html.escape(ev_status)}" data-f-reason="{html.escape(reason)}">
       <div class="finding-header">
         <span class="finding-sev-badge {_sev_class(sev)}">{_sev_label(sev)}</span>
         <span class="finding-type">{html.escape(ftype)}</span>
@@ -408,10 +404,7 @@ body { font-family: 'JetBrains Mono','Fira Code','SF Mono','Cascadia Code',monos
 .search-input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:0.5rem 1rem; color:var(--text-bright); font-family:inherit; font-size:0.8rem; width:260px; outline:none; transition:border-color 0.2s; }
 .search-input:focus { border-color:var(--accent); }
 .search-input::placeholder { color:var(--text-dim); }
-.filter-btns,.export-btns { display:flex; gap:0.35rem; }
-.filter-btn { background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:0.4rem 0.8rem; color:var(--text-dim); font-family:inherit; font-size:0.72rem; cursor:pointer; transition:all 0.15s; }
-.filter-btn:hover { border-color:var(--accent); color:var(--text); }
-.filter-btn.active { background:var(--accent-dim); border-color:var(--accent); color:#fff; }
+.export-btns { display:flex; gap:0.35rem; }
 .export-btn { background:var(--accent-glow); border:1px solid var(--accent-dim); border-radius:5px; padding:0.4rem 0.8rem; color:var(--accent); font-family:inherit; font-size:0.72rem; cursor:pointer; transition:all 0.15s; font-weight:600; }
 .export-btn:hover { background:var(--accent-dim); color:#fff; }
 .bulk-btns { display:flex; gap:0.35rem; margin-left:auto; }
@@ -424,6 +417,8 @@ body { font-family: 'JetBrains Mono','Fira Code','SF Mono','Cascadia Code',monos
 .ftag { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:0.25rem 0.55rem; color:var(--text-dim); font-family:inherit; font-size:0.68rem; cursor:pointer; transition:all 0.15s; }
 .ftag:hover { border-color:var(--accent); color:var(--text); }
 .ftag.on { background:var(--accent-dim); border-color:var(--accent); color:#fff; }
+.ftag-selall { font-style:italic; opacity:0.8; }
+.ftag-selall.on { opacity:1; }
 
 .results { max-width:1200px; margin:0 auto; padding:1.5rem; }
 
@@ -549,16 +544,35 @@ document.getElementById('resetFilters').addEventListener('click',function(){
   applyFilters();
 });
 
-// Toggle filter tags — within same group: multi-select; "view" group: exclusive
+// Toggle filter tags
 document.querySelectorAll('.ftag').forEach(tag=>{
   tag.addEventListener('click',function(){
     const group=this.dataset.fgroup;
+    const selall=this.dataset.selall;
+
+    // "Select all" button for a group
+    if(selall){
+      const groupTags=document.querySelectorAll('.ftag[data-fgroup="'+selall+'"]:not([data-selall])');
+      const allOn=[...groupTags].every(t=>t.classList.contains('on'));
+      groupTags.forEach(t=>{ if(allOn) t.classList.remove('on'); else t.classList.add('on'); });
+      this.classList.toggle('on',!allOn);
+      applyFilters();
+      return;
+    }
+
+    // "view" group is exclusive
     if(group==='view'){
       const wasOn=this.classList.contains('on');
       document.querySelectorAll('.ftag[data-fgroup="view"]').forEach(t=>t.classList.remove('on'));
       if(!wasOn) this.classList.add('on');
     }else{
       this.classList.toggle('on');
+      // Sync "select all" button state
+      const sa=document.querySelector('.ftag[data-selall="'+group+'"]');
+      if(sa){
+        const groupTags=document.querySelectorAll('.ftag[data-fgroup="'+group+'"]:not([data-selall])');
+        sa.classList.toggle('on',[...groupTags].every(t=>t.classList.contains('on')));
+      }
     }
     applyFilters();
   });
@@ -566,7 +580,7 @@ document.querySelectorAll('.ftag').forEach(tag=>{
 
 function getActiveFilters(){
   const filters={};
-  document.querySelectorAll('.ftag.on').forEach(t=>{
+  document.querySelectorAll('.ftag.on:not([data-selall])').forEach(t=>{
     const g=t.dataset.fgroup, v=t.dataset.fval;
     if(!filters[g]) filters[g]=[];
     filters[g].push(v);
@@ -589,20 +603,16 @@ function applyFilters(){
     const hasFindings=card.dataset.hasFindings==='1';
     let cardVisible=true;
 
-    // Text search
     if(search&&!url.includes(search)) cardVisible=false;
 
-    // View filter (findings only / clean only)
     if(hasView){
       if(filters.view.includes('findings')&&!hasFindings) cardVisible=false;
       if(filters.view.includes('clean')&&hasFindings) cardVisible=false;
     }
 
-    // Finding-level filters: filter individual findings, show card only if any match
     const findingCards=card.querySelectorAll('.finding-card');
     if(cardVisible&&hasFindingFilter){
       if(findingCards.length===0){
-        // No findings at all — hide when any finding filter is active
         cardVisible=false;
       }else{
         let anyMatch=false;
