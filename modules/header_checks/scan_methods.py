@@ -309,7 +309,7 @@ def display_deduplicated_results(
                 )
 
 
-def check_methods(url: str, custom_header: Any, authent: Any, human) -> None:
+def check_methods(url: str, authent: Any, human) -> None:
     htimeout = Timeout(connect=7.0, read=7.0)
     http = PoolManager(timeout=htimeout)
 

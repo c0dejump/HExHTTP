@@ -8,6 +8,7 @@ from utils.style import Colors, Identify
 from utils.utils import configure_logger, random, requests, sys
 from utils.print_utils import format_payload
 from modules.global_requests import send_global_requests
+from utils.collect import add_finding
 
 logger = configure_logger(__name__)
 
@@ -99,7 +100,7 @@ def verify_cp_reflect(
 ) -> None:
     uri = f"{url}{random.randrange(999)}"
 
-    for _ in range(5):
+    for _ in range(3):
         s.get(
             uri,
             headers=payload,
@@ -116,10 +117,38 @@ def verify_cp_reflect(
         print(
             f" {Identify.confirmed} | BODY REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}"
         )
+        add_finding(url, {
+            "type": "UH CP",
+            "severity": "critical",
+            "title": "UH CP",
+            "description": "BODY REFLECTED",
+            "payload": payload,
+            "evidence": {
+                    "status_code": req_verify.status_code,
+                    "response_size": len(req_verify.content),
+                    "initial_status": 0,
+                    "initial_size": 0,
+                    "uri": uri,
+                }
+        })
     elif reflect_word in req_verify.headers:
         print(
             f" {Identify.confirmed} | HEADER REFLECTED | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}"
         )
+        add_finding(url, {
+            "type": "UH CP",
+            "severity": "critical",
+            "title": "UH CP",
+            "description": "HEADER REFLECTED",
+            "payload": payload,
+            "evidence": {
+                    "status_code": req_verify.status_code,
+                    "response_size": len(req_verify.content),
+                    "initial_status": 0,
+                    "initial_size": 0,
+                    "uri": uri,
+                }
+        })
 
 
 def test_reflection(

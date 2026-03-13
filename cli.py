@@ -133,7 +133,7 @@ def args() -> argparse.Namespace:
         dest="output_html",
         type=str, nargs='?', const='default',
         metavar='FILE',
-        help='Generate HTML report (default: results/<date>_report.html)'
+        help=f'Generate HTML report. {Colors.GREEN}Default: results/<date>_report.html{Colors.RESET})'
     )
 
 

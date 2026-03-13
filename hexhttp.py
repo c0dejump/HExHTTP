@@ -8,10 +8,6 @@ import time
 from queue import Empty, Queue
 from threading import Thread
 
-# utils
-import utils.proxy as proxy
-from cli import args
-
 # cp & cpdos
 from modules.cachepoisoning.cache_poisoning_nf_files import check_cache_files
 from modules.cachepoisoning.cache_poisoning import check_cache_poisoning
@@ -33,6 +29,8 @@ from modules.header_checks.scan_debug_header import check_http_debug
 from modules.logging_config import configure_logging
 from modules.Technology import get_technos, Technology
 
+# utils
+from cli import args
 from utils.style import Colors
 from utils.utils import (
     check_auth,
@@ -45,6 +43,8 @@ from utils.utils import (
     urllib3,
 )
 from utils.collect import init_url, update_url, add_finding, add_error, get_results
+from utils.configure_session import build_session, clone_session
+import utils.proxy as proxy
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -62,88 +62,85 @@ threads: int | None = None
 
 
 def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tuple[str, str] | None = None) -> None:
-    domain = get_domain_from_url(url)
     resp_main_headers = []
-    main_status_code = 0
-    main_len = 0
-    main_head = {}
+    initStatusCode = 0
+    initResponseLen = 0
+    initHeader = {}
     detected_tech = "Unknown"
 
     # Register URL immediately — findings will be collected in real-time
     init_url(url)
 
     try:
-        req_main = s.get(
+        initResponse = s.get(
             url, verify=False, allow_redirects=False, timeout=10, auth=auth
         )
 
-        main_status_code = req_main.status_code
-        main_head = req_main.headers
-        main_len = len(req_main.content)
+        initStatusCode = initResponse.status_code
+        initHeader = initResponse.headers
+        initResponseLen = len(initResponse.content)
+        ph = parse_headers(custom_header)
 
         # Store status immediately — don't wait for finally
-        cache_hdrs = {k: v for k, v in main_head.items()
+        cache_hdrs = {k: v for k, v in initHeader.items()
                       if 'cache' in k.lower() or k.lower() in
                       ('age', 'x-varnish', 'x-cache', 'cf-cache-status', 'x-cache-hits')}
 
-        update_url(url, status_code=main_status_code, response_size=main_len, cache_headers=cache_hdrs)
+        update_url(url, status_code=initStatusCode, response_size=initResponseLen, cache_headers=cache_hdrs)
 
         print(f"{Colors.BLUE} ⟙{Colors.RESET}")
+
         start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"{Colors.SALMON}[STARTED]{Colors.RESET} {start_time}")
         print(f" URL: {url}")
-        print(f" URL response: {Colors.GREEN}{main_status_code}{Colors.RESET}") if main_status_code == 200 else print(f" URL response: {Colors.YELLOW}{main_status_code}{Colors.RESET}")
-        print(f" URL response size: {main_len} bytes")
+        print(f" URL response: {Colors.GREEN}{initStatusCode}{Colors.RESET}") if initStatusCode == 200 else print(f" URL response: {Colors.YELLOW}{initStatusCode}{Colors.RESET}")
+        print(f" URL response size: {initResponseLen} bytes")
         proxy_status = f" Proxy: {Colors.RED}OFF{Colors.RESET}"
         if proxy.proxy_enabled:
             proxy_status = f" Proxy: {Colors.GREEN}ON{Colors.RESET} ({proxy.proxy_url})"
         if proxy.burp_enabled:
             proxy_status += f" | Burp: {Colors.GREEN}ON{Colors.RESET} ({proxy.burp_url})"
         print(proxy_status)
+        print(f" Auth : {Colors.RED}OFF{Colors.RESET}") if not auth else print(f" Auth: {auth}") 
+
         print(f"{Colors.BLUE} ⟘{Colors.RESET}")
         print(f"{Colors.BLUE} ⟙{Colors.RESET}")
 
-        if main_status_code not in [200, 302, 301] and not url_file:
+        if initStatusCode not in [200, 302, 301] and not url_file:
             choice = input(
                 f" {Colors.YELLOW}The url does not seem to answer correctly, continue anyway ?{Colors.RESET} [y/n]"
             )
             if choice not in ["y", "Y"]:
                 return
 
-        for k in req_main.headers:
-            resp_main_headers.append(f"{k}: {req_main.headers[k]}")
-
-        req_main = s.get(
-            url, verify=False, allow_redirects=False, timeout=10, auth=auth
-        )
+        for k in initHeader:
+            resp_main_headers.append(f"{k}: {initHeader[k]}")
 
         fp_results = fp_baseline(f"{url}?cb=123byc0dejump", s)
 
-        detected_tech = "Unknown"
-
-        if main_status_code == 403 and url_file:
-            detected_tech = get_technos(url, s, req_main, a_tech) or "Unknown"
+        if initStatusCode == 403 and url_file:
+            return
         else:
             if not only_cp:
                 check_cachetag_header(resp_main_headers)
                 check_server_error(url, auth)
                 check_vhost(url)
-                check_localhost(url, s, domain, auth)
-                check_methods(url, custom_header, auth, human or "")
+                check_localhost(url, s, get_domain_from_url(url), auth)
+                check_methods(url, auth, human or "")
                 check_http_version(url)
-                verify_waf(url, s, req_main)
-                check_http_debug(url, s, main_status_code, main_len, main_head, auth, human or "")
-                verify_waf(url, s, req_main)
-                check_cpcve(url, s, req_main, parse_headers(custom_header), auth, fp_results, human or "")
+                verify_waf(url, s, initResponse)
+                check_http_debug(url, s, initStatusCode, initResponseLen, initHeader, auth, human or "")
+                verify_waf(url, s, initResponse)
+                check_cpcve(url, s, initResponse, ph, auth, fp_results, human or "")
 
-            detected_tech = get_technos(url, s, req_main, a_tech) or "Unknown"
+            detected_tech = get_technos(url, s, initResponse, a_tech) or "Unknown"
 
-            check_uncommon_header(url, s, req_main, dict(main_head), fp_results, auth)
-            check_CPDoS(url, s, req_main, parse_headers(custom_header), auth, human or "")
-            check_methods_poisoning(url, s, parse_headers(custom_header), auth)
-            verify_waf(url, s, req_main)
-            check_cache_poisoning(url, s, parse_headers(custom_header), auth, human or "")
-            check_cache_files(url, s, parse_headers(custom_header), auth)
+            check_uncommon_header(url, s, initResponse, dict(initHeader), fp_results, auth)
+            check_CPDoS(url, s, initResponse, ph, auth, human or "")
+            check_methods_poisoning(url, s, ph, auth)
+            verify_waf(url, s, initResponse)
+            check_cache_poisoning(url, s, ph, auth, human or "")
+            check_cache_files(url, s, ph, auth)
         
     except requests.ConnectionError as e:
         add_error(url, str(e))
@@ -164,10 +161,10 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
     finally:
         update_url(
             url=url,
-            status_code=main_status_code,
-            response_size=main_len,
+            status_code=initStatusCode,
+            response_size=initResponseLen,
             technology=detected_tech,
-            cache_headers={k: v for k, v in main_head.items() 
+            cache_headers={k: v for k, v in initHeader.items() 
                           if 'cache' in k.lower() or k.lower() in 
                           ('age', 'x-varnish', 'x-cache', 'cf-cache-status', 'x-cache-hits')},
         )
@@ -184,17 +181,7 @@ def worker_main(s: requests.Session, auth: str | None) -> None:
             break
         
         try:
-            # Create a new session for each URL to avoid sharing issues
-            worker_session = requests.Session()
-            worker_session.verify = False
-            worker_session.max_redirects = 60
-            
-            # Copy headers from main session
-            worker_session.headers.update(dict(s.headers))
-            
-            # Copy proxies
-            if hasattr(s, 'proxies') and s.proxies:
-                worker_session.proxies = s.proxies.copy()
+            worker_session = clone_session()
             
             # Handle auth
             auth_tuple = check_auth(auth, url) if auth else None
@@ -207,6 +194,14 @@ def worker_main(s: requests.Session, auth: str | None) -> None:
             enclosure_queue.task_done()
             if 'worker_session' in locals():
                 worker_session.close()
+
+
+def create_report(parser, start_time_report):
+    from modules.html_report import generate_html_report, build_scan_meta
+    meta = build_scan_meta(parser, start_time_report)
+    path = None if parser.output_html == 'default' else parser.output_html
+    report = generate_html_report(get_results(), path, meta)
+    print(f" Report saved: {report}")
 
 
 def cli_main() -> None:
@@ -233,62 +228,7 @@ def cli_main() -> None:
     start_time_report = time.time()
 
     try:
-        s = requests.Session()
-        s.verify = False
-        s.max_redirects = 60
-        s.headers.update(
-            {
-                "User-Agent": f"{user_agent}-BugBounty-pagesjaunes/ywh",
-                #DECOMMENTHIS
-                #"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                #"Accept-Language": "en-US,en;q=0.5",
-                #"Accept-Encoding": "gzip, deflate, br",
-                #"Connection": "keep-alive",
-                #"Upgrade-Insecure-Requests": "1",
-                #"Sec-Fetch-Dest": "document",
-                #"Sec-Fetch-Mode": "navigate",
-                #"Sec-Fetch-Site": "none",
-                #"Sec-Fetch-User": "?1",
-                #"Priority": "u=4",
-            }
-        )
-
-        if custom_header:
-            try:
-                custom_headers = parse_headers(custom_header)
-                s.headers.update(custom_headers)
-            except Exception as e:
-                logger.exception(e)
-                print(f" Error in custom header format: {e}")
-                sys.exit()
-
-        # Handle proxy configuration
-        if proxy_arg is not None or burp_arg is not None:
-            if proxy_arg is not None:
-                proxy.proxy_url = proxy.parse_proxy_url(proxy_arg)
-                test_proxy = proxy.test_proxy_connection(proxy.proxy_url)
-                if test_proxy:
-                    proxy.proxy_enabled = True
-                    print(f" Proxy configured: {proxy.proxy_url}")
-                else:
-                    print(f" {Colors.YELLOW}Proxy connection test failed, but continuing: {proxy.proxy_url}{Colors.RESET}")
-                    proxy.proxy_enabled = True
-            
-            if burp_arg is not None:
-                proxy.burp_url = proxy.parse_proxy_url(burp_arg)
-                test_burp = proxy.test_proxy_connection(proxy.burp_url)
-                if test_burp:
-                    proxy.burp_enabled = True
-                    print(f" Burp proxy configured: {proxy.burp_url}")
-                else:
-                    print(f" {Colors.RED}Burp proxy connection failed: {proxy.burp_url}{Colors.RESET}")
-                    sys.exit(1)
-            
-            if burp_arg is not None and proxy_arg is None:
-                proxy.proxy_enabled = True
-                proxy.proxy_url = proxy.burp_url
-            
-            s.proxies = {"http": proxy.proxy_url, "https": proxy.proxy_url}
+        s = build_session(parser)
 
         if url_file and threads != 1337:
             with open(url_file) as url_file_handle:
@@ -313,11 +253,7 @@ def cli_main() -> None:
             except KeyboardInterrupt:
                 print("Exiting")
                 if output_html:
-                    from modules.html_report import generate_html_report, build_scan_meta
-                    meta = build_scan_meta(parser, start_time_report)
-                    path = None if parser.output_html == 'default' else parser.output_html
-                    report = generate_html_report(get_results(), path, meta)
-                    print(f" Report saved: {report}")
+                    create_report(parser, start_time_report)
                 sys.exit()
             except FileNotFoundError:
                 print("Input file not found")
@@ -337,21 +273,13 @@ def cli_main() -> None:
             process_modules(url, s, Technology(), auth_tuple)
 
         if output_html:
-            from modules.html_report import generate_html_report, build_scan_meta
-            meta = build_scan_meta(parser, start_time_report)
-            path = None if parser.output_html == 'default' else parser.output_html
-            report = generate_html_report(get_results(), path, meta)
-            print(f" Report saved: {report}")
+            create_report(parser, start_time_report)
 
 
     except KeyboardInterrupt:
         print("Exiting")
         if output_html:
-            from modules.html_report import generate_html_report, build_scan_meta
-            meta = build_scan_meta(parser, start_time_report)
-            path = None if parser.output_html == 'default' else parser.output_html
-            report = generate_html_report(get_results(), path, meta)
-            print(f" Report saved: {report}")
+            create_report(parser, start_time_report)
         sys.exit()
     except Exception as e:
         print(f"Error : {e}")
