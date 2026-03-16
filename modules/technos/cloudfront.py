@@ -3,6 +3,48 @@
 from utils.style import Colors
 from utils.utils import requests
 
+def lambda_edge_test(url: str, s: requests.Session) -> None:
+    """Test Lambda@Edge headers"""
+    lambda_headers = [
+        {"X-Amz-Cf-Id": "plop123"},
+        {"X-Edge-Location": "plop123"},
+        {"CloudFront-Viewer-Country": "XX"}
+    ]
+    
+    for header in lambda_headers:
+        try:
+            req = s.get(url, headers=header, verify=False, timeout=10)
+            print(f"   └── {header} -> {req.status_code}")
+            
+            if "plop123" in req.text:
+                print(f"{Colors.GREEN}   └── Lambda@Edge reflection possible{Colors.RESET}")
+        except Exception:
+            pass
+
+
+def cf_cache_key_test(url: str, s: requests.Session) -> None:
+    """Test CloudFront cache key manipulation"""
+    import random
+    
+    # Test query string ordering
+    params_orders = [
+        {"a": "1", "b": "2"},
+        {"b": "2", "a": "1"}
+    ]
+    
+    results = []
+    for params in params_orders:
+        try:
+            req = s.get(url, params=params, verify=False, timeout=10)
+            cache_status = req.headers.get("X-Cache", "")
+            results.append(cache_status)
+        except Exception:
+            pass
+    
+    if len(set(results)) > 1:
+        print(f"{Colors.YELLOW}   └── Cache key ordering matters{Colors.RESET}")
+
+
 
 def cloudfront(url: str, s: requests.Session) -> None:
     """
@@ -16,7 +58,6 @@ def cloudfront(url: str, s: requests.Session) -> None:
 
     Common CloudFront cache behaviors and testing opportunities.
     """
-    print(f"{Colors.CYAN} ├── CloudFront detected{Colors.RESET}")
 
     # Basic CloudFront cache testing
     headers = {"X-Forwarded-Proto": "nohttps"}
@@ -32,16 +73,5 @@ def cloudfront(url: str, s: requests.Session) -> None:
         print(
                 f"{Colors.YELLOW} │   └── TooManyRedirects / Potential CloudFront redirect behavior detected{Colors.RESET}"
             )
-
-    # Check for common CloudFront cache headers
-    cf_headers = ["x-cache", "x-amz-cf-pop", "x-amz-cf-id", "via"]
-    detected_headers = []
-
-    for header in cf_headers:
-        if header in [h.lower() for h in cf_test.headers.keys()]:
-            detected_headers.append(header)
-
-    """if detected_headers:
-        print(
-            f"{Colors.GREEN} │   └── CloudFront headers found: {', '.join(detected_headers)}{Colors.RESET}"
-        )"""
+    lambda_edge_test(url, s)
+    cf_cache_key_test(url, s)

@@ -1,41 +1,33 @@
 #!/usr/bin/env python3
-
 """
 This module provides functions to configure logging for a Python application.
-
 Functions:
     valid_log_level(level: str) -> str:
-
     configure_logger(module_name: str) -> logging.Logger:
-
-    configure_logging(verbose: int, log: int, log_file: str = "./logs/%Y%m%d_%H%M.log"):
+    configure_logging(verbose: int, log: int, log_file: str = "./error_logs/%Y%m%d_%H%M.log"):
         verbose (int): The verbosity level.
         log (int): The logging level to set (e.g., DEBUG, INFO, etc.).
-        log_file (str): The file path pattern for the log file. Defaults "./logs/%Y%m%d_%H%M.log".
+        log_file (str): The file path pattern for the log file. Defaults "./error_logs/%Y%m%d_%H%M.log".
 """
-
 import argparse
 import logging
 import logging.config
+import os
 from time import strftime
 
 
 def valid_log_level(level: str) -> str:
     """
     Validates and returns the corresponding logging level name.
-
     Args:
         level (str): The log level to validate ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
-
     Returns:
         str: The corresponding logging level name if valid.
-
     Raises:
         ValueError: If the provided log level is invalid.
     """
     valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
     level_upper = level.upper()
-
     if level_upper in valid_levels:
         return level_upper
     else:
@@ -45,12 +37,9 @@ def valid_log_level(level: str) -> str:
 def configure_logger(module_name: str) -> logging.Logger:
     """
     Configures and returns a logger instance for the specified module.
-
     This function sets up a logger for the given module name with a default logging level of DEBUG.
-
     Args:
         module_name (str): The name of the module for which the logger is being configured.
-
     Returns:
         logging.Logger: A logger instance configured for the specified module.
     """
@@ -60,22 +49,29 @@ def configure_logger(module_name: str) -> logging.Logger:
 
 
 def configure_logging(
-    verbose: int, log: int, log_file: str = "./logs/%Y%m%d_%H%M.log"
+    verbose: int, log: int, log_file: str = "./error_logs/%Y%m%d_%H%M.log"
 ) -> None:
     """
     Configures the logging level for the root logger.
-
     Args:
         verbose (int): The verbosity level.
         log (int): The logging level to set (e.g., DEBUG, INFO, etc.).
-        log_file (str): The file path pattern for the log file. Defaults "./logs/%Y%m%d_%H%M.log".
+        log_file (str): The file path pattern for the log file. Defaults "./error_logs/%Y%m%d_%H%M.log".
     """
     log_level = log
-
     if verbose:
         log_level = max(logging.DEBUG, logging.WARNING - verbose * 10)
     else:
         log_level = log
+
+    log_file_formatted = strftime(log_file)
+    
+    log_dir = os.path.dirname(log_file_formatted)
+    if log_dir and not os.path.exists(log_dir):
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+        except (OSError, PermissionError):
+            log_file_formatted = os.path.join("/tmp", os.path.basename(log_file_formatted))
 
     custom_logger_config = {
         "version": 1,
@@ -90,7 +86,7 @@ def configure_logging(
                 "class": "logging.FileHandler",
                 "formatter": "customFormatter",
                 "level": log_level,
-                "filename": strftime(log_file),
+                "filename": log_file_formatted,
                 "mode": "w",
             },
         },

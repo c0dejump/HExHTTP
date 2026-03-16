@@ -37,7 +37,7 @@ def args() -> argparse.Namespace:
         -l, --log (str): Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
             Default: WARNING.
         -L, --log-file (str): The file path pattern for the log file.
-            Default: ./logs/%Y%m%d_%H%M.log.
+            Default: ./error_logs/%Y%m%d_%H%M.log.
         -v, --verbose (int): Increase verbosity (can be used multiple times).
         -hu, --humans: Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
         -p, --proxy: proxy all requests through this proxy (format: host:port, default: 127.0.0.1:8080)
@@ -116,8 +116,8 @@ def args() -> argparse.Namespace:
         "-L",
         "--log-file",
         dest="log_file",
-        default="./logs/%Y%m%d_%H%M.log",
-        help=f"The file path pattern for the log file. {Colors.GREEN}Default: logs/{Colors.RESET}",
+        default="./error_logs/%Y%m%d_%H%M.log",
+        help=f"The file path pattern for the log file. {Colors.GREEN}Default: error_logs/{Colors.RESET}",
         required=False,
     )
     group.add_argument(
@@ -127,6 +127,16 @@ def args() -> argparse.Namespace:
         default=0,
         help="Increase verbosity (can be used multiple times)",
     )
+    group.add_argument(
+        "-o",
+        "--output-html",
+        dest="output_html",
+        type=str, nargs='?', const='default',
+        metavar='FILE',
+        help=f'Generate HTML report. {Colors.GREEN}Default: results/<date>_report.html{Colors.RESET})'
+    )
+
+
 
     group = parser.add_argument_group(f"{Colors.BLUE}> Proxy Settings{Colors.RESET}")
     group.add_argument(

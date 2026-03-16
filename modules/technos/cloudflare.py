@@ -4,6 +4,20 @@ from utils.style import Colors
 from utils.utils import requests
 
 
+def cf_access_bypass_test(url: str, s: requests.Session) -> None:
+    """Test for Cloudflare Access misconfigurations"""
+    well_known_path = "/.well-known/acme-challenge/randomstring"
+    test_url = f"{url}{well_known_path}"
+    
+    try:
+        req = s.get(test_url, verify=False, timeout=10, allow_redirects=False)
+        if "cloudflareaccess.com" in req.headers.get("Location", ""):
+            print(f"{Colors.YELLOW}   └── Cloudflare Access detected: {test_url}{Colors.RESET}")
+            print(f"       Redirect: {req.headers.get('Location', '')[:100]}...")
+    except Exception:
+        pass
+
+
 def cloudflare(url: str, s: requests.Session) -> None:
     """
         Cloudflare:
@@ -36,3 +50,4 @@ def cloudflare(url: str, s: requests.Session) -> None:
                 )
     except:
         pass
+    cf_access_bypass_test(url, s)

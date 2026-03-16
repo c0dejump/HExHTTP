@@ -7,15 +7,13 @@ https://cpdos.org/
 
 import utils.proxy as proxy
 from modules.lists import payloads_keys
-from utils.style import Identify, Colors
+from modules.global_requests import send_global_requests
+from utils.style import Colors, Identify
 from utils.utils import (
     configure_logger,
-    human_time,
     random,
     requests,
     sys,
-    range_exclusion,
-    random_ua,
 )
 from utils.print_utils import print_results, cache_tag_verify
 
@@ -23,8 +21,11 @@ from utils.print_utils import print_results, cache_tag_verify
 import socket
 import ssl
 from urllib.parse import urlsplit
-import string
 import base64
+
+from http.client import RemoteDisconnected
+from urllib3.exceptions import ProtocolError
+from requests.exceptions import ContentDecodingError
 
 logger = configure_logger(__name__)
 
@@ -48,7 +49,7 @@ def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | No
     if not host_port:
         raise ValueError(f"invalid URL: {url}")
 
-    # host et port
+    # host & port
     if ":" in host_port:
         host, port_str = host_port.rsplit(":", 1)
         try:
@@ -59,7 +60,7 @@ def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | No
         host = host_port
         port = 443 if scheme == "https" else 80
 
-    # chemin + query
+    # path + query
     path = u.path or "/"
     if u.query:
         path = f"{path}?{u.query}"
@@ -140,189 +141,82 @@ def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | No
     return SimpleResponse(status_code=code, headers=headers_dict, content=body)
 
 
-def safe_get(s, url: str, headers: dict[str, str] | None, verify: bool, allow_redirects: bool, auth: tuple[str, str] | None, timeout: int):
-    try:
-        s.headers.update(random_ua())
-        return s.get(
-            url,
-            headers=headers,
-            verify=verify,
-            allow_redirects=allow_redirects,
-            auth=auth,
-            timeout=timeout,
-        )
-    except requests.exceptions.InvalidHeader as e:
-        logger.debug(f"safe_get fallback raw pour {url}: {e}")
-        return raw_get(url, headers, auth, timeout=timeout)
-
-
-
-def check_cached_status(
-    url: str,
-    s: requests.Session,
-    pk: dict[str, str],
-    main_status_code: int,
-    authent: tuple[str, str] | None,
-) -> None:
-    behavior = True
-    confirmed = False
-    cache_status: bool = False
-
-    for _ in range(0, 3):
-        req = safe_get(
-            s,
-            url,
-            headers=pk,
-            verify=False,
-            allow_redirects=False,
-            auth=authent,
-            timeout=10,
-        )
-    req_verify = s.get(url, verify=False, allow_redirects=False, auth=authent, timeout=10)
-    logger.debug(f"{req.status_code} :: {req_verify.status_code}")
-    if (
-        req_verify.status_code != main_status_code
-        and req.status_code == req_verify.status_code
-        and req.status_code not in [429, 304, 303, 403]
-        and req_verify.status_code not in [429, 304, 303, 403]
-    ):
-        confirmed = True
-
-
-    if confirmed:
-        print_results(Identify.confirmed , "CPDoSError", f"{main_status_code} > {req.status_code}", cache_tag_verify(req), url, pk)
-        if proxy.proxy_enabled:
-            from utils.proxy import proxy_request
-            proxy_request(s, url, "GET", headers=pk, data=None, severity="confirmed")
-        behavior = False
-    elif behavior:
-        print_results(Identify.behavior , "CPDoSError", f"{main_status_code} > {req.status_code}", cache_tag_verify(req), url, pk)
-        if proxy.proxy_enabled:
-            from utils.proxy import proxy_request
-            proxy_request(s, url, "GET", headers=pk, data=None, severity="behavior")
-
-
-def check_cached_len(
-    url: str,
-    s: requests.Session,
-    pk: dict[str, str],
-    main_len: int,
-    authent: tuple[str, str] | None,
-) -> None:
-    behavior = True
-    confirmed = False
-    cache_status: bool = False
-
-    for _ in range(0, 3):
-        req = safe_get(
-            s,
-            url,
-            headers=pk,
-            verify=False,
-            allow_redirects=False,
-            auth=authent,
-            timeout=10,
-        )
-    req_verify = safe_get(
-        s, url, headers=None, verify=False, allow_redirects=False, auth=authent, timeout=10
-    )
-    logger.debug(f"{req.status_code} :: {req_verify.status_code}")
-    if (
-        len(req.content) == len(req_verify.content)
-        and len(req_verify.content) != main_len
-        and req_verify.status_code not in [429, 403, 401]
-    ):
-        confirmed = True
-
-
-    if confirmed:
-        print_results(Identify.confirmed , "CPDoSError", f"{main_len}b > {len(req.content)}b", cache_tag_verify(req), url, pk)
-        if proxy.proxy_enabled:
-            from utils.proxy import proxy_request
-            proxy_request(s, url, "GET", headers=pk, data=None, severity="confirmed")
-        behavior = False
-    elif behavior:
-        print_results(Identify.behavior , "CPDoSError", f"{main_len}b > {len(req.content)}b", cache_tag_verify(req), url, pk)
-        if proxy.proxy_enabled:
-            from utils.proxy import proxy_request
-            proxy_request(s, url, "GET", headers=pk, data=None, severity="behavior")
-
 
 def cpdos_main(
     url: str,
     s: requests.Session,
-    initial_response: requests.Response,
+    initialResponse: requests.Response,
     authent: tuple[str, str] | None,
+    fp_results: tuple[int, int] | None,
     human: str,
 ) -> None:
-    main_status_code = initial_response.status_code
-    main_len = len(initial_response.content)
-    blocked = 0
-
-    rel = range_exclusion(main_len)
     
     for pk in payloads_keys:
         uri = f"{url}{random.randrange(9999)}"
         try:
-            req = safe_get(
-                s,
-                uri,
-                headers=pk,
-                verify=False,
-                auth=authent,
-                timeout=10,
-                allow_redirects=False,
-            )
-            len_req = len(req.content)
-
-            if req.status_code == 888:
-                print_results(Identify.behavior , "CPDoSError", "888 response", cache_tag_verify(req), url, pk)
-                check_cached_status(uri, s, pk, main_status_code, authent)
-            if req.status_code == 403 or req.status_code == 429:
-                uri_403 = f"{url}{random.randrange(999)}"
-                req_403_test = safe_get(
-                    s,
-                    uri_403,
-                    headers=None,
-                    verify=False,
-                    auth=authent,
-                    timeout=10,
-                    allow_redirects=False,
-                )
-                if req_403_test.status_code == 403 or req_403_test.status_code == 429:
-                    blocked += 1
-
-            if (
-                blocked < 3
-                and req.status_code != main_status_code
-                and main_status_code not in [429, 304, 303, 403]
-            ):
-                check_cached_status(uri, s, pk, main_status_code, authent)
-            elif blocked < 3 and req.status_code == main_status_code:
-                if len(str(main_len)) <= 5 and main_len not in rel:
-                    check_cached_len(uri, s, pk, main_len, authent)
-                elif len(str(main_len)) > 5 and main_len not in rel:
-                    check_cached_len(uri, s, pk, main_len, authent)
-            human_time(human)
+            send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse)
 
             if len(list(pk.values())[0]) < 50 and len(list(pk.keys())[0]) < 50:
-                sys.stdout.write(f"{Colors.BLUE}{pk} :: {req.status_code}{Colors.RESET}\r")
+                sys.stdout.write(f"{Colors.BLUE}CPDoS : {pk}{Colors.RESET}\r")
                 sys.stdout.write("\033[K")
-        except KeyboardInterrupt:
-            print("Exiting")
-            sys.exit()
-        except requests.exceptions.InvalidHeader as e:
-            print(f"invalide header (fallback): {e}")
+                
+        except requests.exceptions.InvalidHeader as ih:
             try:
-                req = raw_get(uri, pk, authent, timeout=10)
-                #print(f"{Colors.YELLOW}RAW sent -> status {req.status_code}{Colors.RESET}")
-            except Exception as ee:
-                #print(f"raw send error: {ee}")
-                logger.exception(ee)
-        except UnicodeEncodeError as e:
-            #print(f"invalid unicode: {e}")
-            logger.exception(e)
+                raw = True
+                send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse, raw)
+            except Exception as ihi:
+                #print(ih)
+                #logger.exception(ih)
+                pass
+        except UnicodeEncodeError as u:
+            try:
+                raw = True
+                send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse, raw)
+            except Exception as uu:
+                #print(uu)
+                #logger.exception(uu)
+                pass
+        except (requests.exceptions.ConnectionError, RemoteDisconnected, ProtocolError) as c:
+            #logger.exception(f"Connection closed by remote server for header {pk}: {str(c)}")
+            pass
+        except requests.Timeout as t:
+            pass
+            #logger.exception(t)
+
+        except ContentDecodingError as cde:
+            print(f" {Identify.behavior} | Server returned corrupted gzip | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}")
+            try:
+                cache_test = s.get(
+                    uri,
+                    allow_redirects=False,
+                    verify=False
+                )
+            except ContentDecodingError:
+                print(f" {Identify.confirmed} | Server returned corrupted gzip | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}")
+                
+            except Exception as e:
+                pass
+
+        except ValueError as ve:
+            # Skip payloads with invalid IP addresses
+            if "does not appear to be an IPv4 or IPv6 address" in str(ve):
+                raw = True
+                send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse, raw)
+            else:
+                pass
+                #logger.exception(f"Basic CPDoS with {pk} payload: {str(ve)}")
+                
+        except AttributeError as ae:
+            # Skip payloads that are malformed (set instead of dict)
+            if "'set' object has no attribute" in str(ae):
+                logger.error(f"Malformed payload (set instead of dict): {pk}")
+                pass
+            else:
+                logger.exception(f"Basic CPDoS with {pk} payload: {str(ae)}")
+                pass
+                
         except Exception as e:
-            #print(e)
-            logger.exception(e)
+            logger.exception(f"Basic CPDoS with {pk} payload: {str(e)}")
+            pass
+                    
         uri = url

@@ -153,8 +153,10 @@ options:
 > Log settings:
   -l LOG, --log LOG     Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   -L LOG_FILE, --log-file LOG_FILE
-                        The file path pattern for the log file. Default: logs/
+                        The file path pattern for the log file. Default: error_logs/
   -v, --verbose         Increase verbosity (can be used multiple times)
+  -o [FILE], --output-html [FILE]
+                        Generate HTML report. Default: results/<date>_report.html)
 
 > Proxy Settings:
   -p [PROXY], --proxy [PROXY]
@@ -209,8 +211,13 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 
 ![example poisoner](./static/docs/_media/example_02.png)
 
+### HExHTTP HTML report exemple
+![report poisoner](./static/docs/_media/html_report_exemple.png)
+
 ### TOOL TIPS
-- If the base URL responds with a 403, try removing the comments in hexhttp.py (search DECOMMENTHIS) and restarting.
+- If the base URL responds with a 403, try removing the comments in utils/configure_session.py (search DECOMMENTHIS) and restarting.
+- If WAF is sensitive, try using the "-hu r" option
+- If you have a link that's triggering a lot of false positives, try checking it manually, and if it really is the tool's fault, feel free to let me know !
 
 ## Features
 
@@ -232,10 +239,8 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 
 - [ ] Remake "session" handler/wrapper
 - [ ] Filter False Positive on WAF blocking [WIP]
-- [ ] Make the arguments "global" to avoid calling them in each functions, which will make the script simpler and cleaner.
 - [ ] Prioritize scans to quickly test the main cache poisoning vectors before being triggered by the WAF
 - [ ] Add a depth option to scans of "static" files (js/css, etc.)
-- [ ] Host Header Injection analysis
 - [ ] Parameter Cloacking
 - [ ] Tests Bed for regression testing
 - [ ] Different Output formats (eg, JSON, JSONL, TXT)

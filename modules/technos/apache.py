@@ -2,26 +2,44 @@
 
 from utils.utils import requests
 
-"""
-Origin CORS DoS poisoning
-def requestUriTooLongNoCacheParamTest(url, ip):
-    
-    baselineRequest = getRequest(ip, url)
-    baseUrlLength = len(url)
-    maxParamLength = 8190 - baseUrlLength - 1
-    if("?" in url):
-        craftedUrl = f"{url}&{'a' * maxParamLength}"
-    else:
-        craftedUrl = f"{url}?{'a' * maxParamLength}"
-    poisonnedRequest = getRequest(ip, craftedUrl, headers={'Accept-Encoding': 'identity'})
-    resultRequest = getRequest(ip, url, headers={'Accept-Encoding': 'identity'})
-    
-    if baselineRequest != None and poisonnedRequest != None and resultRequest != None:
-        if baselineRequest.status_code != resultRequest.status_code:
-                log("RequestUriTooLongNoCacheParam", ip, f"{url} (do not forget to set the 'Accept-Encoding: identity' header", f"(Status Codes: {baselineRequest.status_code} -> {resultRequest.status_code})", baselineRequest.status_code == 200)
-                if(DEBUG):
-                    debugRequests(baselineRequest, poisonnedRequest, resultRequest)
-"""
+
+def requestUriTooLongNoCacheParamTest(url: str, s: requests.Session) -> None:
+    """Origin CORS DoS poisoning via URI length"""
+    try:
+        baseline_req = s.get(url, verify=False, timeout=10)
+        base_url_length = len(url)
+        max_param_length = 8190 - base_url_length - 1
+        
+        separator = "&" if "?" in url else "?"
+        crafted_url = f"{url}{separator}{'a' * max_param_length}"
+        
+        headers = {'Accept-Encoding': 'identity'}
+        poisoned_req = s.get(crafted_url, headers=headers, verify=False, timeout=10)
+        result_req = s.get(url, headers=headers, verify=False, timeout=10)
+        
+        if baseline_req.status_code != result_req.status_code:
+            print(f"{Colors.YELLOW}   └── RequestUriTooLong DoS detected{Colors.RESET}")
+            print(f"       Status: {baseline_req.status_code} -> {result_req.status_code}")
+    except Exception as e:
+        logger.exception(e)
+
+
+
+def mod_proxy_test(url: str, s: requests.Session) -> None:
+    """Test for mod_proxy misconfigurations"""
+    test_paths = [
+        "/proxy:http://evil.com",
+        "/%2Fproxy:http://evil.com",
+        "/%252Fproxy:http://evil.com"
+    ]
+    for path in test_paths:
+        try:
+            test_url = f"{url}{path}"
+            req = s.get(test_url, verify=False, timeout=10, allow_redirects=False)
+            if req.status_code == 302 and "evil.com" in req.headers.get("Location", ""):
+                print(f"{Colors.YELLOW}   └── mod_proxy SSRF possible: {path}{Colors.RESET}")
+        except Exception:
+            pass
 
 
 def apache(url: str, s: requests.Session) -> None:
@@ -81,3 +99,6 @@ def apache(url: str, s: requests.Session) -> None:
         )
         if "plop123" in x_req.text:
             print(f"   └── plop123 reflected in text with {aph} payload")
+    requestUriTooLongNoCacheParamTest(url, s)
+    mod_proxy_test(url, s)
+

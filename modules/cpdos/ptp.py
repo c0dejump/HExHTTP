@@ -42,16 +42,30 @@ def verify(
         )
         logger.debug(url_with_raw_path)
 
-        for _ in range(5):
+        for _ in range(3):
             with httpx.Client(
                 http2=False, verify=False
             ) as client:
                 req_verify = client.get(url_with_raw_path)
 
         req_cb = s.get(url_cb, verify=False, timeout=10, allow_redirects=False)
-        logger.debug(
-            f"req_cb.status_code: {req_cb.status_code} | req_verify.status_code: {req_verify.status_code} | req_main.status_code: {req_main.status_code}"
-        )
+        #logger.debug(f"req_cb.status_code: {req_cb.status_code} | req_verify.status_code: {req_verify.status_code} | req_main.status_code: {req_main.status_code}")
+        if req_cb.status_code in [301, 302, 303, 307, 308]:
+            location = req_cb.headers.get("Location", "")
+            # No Location header = interesting behavior
+            if not location:
+                print(
+                    f" {Identify.behavior} | {VULN_NAME} Cached Redirect (no Location) {req_cb.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
+                )
+            elif location.rstrip("/") in ["", url_parsed_path]:
+                if any(ext in url.lower() for ext in [".js", ".css"]):
+                    print(
+                        f" {Identify.behavior} | {VULN_NAME} Cached Asset Redirect → {location} | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
+                    )
+            else:
+                print(
+                    f" {Identify.behavior} | {VULN_NAME} Cached Redirect → {location} | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
+                )
         cache_status = cache_tag_verify(req_cb)
         if (
             req_cb.status_code == req_verify.status_code
@@ -71,9 +85,9 @@ def verify(
                 f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_cb.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
             )
     except requests.Timeout as t:
-        logger.error(t)
+        pass
     except Exception as e:
-        logger.exception(e)
+        logger.exception(f"{VULN_NAME}: {str(e)}")
 
 
 def path_traversal_check(
@@ -95,6 +109,33 @@ def path_traversal_check(
             "cc/..\\",
             "cc/..;/",
             "cc%5C",
+            "cc/%252e%252e%252f",
+            "cc/%c0%ae%c0%ae/",
+            "cc/%e0%80%ae%e0%80%ae/", 
+            "cc/%f0%80%80%ae%f0%80%80%ae/",
+            "cc/.%00./",
+            "cc/..%00/",
+            "cc/%2e%2e/",
+            "cc/.%2e/",
+            "cc/%2e./",
+            "cc/..;foo/",
+            "cc/..;/..;/",
+            "cc/%23/../",
+            "cc/..%5c",
+            "cc/..%5c..%5c",
+            "cc\\..\\..",
+            "cc/..%252f",
+            "cc/..%255c",
+            "cc/./../../",
+            "cc///../",
+            "cc/..\\/",
+            "cc/..;jsessionid=x/",   
+            "cc/%09/../",
+            "cc/%0a/../",
+            "cc/../index.html",
+            "cc/..%2f.css",
+            "cc/..%2f.js",
+            "cc/..%2f.png",
         ]
         for p in paths:
             cb = f"?cb={random.randrange(999)}"
@@ -146,6 +187,6 @@ def path_traversal_check(
                 )
 
     except requests.Timeout as t:
-        logger.error(t)
+        pass
     except Exception as e:
-        logger.exception(e)
+        logger.exception(f"{VULN_NAME}: {str(e)}")

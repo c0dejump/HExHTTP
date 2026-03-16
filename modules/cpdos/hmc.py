@@ -5,73 +5,25 @@ Attempts to find Cache Poisoning with HTTP Metachar Character (HMC)
 https://cpdos.org/#HMC
 """
 
-import utils.proxy as proxy
-from utils.style import Colors, Identify
-from utils.utils import configure_logger, human_time, random, requests
+from utils.style import Colors
+from utils.utils import configure_logger, random, requests
+from modules.global_requests import send_global_requests
 
 logger = configure_logger(__name__)
 
-VULN_NAME = "HTTP Meta Character"
+VULN_NAME = "HMC"
 
-
-def check_meta_character(
-    url: str,
-    s: requests.Session,
-    main_status_code: int,
-    authent: tuple[str, str] | None,
-    meta_character: str,
-    human: str,
-) -> None:
-    """Probe and Verify the server for a meta character vulnerability"""
-
-    logger.debug("Testing for %s vulnerabilities", VULN_NAME)
-
-    url = f"{url}{random.randrange(999)}"
-
-    headers = {"X-Metachar-Header": meta_character}
-    probe = s.get(
-        url,
-        headers=headers,
-        timeout=10,
-        verify=False,
-        auth=authent,
-        allow_redirects=False,
-    )
-
-    reason = ""
-    if probe.status_code in [400, 413, 500] and probe.status_code != main_status_code:
-        control = s.get(url, verify=False, timeout=10, auth=authent)
-        if (
-            control.status_code == probe.status_code
-            and control.status_code != main_status_code
-        ):
-            reason = (
-                f"{main_status_code} > {control.status_code}"
-            )
-
-    if reason:
-        payload = f"PAYLOAD: {headers}"
-        print(
-            f" {Identify.confirmed} | HMC DOS | {Colors.BLUE}{url}{Colors.RESET} | {reason} | {Colors.THISTLE}{payload}{Colors.RESET}"
-        )
-        if proxy.proxy_enabled:
-            from utils.proxy import proxy_request
-
-            proxy_request(
-                s, "GET", url, headers=headers, data=None, severity="confirmed"
-            )
-    human_time(human)
 
 
 def HMC(
     url: str,
     s: requests.Session,
-    req_main: requests.Response,
+    initialResponse: requests.Response,
     authent: tuple[str, str] | None,
+    fp_results: tuple[int, int] | None,
     human: str,
 ) -> None:  # pylint: disable=invalid-name
     """Prepare the list of meta characters to check for"""
-    main_status_code = req_main.status_code
 
     meta_characters = [
         r"\n",
@@ -94,12 +46,14 @@ def HMC(
     ]
     for meta_character in meta_characters:
         try:
-            check_meta_character(
-                url, s, main_status_code, authent, meta_character, human
-            )
+            uri = f"{url}{random.randrange(999)}"
+            
+            probe_headers = {"X-Metachar-Header": meta_character}
+            
+            send_global_requests(uri, s, authent, fp_results, VULN_NAME, human, probe_headers, initialResponse)
+
+            print(f" {Colors.BLUE} {VULN_NAME} : {meta_character}{Colors.RESET}\r", end="")
+            print("\033[K", end="")
 
         except requests.exceptions.ConnectionError as e:
             logger.exception(e)
-
-        print(f" {Colors.BLUE} {VULN_NAME} : {meta_character}{Colors.RESET}\r", end="")
-        print("\033[K", end="")

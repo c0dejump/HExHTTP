@@ -3,6 +3,7 @@
 
 from modules.cpdos.bsf import backslash_poisoning
 from modules.cpdos.basic_cpdos import cpdos_main
+from modules.cpdos.hhmp import HHMP
 from modules.cpdos.msh import MSH
 from modules.cpdos.hho import HHO
 from modules.cpdos.hmc import HMC
@@ -13,7 +14,7 @@ from modules.cpdos.ocp import OCP
 from modules.cpdos.ptp import path_traversal_check
 from modules.cpdos.cfp import format_poisoning
 from utils.style import Colors
-from utils.utils import configure_logger, random, re, requests, sys, new_session, verify_waf
+from utils.utils import configure_logger, random, re, requests, sys, new_session, verify_waf, fp_baseline
 logger = configure_logger(__name__)
 
 
@@ -48,8 +49,10 @@ def crawl_files(
                     uri = f"https://{uri[7:].replace('//', '/')}"
 
                 # print(uri)
-                run_cpdos_modules(uri, s, authent, human, crawl=True)
-                backslash_poisoning(uri, s, authent, human)
+                req_ext = s.get(uri)
+                if req_ext.status_code in [200, 301, 302]: 
+                    run_cpdos_modules(uri, s, authent, human, crawl=True)
+                    backslash_poisoning(uri, s, authent, human)
 
 
     except Exception as e:
@@ -71,39 +74,53 @@ def run_cpdos_modules(
     uri = f"{url}?CPDoS={random.randint(1337, 7331)}"
 
     req_main = requests.get(uri, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, auth=authent, timeout=8)
+    fp_results = fp_baseline(uri, s)
 
     try:
 
         s = new_session(s)
         logger.debug(req_main.content)
-        
-        HHO(randomiz_url(url), s, req_main, authent, human)
-        verify_waf(req_main, s.get(url))
-        HMC(randomiz_url(url), s, req_main, authent, human)
-        verify_waf(req_main, s.get(url))
-        HMO(randomiz_url(url), s, req_main, authent, human)
-        verify_waf(req_main, s.get(url))
-        HHCN(randomiz_url(url), s, req_main, authent)
-        verify_waf(req_main, s.get(url))
-        HBH(randomiz_url(url), s, req_main, authent, human)
-        verify_waf(req_main, s.get(url))
-        MSH(url, req_main, authent, human)
-        verify_waf(req_main, s.get(url))
-        OCP(randomiz_url(url), authent)
-        verify_waf(req_main, s.get(url))
-        path_traversal_check(url, s, req_main, authent)
-        verify_waf(req_main, s.get(url))
-        cpdos_main(randomiz_url(url), s, req_main, authent, human)
-        verify_waf(req_main, s.get(url))
+
+        cpdos_main(randomiz_url(url), s, req_main, authent, fp_results, human)
+        verify_waf(url, s, req_main)
+
         if not crawl:
             format_poisoning(randomiz_url(url), s, req_main, authent, human)
+            verify_waf(url, s, req_main)
+            
+        #Host Header Manipulation poisoning
+        HHMP(randomiz_url(url), s, req_main, authent, fp_results, human)
+        verify_waf(url, s, req_main)
+        #HTTP Header Oversize
+        HHO(randomiz_url(url), s, req_main, authent, fp_results, human)
+        verify_waf(url, s, req_main)
+        #HTTP Metachar Character
+        HMC(randomiz_url(url), s, req_main, authent, fp_results, human)
+        verify_waf(url, s, req_main)
+        #HTTP Method Override
+        HMO(randomiz_url(url), s, req_main, authent, fp_results, human)
+        verify_waf(url, s, req_main)
+        #Host Header Case Normalization
+        HHCN(randomiz_url(url), s, req_main, authent, fp_results, human)
+        verify_waf(url, s, req_main)
+        #Hop-By-Hop Header abuse
+        HBH(randomiz_url(url), s, req_main, authent, fp_results, human)
+        verify_waf(url, s, req_main)
+        #Multiple Same Header
+        MSH(url, req_main, authent, human)
+        verify_waf(url, s, req_main)
+        #ORIGIN CORS poisoning
+        OCP(randomiz_url(url), authent)
+        verify_waf(url, s, req_main)
+        
+        path_traversal_check(url, s, req_main, authent)
+        verify_waf(url, s, req_main)
+
         # waf_rules(url, s, req_main, authent)
-    except KeyboardInterrupt:
-        print(" ! Canceled by keyboard interrupt (Ctrl-C)")
-        sys.exit()
     except Exception as e:
         #print(e)
-        logger.exception(e)
+        logger.exception(f"CPDoS: {str(e)}")
+        pass
 
 
 def check_CPDoS(

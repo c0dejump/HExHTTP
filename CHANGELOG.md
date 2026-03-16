@@ -1,11 +1,29 @@
 Changelog:
 ----------
 
+- 2.5
+---------
+	Updated:
+	- News payloads
+	- Fixed bugs
+	- Linting
+	- Technologies testing remake
+	- Correction of over half of false positives
+	- Rename modules header_checks
+	- Better WAF detection & timeout
+	News:
+	- False positive baseline in "utils.py"
+	- Centralization of the main requests made for CP/CPDoS scans in "global_requests.py"
+	- HHMP CPDoS module, Host Header Manipulation Poisoning, likely host header injection but some different
+	- Generates an interactive HTML report from scan results with -o option (export json/csv in HTML)
+---------
+
 - 2.4
 ---------
 	Updated:
 	- New payloads
 	- Fix bugs
+	- Recalibration of WAF detection
 	News:
 	- CFP module: change format page poisoning (html > json....)
 ---------
@@ -175,7 +193,6 @@ Changelog:
 	Updated:
 	- News payloads and fix on HMO modules (~800)
 	- Fixed issues
-
 ---------
 
 - 1.7.2
