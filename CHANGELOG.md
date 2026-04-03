@@ -1,6 +1,16 @@
 Changelog:
 ----------
 
+
+- 2.6
+---------
+	Updated:
+	- New payloads
+	- Fix bugs
+	- Uncommon header updated, Integrating scans of source files (HTML, JS, etc.) to identify headers that are not commonly used
+---------
+
+
 - 2.5
 ---------
 	Updated:

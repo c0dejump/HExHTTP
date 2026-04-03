@@ -61,7 +61,7 @@ def human_time(human: str) -> None:
     if human.isdigit():
         time.sleep(int(human))
     elif human.lower() == "r" or human.lower() == "random":
-        time.sleep(random.randrange(6))  # nosec B311
+        time.sleep(random.randrange(4))  # nosec B311
     else:
         pass
 
@@ -88,7 +88,7 @@ def verify_waf(url, s, initialResponse, payload=None, wait_count=0):
     waf_detected = False
     waf_message = ""
     waiting_time = 60
-    max_retries=13
+    max_retries=6
 
     if wait_count >= max_retries:
         print(f" └── [!] WAF still active after {max_retries} retries, wait and rescan with -hu option")

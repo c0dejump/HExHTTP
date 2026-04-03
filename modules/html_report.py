@@ -218,7 +218,7 @@ def _format_bytes(b: int) -> str:
 
 
 def _build_curl(uri: str, payload: dict) -> str:
-    parts = [f"curl -sk -o /dev/null -w '%{{http_code}} %{{size_download}}' \\"]
+    parts = [f"curl -sk -D - -o /dev/null -w '%{{http_code}} %{{size_download}}' \\"]
     for k, v in payload.items():
         safe_k = str(k).replace("'", "'\\''")
         safe_v = str(v).replace("'", "'\\''")
