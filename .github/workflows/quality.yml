@@ -2,9 +2,12 @@ name: Code Quality
 
 on:
   push:
-    branches: [ "v2.2" ]
+    branches:
+      - 'dev'
   pull_request:
-    branches: [ "v2.2" ]
+    branches:
+      - 'dev'
+      - 'v2*'
 
 jobs:
   lint-test:
