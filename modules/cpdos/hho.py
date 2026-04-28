@@ -8,7 +8,7 @@ from utils.style import Colors, Identify
 from utils.utils import configure_logger, human_time, requests, random, random_ua
 from utils.print_utils import cache_tag_verify
 from utils.collect import add_finding
-from modules.global_requests import exclude_combinations
+from modules.global_requests import _exclude_combinations
 
 logger = configure_logger(__name__)
 VULN_NAME = "HHO"

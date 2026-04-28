@@ -5,9 +5,12 @@ Changelog:
 - 2.6
 ---------
 	Updated:
-	- New payloads
+	- New payloads (sorted and add news payloads)
 	- Fix bugs
 	- Uncommon header updated, Integrating scans of source files (HTML, JS, etc.) to identify headers that are not commonly used
+	- Added a cache poisoning check by testing whether a body is added to the GET request to verify if it is cached
+	- If the "hu" option isn't enough and the WAF is very sensitive, you can now use the "stealth" option, which replaces Python's default requests.Session with a curl_cffi-backed session that impersonates a real Chrome 120 browser at the TLS level
+	- Fix multi-threading false positives: per-URL combo tracking, UUID cache busters to prevent cross-thread cache collisions, and domain-level WAF lock so all threads pause together instead of hammering the targe
 ---------
 
 

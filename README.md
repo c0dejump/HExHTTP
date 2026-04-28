@@ -127,9 +127,7 @@ Use both options for maximum flexibility:
 ## Usage
 
 ```bash
-usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-a AUTH] [-hu HUMANS] [-t THREADS] [-l LOG] [-L LOG_FILE] [-v] [-p [PROXY]] [--burp [BURP]] [--ocp]
-
-HExHTTP(v2.3) is a tool designed to perform tests on HTTP headers.
+usage: hexhttp.py [-h] [-u URL] [-f URL_FILE] [-H CUSTOM_HEADER] [-A USER_AGENT] [-a AUTH] [-hu HUMANS] [-t THREADS] [-s] [-l LOG] [-L LOG_FILE] [-v] [-o [FILE]] [-p [PROXY]] [--burp [BURP]] [--ocp]
 
 options:
   -h, --help            show this help message and exit
@@ -149,6 +147,7 @@ options:
                         Performs a timesleep to reproduce human behavior (Default: 0s) value: 'r' or 'random'
   -t THREADS, --threads THREADS
                         Threads numbers for multiple URLs. Default: 10
+  -s, --stealth         Enable TLS fingerprint impersonation (requires curl_cffi)
 
 > Log settings:
   -l LOG, --log LOG     Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -237,13 +236,12 @@ You can test this tool on the Web Security Academy's vulnerable labs, like [Web 
 
 ## TODO
 
-- [ ] Remake "session" handler/wrapper
+- [ ] Remake "session" handler/wrapper [WIP]
 - [ ] Filter False Positive on WAF blocking [WIP]
 - [ ] Prioritize scans to quickly test the main cache poisoning vectors before being triggered by the WAF
 - [ ] Add a depth option to scans of "static" files (js/css, etc.)
 - [ ] Parameter Cloacking
 - [ ] Tests Bed for regression testing
-- [ ] Different Output formats (eg, JSON, JSONL, TXT)
 
 ### Based on
 - [YWH HTTP Header Exploitation](https://blog.yeswehack.com/yeswerhackers/http-header-exploitation/)

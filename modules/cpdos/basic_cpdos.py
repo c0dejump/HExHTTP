@@ -6,7 +6,7 @@ https://cpdos.org/
 """
 
 import utils.proxy as proxy
-from modules.lists import payloads_keys
+from modules.lists import payloads_keys, big_payloads_keys, sorted_payloads_errors
 from modules.global_requests import send_global_requests
 from utils.style import Colors, Identify
 from utils.utils import (
@@ -151,7 +151,7 @@ def cpdos_main(
     human: str,
 ) -> None:
     
-    for pk in payloads_keys:
+    for pk in sorted_payloads_errors:
         uri = f"{url}{random.randrange(9999)}"
         try:
             send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse)
@@ -184,7 +184,7 @@ def cpdos_main(
             #logger.exception(t)
 
         except ContentDecodingError as cde:
-            print(f" {Identify.behavior} | Server returned corrupted gzip | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}")
+            print(f" {Identify.behavior} | ERROR [CDE] | returned corrupted gzip | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}")
             try:
                 cache_test = s.get(
                     uri,
@@ -192,7 +192,7 @@ def cpdos_main(
                     verify=False
                 )
             except ContentDecodingError:
-                print(f" {Identify.confirmed} | Server returned corrupted gzip | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}")
+                print(f" {Identify.confirmed} | ERROR [CDE] | returned corrupted gzip {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pk}{Colors.RESET}")
                 
             except Exception as e:
                 pass

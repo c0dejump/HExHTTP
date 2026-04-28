@@ -38,6 +38,7 @@ from utils.utils import (
     get_domain_from_url,
     requests,
     verify_waf,
+    WafAbortError,
     fp_baseline,
     parse_headers,
     urllib3,
@@ -59,9 +60,10 @@ url_file: str | None = None
 custom_header: list[str] | None = None
 only_cp: bool | None = None
 threads: int | None = None
+stealth: bool = False
 
 
-def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tuple[str, str] | None = None) -> None:
+def process_modules(url: str, s: requests.Session, stealth, a_tech: Technology,  auth: tuple[str, str] | None = None) -> None:
     resp_main_headers = []
     initStatusCode = 0
     initResponseLen = 0
@@ -102,7 +104,7 @@ def process_modules(url: str, s: requests.Session, a_tech: Technology, auth: tup
             proxy_status += f" | Burp: {Colors.GREEN}ON{Colors.RESET} ({proxy.burp_url})"
         print(proxy_status)
         print(f" Auth : {Colors.RED}OFF{Colors.RESET}") if not auth else print(f" Auth: {auth}") 
-
+        print(f" Stealth : {Colors.RED}OFF{Colors.RESET}") if not stealth else print(f" Stealth : {Colors.GREEN}ON{Colors.RESET}") 
         print(f"{Colors.BLUE} ⟘{Colors.RESET}")
         print(f"{Colors.BLUE} ⟙{Colors.RESET}")
 
@@ -186,8 +188,11 @@ def worker_main(s: requests.Session, auth: str | None) -> None:
             # Handle auth
             auth_tuple = check_auth(auth, url) if auth else None
             
-            process_modules(url, worker_session, a_tech, auth_tuple)
+            process_modules(url, worker_session, stealth, a_tech, auth_tuple)
             
+        except WafAbortError as e:
+            add_error(url, f"WAF abort: {e}")
+            print(f" └── [!] Skipping {url} — WAF persistent after retries")
         except Exception as e:
             logger.exception(f"Error processing URL {url}: {e}")
         finally:
@@ -208,7 +213,7 @@ def cli_main() -> None:
     """Entry point for the CLI command."""
     parser = args()
 
-    global human, url_file, custom_header, only_cp, threads
+    global human, url_file, custom_header, only_cp, threads, stealth
 
     url = parser.url
     url_file = parser.url_file
@@ -221,6 +226,7 @@ def cli_main() -> None:
     burp_arg = parser.burp
     only_cp = parser.only_cp
     output_html = parser.output_html
+    stealth = parser.stealth
 
     configure_logging(parser.verbose, parser.log, parser.log_file)
 
@@ -267,10 +273,10 @@ def cli_main() -> None:
                 urls = url_file_handle.read().splitlines()
                 for url in urls:
                     auth_tuple = check_auth(auth, url) if auth else None
-                    process_modules(url, s, Technology(), auth_tuple)
+                    process_modules(url, s, stealth, Technology(), auth_tuple)
         else:
             auth_tuple = check_auth(auth, url) if auth else None
-            process_modules(url, s, Technology(), auth_tuple)
+            process_modules(url, s, stealth, Technology(), auth_tuple)
 
         if output_html:
             create_report(parser, start_time_report)

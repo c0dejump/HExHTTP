@@ -103,6 +103,14 @@ def args() -> argparse.Namespace:
         default=10,
         required=False,
     )
+    group.add_argument(
+        "-s",
+        "--stealth",
+        action="store_true",
+        dest="stealth",
+        help=f"Enable TLS fingerprint impersonation (requires curl_cffi)",
+        required=False,
+    )
 
     group = parser.add_argument_group(f"{Colors.BLUE}> Log settings{Colors.RESET}")
     group.add_argument(

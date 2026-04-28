@@ -10,6 +10,7 @@ import string
 import sys
 import time
 import json
+import threading
 import traceback  # noqa: F401
 from urllib.parse import (
     urljoin,  # noqa: F401
@@ -23,6 +24,17 @@ from bs4 import XMLParsedAsHTMLWarning
 
 from modules.logging_config import configure_logger  # noqa: F401
 from utils.style import spinner
+
+
+class WafAbortError(Exception):
+    """Raised when WAF is still active after max retries — thread should stop, not sys.exit()."""
+    pass
+
+
+# Domain-level WAF lock: when one thread detects WAF on a domain,
+# ALL threads scanning the same domain wait instead of hammering it.
+_waf_domain_locks: dict[str, threading.Lock] = {}
+_waf_meta_lock = threading.Lock()
 
 import requests.utils
 
@@ -61,25 +73,45 @@ def human_time(human: str) -> None:
     if human.isdigit():
         time.sleep(int(human))
     elif human.lower() == "r" or human.lower() == "random":
-        time.sleep(random.randrange(4))  # nosec B311
+        time.sleep(random.uniform(0.5, 4.0))
     else:
         pass
 
 
+def _get_domain_waf_lock(url):
+    """Get or create a per-domain lock for WAF waiting."""
+    domain = urlparse(url).netloc
+    with _waf_meta_lock:
+        if domain not in _waf_domain_locks:
+            _waf_domain_locks[domain] = threading.Lock()
+        return _waf_domain_locks[domain]
+
+
 def verify_waf(url, s, initialResponse, payload=None, wait_count=0):
+    # Acquire domain lock so all threads on same domain wait together
+    domain_lock = _get_domain_waf_lock(url)
+    
+    # Use non-blocking try: if another thread already holds the lock (= already waiting),
+    # we just wait for it to release instead of doing our own WAF check
+    acquired = domain_lock.acquire(blocking=False)
+    if not acquired:
+        # Another thread is already handling WAF wait for this domain — just wait
+        domain_lock.acquire()
+        domain_lock.release()
+        return False
+
+    try:
+        return _verify_waf_inner(url, s, initialResponse, payload, wait_count)
+    finally:
+        domain_lock.release()
+
+
+def _verify_waf_inner(url, s, initialResponse, payload=None, wait_count=0):
     random_param = random.randint(0, 99)
 
     test_url = f"{url}areuawaaff{random_param}" if "?" in url else f"{url}?cb=areuawaaff{random_param}"
     req_areuawaf = requests.get(test_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}, verify=False, timeout=10)
 
-    #print(f"\n=== DEBUG verify_waf ===")
-    #print(f"URL: {test_url}")
-    #print(f"initialResponse.status_code: {initialResponse.status_code}")
-    #print(f"req.status_code: {req.status_code}")
-    #print(f"Session headers: {dict(s.headers)}")
-    #print(f"Request headers sent: {dict(req.request.headers)}")
-    #print(f"========================\n")
-    
     html = req_areuawaf.text
     soup = BeautifulSoup(html, "html.parser")
     title = soup.title.string if soup.title else False
@@ -92,7 +124,7 @@ def verify_waf(url, s, initialResponse, payload=None, wait_count=0):
 
     if wait_count >= max_retries:
         print(f" └── [!] WAF still active after {max_retries} retries, wait and rescan with -hu option")
-        sys.exit()
+        raise WafAbortError(f"WAF still active on {url} after {max_retries} retries")
 
     if title and title.lower() == "human verification":
         waf_detected = True
@@ -117,7 +149,7 @@ def verify_waf(url, s, initialResponse, payload=None, wait_count=0):
         if wait_count == 0:
             print(f" └── [i] [{waf_message}] WAF activated with {payload} payload, wait a moment or try with -hu option")
         spinner(waiting_time, f"        Waiting {waiting_time}s...", wait_count)
-        return verify_waf(url, s, initialResponse, payload=payload, wait_count=wait_count+1)
+        return _verify_waf_inner(url, s, initialResponse, payload=payload, wait_count=wait_count+1)
     else:
         return False
 

@@ -42,7 +42,7 @@ def backslash_test(
         print(
             f" {Identify.behavior} | {VULN_NAME} {req_main.status_code} > {req_b.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
         )
-        add_finding(uri, {
+        add_finding(url_b, {
             "type": "CPDoS",
             "severity": "info",
             "title": VULN_NAME,
@@ -56,12 +56,12 @@ def backslash_test(
                     "uri": url_b,
                 }
         })
-        vcp_c = vcp_code(uri, s, req_b)
+        vcp_c = vcp_code(url_b, s, req_b)
         if vcp_c:
             print(
                 f" {Identify.confirmed} | {VULN_NAME} {req_main.status_code} > {req_b.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
             )
-            add_finding(uri, {
+            add_finding(url_b, {
                 "type": "CPDoS",
                 "severity": "critical",
                 "title": VULN_NAME,
@@ -79,7 +79,7 @@ def backslash_test(
         print(
             f" {Identify.behavior} | {VULN_NAME} {len(req_main.content)}b > {len(req_b.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
         )
-        add_finding(uri, {
+        add_finding(url_b, {
             "type": "CPDoS",
             "severity": "info",
             "title": VULN_NAME,
@@ -98,7 +98,7 @@ def backslash_test(
             print(
                 f" {Identify.confirmed} | {VULN_NAME} {len(req_main.content)}b > {len(req_b.content)}b | CACHETAG : {cache_status} | {Colors.BLUE}{url_b}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{pp}{Colors.RESET}"
             )
-            add_finding(url, {
+            add_finding(url_b, {
                 "type": "CPDoS",
                 "severity": "critical",
                 "title": VULN_NAME,

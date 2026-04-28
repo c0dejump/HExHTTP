@@ -6,14 +6,16 @@ This module provides functionality to load payloads from files into lists.
 
 
 import os
-from modules.lists.all_payload_keys import all_payload_keys
+from modules.lists.big_payloads_errors import big_payloads_keys
+from modules.lists.sorted_payloads_errors import sorted_payloads_errors
 from modules.lists.payloads_errors import payloads_keys
 
 __all__ = [
     "load_payloads_from",
     "user_agents_list",
     "payloads_keys",
-    "all_payload_keys",
+    "big_payloads_keys",
+    "sorted_payloads_errors",
     "wcp_headers",
 ]
 
