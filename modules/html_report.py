@@ -217,13 +217,18 @@ def _format_bytes(b: int) -> str:
     return f"{b / (1024 * 1024):.1f} MB"
 
 
-def _build_curl(uri: str, payload: dict) -> str:
+def _build_curl(uri: str, payload) -> str:
     parts = [f"curl -sk -D - -o /dev/null -w '%{{http_code}} %{{size_download}}' \\"]
-    for k, v in payload.items():
-        safe_k = str(k).replace("'", "'\\''")
-        safe_v = str(v).replace("'", "'\\''")
-        parts.append(f"  -H '{safe_k}: {safe_v}' \\")
-    parts.append(f"  '{uri}'")
+    if isinstance(payload, dict):
+        for k, v in payload.items():
+            safe_k = str(k).replace("'", "'\\''")
+            safe_v = str(v).replace("'", "'\\''")
+            parts.append(f"  -H '{safe_k}: {safe_v}' \\")
+        parts.append(f"  '{uri}'")
+    else:
+        # payload is a string (e.g. bsf backslash URL) — it IS the target
+        safe = str(payload).replace("'", "'\\''")
+        parts.append(f"  '{safe}'")
     return "\n".join(parts)
 
 

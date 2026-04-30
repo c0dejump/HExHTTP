@@ -67,11 +67,57 @@ XML_NAMESPACE_PATTERNS = [
     rb'<[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+',
 ]
 
+# Tags that indicate a fully-rendered HTML page (with assets/styling)
+ASSET_TAGS = [b'<link', b'<style', b'<script']
+
+# Minimum size delta + ratio to consider content degradation
+DEGRADE_MIN_DELTA = 500     # at least 500 bytes smaller
+DEGRADE_MIN_RATIO = 0.30    # at least 30% smaller
+
 
 def _has_bytes(content: bytes, tags: list, limit: int = 3000) -> bool:
     """Return True if any tag is found within the first `limit` bytes (case-insensitive)."""
     chunk = content[:limit].lower()
     return any(tag in chunk for tag in tags)
+
+
+def _count_asset_tags(content: bytes) -> int:
+    """Count occurrences of <link>, <style>, <script> in content."""
+    lower = content.lower()
+    return sum(lower.count(tag) for tag in ASSET_TAGS)
+
+
+def _detect_degradation(init_content: bytes, init_len: int, probe_content: bytes, probe_len: int) -> str | None:
+    """
+    Detect content degradation: same format (both HTML) but page lost
+    CSS/JS/assets — user sees raw unstyled HTML.
+
+    Returns a short description string or None.
+    """
+    # Size-based: significant shrink
+    delta = init_len - probe_len
+    if init_len > 0 and delta >= DEGRADE_MIN_DELTA:
+        ratio = delta / init_len
+        if ratio >= DEGRADE_MIN_RATIO:
+            # Confirm: original had asset tags, probe lost them
+            init_assets = _count_asset_tags(init_content)
+            probe_assets = _count_asset_tags(probe_content)
+            if init_assets > 0 and probe_assets < init_assets:
+                lost = init_assets - probe_assets
+                return f"DEGRADED -{ratio:.0%} ({init_len}b > {probe_len}b)"
+
+            # Even without asset tag loss, a huge size drop is suspicious
+            if ratio >= 0.50:
+                return f"DEGRADED -{ratio:.0%} ({init_len}b > {probe_len}b)"
+
+    # Asset-tag-based: same size-ish but assets stripped
+    if init_len > 1000:
+        init_assets = _count_asset_tags(init_content)
+        probe_assets = _count_asset_tags(probe_content)
+        if init_assets >= 3 and probe_assets == 0:
+            return f"DEGRADED lost all {init_assets} asset tags"
+
+    return None
 
 
 def detect_format(content: bytes, headers: dict) -> str | bool:
@@ -218,12 +264,23 @@ def verify_cp(
     return detect_format(req_verify.content, req_verify.headers)
 
 
+def verify_cp_degradation(s, uri, cfp, authent, init_content, init_len):
+    """
+    Re-send poisoning payload 3x, then clean probe.
+    Returns degradation description or None.
+    """
+    for _ in range(3):
+        s.get(uri, headers=cfp, verify=False, auth=authent, timeout=10, allow_redirects=False)
+
+    req_verify = s.get(uri, verify=False, auth=authent, timeout=10, allow_redirects=False)
+    return _detect_degradation(init_content, init_len, req_verify.content, len(req_verify.content))
+
+
 def format_poisoning(url, s, initial_response, authent, human):
     main_len = len(initial_response.content)
-    df_init = detect_format(initial_response.content, initial_response.headers)
+    init_content = initial_response.content
+    df_init = detect_format(init_content, initial_response.headers)
 
-    # FIX: removed the `if df_init != "JSON"` guard so JSON responses are also
-    # tested — a JSON endpoint can still be poisoned into returning XML/binary.
     for cfp in cfp_payloads:
         uri = f"{url}{random.randrange(9999)}"
         try:
@@ -231,20 +288,20 @@ def format_poisoning(url, s, initial_response, authent, human):
             req = s.get(uri, headers=cfp, verify=False, auth=authent, timeout=10, allow_redirects=False)
             df = detect_format(req.content, req.headers)
 
-            # Check cache Age header for evidence enrichment
             cache_age = _get_cache_age(req)
 
-            if df and df != df_init:
-                evidence_base = {
-                    "status_code": req.status_code,
-                    "response_size": len(req.content),
-                    "initial_status": initial_response.status_code,
-                    "initial_size": main_len,
-                    "uri": uri,
-                }
-                if cache_age is not None:
-                    evidence_base["cache_age"] = cache_age
+            evidence_base = {
+                "status_code": req.status_code,
+                "response_size": len(req.content),
+                "initial_status": initial_response.status_code,
+                "initial_size": main_len,
+                "uri": uri,
+            }
+            if cache_age is not None:
+                evidence_base["cache_age"] = cache_age
 
+            # --- Case 1: Format change (HTML → JSON, HTML → XML, etc.) ---
+            if df and df != df_init:
                 print_results(Identify.behavior, "CFP", f"{df_init or 'HTML'} > {df}", cache_tag_verify(req), uri, cfp)
                 add_finding(url, {
                     "type": "CPDoS",
@@ -267,9 +324,39 @@ def format_poisoning(url, s, initial_response, authent, human):
                         "evidence": evidence_base,
                     })
 
-        except UnicodeEncodeError as u:
-            #print(f"invalid unicode: {u}")
+            # --- Case 2: Same format but content degraded (lost CSS/JS/assets) ---
+            elif not df_init and not df:
+                # Both are HTML — check for degradation
+                degrade_desc = _detect_degradation(init_content, main_len, req.content, len(req.content))
+                if degrade_desc:
+                    print_results(Identify.behavior, "CFP", degrade_desc, cache_tag_verify(req), uri, cfp)
+                    add_finding(url, {
+                        "type": "CPDoS",
+                        "severity": "info",
+                        "title": "CFP",
+                        "description": degrade_desc,
+                        "payload": cfp,
+                        "evidence": evidence_base,
+                    })
+
+                    # Confirm: re-poison then clean probe
+                    confirmed_degrade = verify_cp_degradation(s, uri, cfp, authent, init_content, main_len)
+                    if confirmed_degrade:
+                        print_results(Identify.confirmed, "CFP", confirmed_degrade, cache_tag_verify(req), uri, cfp)
+                        add_finding(url, {
+                            "type": "CPDoS",
+                            "severity": "critical",
+                            "title": "CFP",
+                            "description": confirmed_degrade,
+                            "payload": cfp,
+                            "evidence": evidence_base,
+                        })
+
+        except UnicodeEncodeError:
             pass
+        except (requests.exceptions.InvalidHeader, ValueError):
+            # Expected: urllib3 rejects headers with \n, \r, \t, leading whitespace
+            logger.debug(f"CFP header rejected by urllib3: {cfp}")
         except Exception as e:
             print(e)
             logger.exception(e)
