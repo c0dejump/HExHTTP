@@ -174,6 +174,8 @@ def generate_html_report(scan_results: list[dict], output_path: str | None = Non
   <span>{html.escape(now)}</span>
 </footer>
 
+<button id="floatingClose" class="floating-close" onclick="closeVisibleCard()" title="Close card">&#x2715;</button>
+
 <script>{_get_js()}</script>
 </body>
 </html>"""
@@ -294,7 +296,7 @@ def _build_url_block(idx: int, result: dict) -> str:
       <span class="url-size">{size_str}</span>
       <span class="url-dur">{dur_str}</span>
       {count_badge}
-      <span class="chevron">▸</span>
+      <span class="chevron">&#x25B8;</span>
     </div>
   </div>
   <div class="url-details" style="display:none;">
@@ -427,7 +429,7 @@ body { font-family: 'JetBrains Mono','Fira Code','SF Mono','Cascadia Code',monos
 
 .results { max-width:1200px; margin:0 auto; padding:1.5rem; }
 
-.url-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-bottom:0.6rem; overflow:hidden; border-left:3px solid var(--border); }
+.url-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-bottom:0.6rem; border-left:3px solid var(--border); }
 .url-card.sev-critical { border-left-color:var(--critical); }
 .url-card.sev-info { border-left-color:var(--info); }
 .url-card.sev-clean { border-left-color:var(--clean); }
@@ -499,6 +501,11 @@ body { font-family: 'JetBrains Mono','Fira Code','SF Mono','Cascadia Code',monos
 .copy-btn { position:absolute; top:0.5rem; right:0.5rem; background:var(--accent-dim); color:#fff; border:none; padding:0.3rem 0.65rem; border-radius:4px; font-family:inherit; font-size:0.65rem; cursor:pointer; transition:background 0.15s; }
 .copy-btn:hover { background:var(--accent); }
 
+/* Global floating close button — fixed on screen, visible when a card is open */
+.floating-close { display:none; position:fixed; right:2rem; top:50%; z-index:200; width:38px; height:38px; padding:0; background:var(--surface2); border:1px solid var(--border); border-radius:50%; color:var(--text-dim); font-size:1.1rem; line-height:38px; text-align:center; cursor:pointer; transition:top 0.15s ease-out, border-color 0.2s, color 0.2s, box-shadow 0.2s; transform:translateY(-50%); box-shadow:0 2px 12px rgba(0,0,0,0.4); }
+.floating-close.visible { display:block; }
+.floating-close:hover { border-color:var(--accent); color:var(--accent); background:var(--surface); box-shadow:0 0 16px var(--accent-glow), 0 2px 12px rgba(0,0,0,0.4); }
+
 .report-footer { max-width:1200px; margin:2rem auto 0; padding:1.5rem; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-dim); }
 .footer-left { display:flex; align-items:center; gap:0.4rem; }
 .footer-link { color:var(--accent); text-decoration:none; transition:color 0.15s; }
@@ -517,11 +524,39 @@ body { font-family: 'JetBrains Mono','Fira Code','SF Mono','Cascadia Code',monos
 
 def _get_js() -> str:
     return """
-function toggleCard(el){const c=el.closest('.url-card'),d=c.querySelector('.url-details');if(c.classList.contains('open')){d.style.display='none';c.classList.remove('open')}else{d.style.display='block';c.classList.add('open')}}
+function toggleCard(el){const c=el.closest('.url-card'),d=c.querySelector('.url-details');if(c.classList.contains('open')){d.style.display='none';c.classList.remove('open');c.scrollIntoView({behavior:'smooth',block:'nearest'});updateFloatingBtn()}else{d.style.display='block';c.classList.add('open');updateFloatingBtn()}}
+function closeVisibleCard(){const btn=document.getElementById('floatingClose');const card=btn._targetCard;if(card&&card.classList.contains('open')){card.querySelector('.url-details').style.display='none';card.classList.remove('open');card.scrollIntoView({behavior:'smooth',block:'nearest'});updateFloatingBtn()}}
+function updateFloatingBtn(){
+  const btn=document.getElementById('floatingClose');
+  const ctrlH=70;
+  let best=null,bestDist=Infinity;
+  document.querySelectorAll('.url-card.open').forEach(c=>{
+    const r=c.getBoundingClientRect();
+    if(r.bottom>ctrlH&&r.top<window.innerHeight){
+      const visTop=Math.max(r.top,ctrlH);
+      const visBot=Math.min(r.bottom,window.innerHeight);
+      const mid=(visTop+visBot)/2;
+      const dist=Math.abs(mid-window.innerHeight/2);
+      if(dist<bestDist){bestDist=dist;best=c}
+    }
+  });
+  if(best){
+    const r=best.getBoundingClientRect();
+    const visTop=Math.max(r.top,ctrlH);
+    const visBot=Math.min(r.bottom,window.innerHeight);
+    btn.style.top=((visTop+visBot)/2)+'px';
+    btn.classList.add('visible');
+    btn._targetCard=best;
+  }else if(!document.querySelector('.url-card.open')){
+    btn.classList.remove('visible');
+  }else{
+    btn.classList.remove('visible');
+  }
+}
 function getRawData(){try{return JSON.parse(document.getElementById('raw-data').textContent)}catch(e){return[]}}
 function downloadFile(c,f,m){const b=new Blob([c],{type:m}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=f;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href)}
 function copyCurl(id){const el=document.getElementById(id);if(!el)return;navigator.clipboard.writeText(el.textContent).then(()=>{const btn=el.parentElement.querySelector('.copy-btn');if(btn){btn.textContent='Copied!';setTimeout(()=>{btn.textContent='Copy'},1500)}})}
-
+window.addEventListener('scroll',function(){requestAnimationFrame(updateFloatingBtn)},{passive:true});
 document.getElementById('exportJson').addEventListener('click',function(){
   const d=getRawData(),ts=new Date().toISOString().slice(0,16).replace(/[:\\-T]/g,'');
   downloadFile(JSON.stringify(d,null,2),'hexhttp_'+ts+'.json','application/json');
@@ -541,8 +576,8 @@ document.getElementById('exportCsv').addEventListener('click',function(){
 });
 
 document.getElementById('searchInput').addEventListener('input',applyFilters);
-document.getElementById('expandAll').addEventListener('click',function(){document.querySelectorAll('.url-card').forEach(c=>{if(!c.classList.contains('hidden')){c.classList.add('open');c.querySelector('.url-details').style.display='block'}})});
-document.getElementById('collapseAll').addEventListener('click',function(){document.querySelectorAll('.url-card').forEach(c=>{c.classList.remove('open');c.querySelector('.url-details').style.display='none'})});
+document.getElementById('expandAll').addEventListener('click',function(){document.querySelectorAll('.url-card').forEach(c=>{if(!c.classList.contains('hidden')){c.classList.add('open');c.querySelector('.url-details').style.display='block'}});updateFloatingBtn()});
+document.getElementById('collapseAll').addEventListener('click',function(){document.querySelectorAll('.url-card').forEach(c=>{c.classList.remove('open');c.querySelector('.url-details').style.display='none'});updateFloatingBtn()});
 document.getElementById('resetFilters').addEventListener('click',function(){
   document.querySelectorAll('.ftag.on').forEach(t=>t.classList.remove('on'));
   document.getElementById('searchInput').value='';

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-change format poisoning (html to json/xml)
+change format poisoning (html to json/xml) change in the content negotiation mechanism
 https://cpdos.org/
 """
 
@@ -34,8 +34,6 @@ MAGIC_BYTES = {
     'JPEG':       b'\xff\xd8\xff',
     'GIF':        b'GIF8',
     'WEBP':       b'RIFF',
-    # Protobuf has no universal magic — detected via Content-Type only
-    # MessagePack: first byte 0xc0–0xff or 0x80–0x8f (fixmap), heuristic only
     'MSGPACK':    None,
 }
 
@@ -90,7 +88,6 @@ def _count_asset_tags(content: bytes) -> int:
 def _detect_degradation(init_content: bytes, init_len: int, probe_content: bytes, probe_len: int) -> str | None:
     """
     Detect content degradation: same format (both HTML) but page lost
-    CSS/JS/assets — user sees raw unstyled HTML.
 
     Returns a short description string or None.
     """
