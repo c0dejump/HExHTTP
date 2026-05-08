@@ -80,7 +80,7 @@ def nextjs_ssrf(url: str) -> None:
                             f"{Colors.BLUE}{url}{Colors.RESET} | "
                             f"Can access cloud metadata"
                         )
-                except:
+                except Exception:
                     pass
                     
         except requests.Timeout:
