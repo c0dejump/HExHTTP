@@ -48,6 +48,6 @@ def cloudflare(url: str, s: requests.Session) -> None:
                 print(
                     f"{Colors.GREEN}   └──{Colors.RESET} Potential redirect loop exploit possible with {Colors.GREEN}{headers}{Colors.RESET} payload"
                 )
-    except:
+    except Exception:
         pass
     cf_access_bypass_test(url, s)
