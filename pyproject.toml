@@ -70,9 +70,11 @@ test = [
 ]
 
 # setuptools package discovery
+[tool.setuptools]
+py-modules = ["hexhttp", "cli"]
+
 [tool.setuptools.packages.find]
-where = ["."]
-exclude = ["tests*", "docs*"]
+include = ["modules*", "utils*", "static*"]
 
 # Include package data
 [tool.setuptools.package-data]
