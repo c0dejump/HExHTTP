@@ -46,6 +46,7 @@ from utils.utils import (
 from utils.collect import init_url, update_url, add_finding, add_error, get_results
 from utils.configure_session import build_session, clone_session
 import utils.proxy as proxy
+import utils.screenshot as screenshot_mod
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -229,6 +230,10 @@ def cli_main() -> None:
     stealth = parser.stealth
 
     configure_logging(parser.verbose, parser.log, parser.log_file)
+
+    if parser.screenshot:
+        screenshot_mod.screenshot_enabled = True
+        screenshot_mod.screenshot_dir = parser.screenshot
 
     human = humans
     start_time_report = time.time()

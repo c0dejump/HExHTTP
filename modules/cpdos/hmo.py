@@ -8,6 +8,7 @@ https://cpdos.org/#HMO
 from utils.style import Colors
 from utils.utils import configure_logger, random, requests
 from modules.global_requests import send_global_requests
+from modules.lists.methods_list import methods
 
 
 logger = configure_logger(__name__)
@@ -26,145 +27,6 @@ def HMO(
 
     logger.debug("Testing for %s vulnerabilities", VULN_NAME)
 
-    methods = [
-        "GET",
-        "POST",
-        "PATCH",
-        "PUT",
-        "DELETE",
-        "HEAD",
-        "TRACE",
-        "HELP",
-        "OPTIONS",
-        "CONNECT",
-        "PURGE",
-        "RESUME",
-        "SEARCH",
-        "MERGE",
-        "LOCK",
-        "UNLOCK",
-        "SYNC",
-        "ARCHIVE",
-        "CLONE",
-        "ROLLBACK",
-        "EXECUTE",
-        "INTROSPECT",
-        "NONSENSE",
-        # WebDAV methods
-        "REPORT",
-        "CHECKOUT",
-        "COPY",
-        "MOVE",
-        "MKACTIVITY",
-        "MKCOL",
-        "PROPFIND",
-        "PROPPATCH",
-        "VERSION-CONTROL",
-        "BASELINE-CONTROL",
-        "CHECKIN",
-        "UNCHECKOUT",
-        "UPDATE",
-        "LABEL",
-        "MKWORKSPACE",
-        "ORDERPATCH",
-        "ACL",
-        # Event/Notification methods
-        "SUBSCRIBE",
-        "UNSUBSCRIBE",
-        "NOTIFY",
-        "POLL",
-        # Binding methods
-        "BIND",
-        "UNBIND",
-        "REBIND",
-        "LINK",
-        "UNLINK",
-        # Calendar methods
-        "MKCALENDAR",
-        # Custom/Exotic methods
-        "BATCH",
-        "SPACEJUMP",
-        "TRACK",
-        "BREW",
-        "WHEN",
-        # Potential attack methods
-        "INVALID",
-        "BADMETHOD",
-        "EXPLOIT",
-        "ADMIN",
-        "ROOT",
-        "BACKDOOR",
-        "SHELL",
-        "EXEC",
-        "EVAL",
-        "INCLUDE",
-        "REQUIRE",
-        "IMPORT",
-        "LOAD",
-        "DUMP",
-        "BACKUP",
-        "RESTORE",
-        "RESET",
-        "FLUSH",
-        "CLEAR",
-        "WIPE",
-        "DESTROY",
-        "KILL",
-        "TERMINATE",
-        "ABORT",
-        "CANCEL",
-        "STOP",
-        "HALT",
-        "PAUSE",
-        "SUSPEND",
-        "CONTINUE",
-        "RETRY",
-        "REDO",
-        "UNDO",
-        "REVERT",
-        "COMMIT",
-        "SAVE",
-        "STORE",
-        "CACHE",
-        "PREFETCH",
-        "PRELOAD",
-        "REFRESH",
-        "RELOAD",
-        "RENEW",
-        "REPAIR",
-        "FIX",
-        "HEAL",
-        "RECOVER",
-        "RESCUE",
-        "ESCAPE",
-        "BYPASS",
-        "OVERRIDE",
-        "FORCE",
-        "PUSH",
-        "PULL",
-        "FETCH",
-        "GRAB",
-        "TAKE",
-        "GIVE",
-        "SEND",
-        "RECV",
-        "RECEIVE",
-        "ACCEPT",
-        "REJECT",
-        "DENY",
-        "ALLOW",
-        "PERMIT",
-        "GRANT",
-        "REVOKE",
-        "AUTHORIZE",
-        "AUTHENTICATE",
-        "LOGIN",
-        "LOGOUT",
-        "SIGNIN",
-        "SIGNOUT",
-        "REGISTER",
-        "UNREGISTER",
-    ]
 
     hmo_headers = [
         "HTTP-Method-Override",
@@ -200,22 +62,37 @@ def HMO(
         "Forward-Method",
         "X-Proxy-Method",
         "Proxy-Method",
+        "_method"
     ]
 
     for header, method in (
         (header, method) for header in hmo_headers for method in methods
     ):
-        
+
         try:
             uri = f"{url}{random.randrange(999)}"
 
             probe_headers = {header: method}
-            
+
             send_global_requests(uri, s, authent, fp_results, VULN_NAME, human, probe_headers, initialResponse)
-            
+
             print(f" {Colors.BLUE} {VULN_NAME} : {probe_headers}{Colors.RESET}\r", end="")
             print("\033[K", end="")
 
         except requests.exceptions.ConnectionError as e:
             #print(e)
+            logger.exception(e)
+
+    # Test _method as query parameter
+    for method in methods:
+        try:
+            # Append ?_method=<method>&_cb= so send_global_requests appends UUID as cache buster value
+            uri_base = f"{url}?_method={method}&_cb={random.randrange(999)}"
+
+            send_global_requests(uri_base, s, authent, fp_results, VULN_NAME, human, {}, initialResponse)
+
+            print(f" {Colors.BLUE} {VULN_NAME} : ?_method={method}{Colors.RESET}\r", end="")
+            print("\033[K", end="")
+
+        except requests.exceptions.ConnectionError as e:
             logger.exception(e)

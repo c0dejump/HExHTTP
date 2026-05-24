@@ -12,6 +12,7 @@ from urllib3 import PoolManager, Timeout
 
 from utils.style import Colors
 from utils.utils import configure_logger, get_ip_from_url, human_time, requests, urllib3
+from modules.lists.methods_list import methods
 
 logger = configure_logger(__name__)
 
@@ -335,20 +336,18 @@ def check_methods(url: str, authent: Any, human) -> None:
                 if x.lower() == "allow":
                     print(f" │  └─ Allows: {req_head[x]}")
 
-    list_path = "modules/lists/methods_list.lst"
     try:
-        with open(list_path) as method_file:
-            method_list = method_file.read().splitlines()
-            pad = max(len(m) for m in method_list)
+        
+        pad = max(len(m) for m in methods)
 
-            results_tracker: dict[tuple, list[dict]] = defaultdict(list)
+        results_tracker: dict[tuple, list[dict]] = defaultdict(list)
 
-            for ml in method_list:
-                check_other_methods(ml, url, http, pad, results_tracker)
-                human_time(human)
-                print(f" {Colors.BLUE} Method: {ml} {Colors.RESET}   ", end="\r")
+        for ml in methods:
+            check_other_methods(ml, url, http, pad, results_tracker)
+            human_time(human)
+            print(f" {Colors.BLUE} Method: {ml} {Colors.RESET}   ", end="\r")
 
-            display_deduplicated_results(results_tracker, pad, url, http)
+        display_deduplicated_results(results_tracker, pad, url, http)
 
     except FileNotFoundError:
         logger.error(f"Methods list file not found: {list_path}")

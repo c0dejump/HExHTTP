@@ -174,6 +174,15 @@ def args() -> argparse.Namespace:
         help="Only cache poisoning modules",
         required=False,
     )
+    group.add_argument(
+        "--screen",
+        dest="screenshot",
+        nargs="?",
+        const="screenshots",
+        metavar="DIR",
+        help=f"Take a screenshot of confirmed poisoned pages (requires playwright). {Colors.GREEN}Default dir: screenshots/{Colors.RESET}",
+        required=False,
+    )
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)

@@ -9,7 +9,6 @@ from utils.utils import configure_logger, requests, sys
 
 logger = configure_logger(__name__)
 
-# Pages WordPress avec LiteSpeed Cache à tester
 LITESPEED_PAGES = [
     "wp-admin/admin.php?page=lscache-ccss",
     "wp-admin/admin.php?page=lscache",
@@ -20,19 +19,9 @@ LITESPEED_PAGES = [
 
 
 def detect_wordpress_litespeed(url: str) -> bool:
-    """
-    Détecte si la cible est WordPress avec LiteSpeed Cache
-    
-    Args:
-        url: URL de base
-        
-    Returns:
-        True si WordPress + LiteSpeed détecté
-    """
     try:
         response = requests.get(url, verify=False, timeout=10, allow_redirects=True)
         
-        # Vérification des headers LiteSpeed
         litespeed_headers = [
             "x-litespeed-cache",
             "x-lsadc-cache",
@@ -56,19 +45,15 @@ def detect_wordpress_litespeed(url: str) -> bool:
 
 def litespeed(base_url: str) -> None:
     """
-    Teste CVE-2024-47374 (LiteSpeed Cache XSS via X-LSCACHE-VARY-VALUE)
+    Test CVE-2024-47374 (LiteSpeed Cache XSS via X-LSCACHE-VARY-VALUE)
     
-    Args:
-        base_url: URL de base de la cible
     """
-    # Détection préalable de WordPress + LiteSpeed
     if not detect_wordpress_litespeed(base_url):
         logger.debug("Target doesn't appear to be WordPress with LiteSpeed Cache")
         return
     
     print(f" ├── CVE-2024-47374 WordPress with LiteSpeed Cache detected")
     
-    # Utiliser un marqueur unique au lieu d'un payload XSS
     test_marker = "x-cve-2024-47374-test"
     headers = {"X-LSCACHE-VARY-VALUE": f'"{test_marker}'}
 
@@ -84,14 +69,12 @@ def litespeed(base_url: str) -> None:
                 allow_redirects=False
             )
             
-            # Vérifier si le marqueur est reflété dans la réponse
             if test_marker in response.text:
                 print(
                     f" {Identify.behavior} | CVE-2024-47374 | {Colors.BLUE}{target_url}{Colors.RESET} | TAG OK | PAYLOAD: {headers}"
                 )
                 
-                # Tester l'empoisonnement du cache
-                for _ in range(5):
+                for _ in range(3):
                     requests.get(
                         target_url,
                         headers=headers,
@@ -100,7 +83,6 @@ def litespeed(base_url: str) -> None:
                         allow_redirects=False
                     )
                 
-                # Vérifier la persistence
                 req_verify = requests.get(
                     target_url,
                     verify=False,

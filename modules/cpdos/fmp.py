@@ -95,10 +95,26 @@ def verify_fat_get_poisoning(
             d,
         )
     if d in req_main_check.text or "codejump" in req_main_check.text:
-        print_result(Identify.confirmed, "FAT", f"{rm}", "BODY REFLECTION", "", url, d)
-    if d in req_main_check.headers or "codejump" in req_main_check.headers:
         print_result(
-            Identify.confirmed, "FAT", f"{rm}", "HEADERS REFLECTION", "", url, d
+            Identify.confirmed,
+            "FAT",
+            f"{rm}",
+            "BODY REFLECTION",
+            "",
+            f"CACHETAG: {cache_tag_verify(req_main_check)}",
+            url,
+            d,
+        )
+    if "codejump" in str(req_main_check.headers.values()):
+        print_result(
+            Identify.confirmed,
+            "FAT",
+            f"{rm}",
+            "HEADERS REFLECTION",
+            "",
+            f"CACHETAG: {cache_tag_verify(req_main_check)}",
+            url,
+            d,
         )
 
 
@@ -113,10 +129,11 @@ def fat_methods_poisoning(
     authent: tuple[str, str] | None,
 ) -> None:
     body_datas = ["data=codejump", '{ "test": "codejump" }']
+    base_url = url
 
     for d in body_datas:
         for rm in requests_method:
-            url = f"{url}{random.randrange(99)}"
+            url = f"{base_url}{random.randrange(99)}"
             req_fg = s.request(
                 rm,
                 url=url,
@@ -157,13 +174,27 @@ def fat_methods_poisoning(
                 verify_fat_get_poisoning(s, url, d, rm, req_main, len_main, authent)
             if d in req_fg.text or "codejump" in req_fg.text:
                 print_result(
-                    Identify.behavior, "FAT", f"{rm}", "BODY REFLECTION", "", f"CACHETAG: {cache_tag_verify(req_fg)}", url, d
+                    Identify.behavior,
+                    "FAT",
+                    f"{rm}",
+                    "BODY REFLECTION",
+                    "",
+                    f"CACHETAG: {cache_tag_verify(req_fg)}",
+                    url,
+                    d,
                 )
                 behavior_check = True
                 verify_fat_get_poisoning(s, url, d, rm, req_main, len_main, authent)
-            if d in req_fg.headers or "codejump" in req_fg.headers:
+            if "codejump" in str(req_fg.headers.values()):
                 print_result(
-                    Identify.behavior, "FAT", f"{rm}", "HEADERS REFLECTION", "", f"CACHETAG: {cache_tag_verify(req_fg)}", url, d
+                    Identify.behavior,
+                    "FAT",
+                    f"{rm}",
+                    "HEADERS REFLECTION",
+                    "",
+                    f"CACHETAG: {cache_tag_verify(req_fg)}",
+                    url,
+                    d,
                 )
                 behavior_check = True
                 verify_fat_get_poisoning(s, url, d, rm, req_main, len_main, authent)
@@ -189,10 +220,11 @@ def cp_mix(
     custom_header: dict,
     authent: tuple[str, str] | None,
 ) -> None:
+    base_url = url
     if req_main.status_code not in [403, 429]:
         for rm in requests_method:
             behavior_check = False
-            url = f"{url}{random.randrange(99)}"
+            url = f"{base_url}{random.randrange(99)}"
 
             if rm == "POST":
                 body_datas = ["data=codejump", '{ "test": "codejump" }']
@@ -339,6 +371,5 @@ def check_methods_poisoning(
         logger.error(f"Error, cannot connect to target: {ce}")
     except requests.Timeout as t:
         pass
-        #logger.error(f"Error, request timeout (10s): {t}")
     except Exception as e:
         logger.exception(f"{VULN_NAME}: {str(e)}")

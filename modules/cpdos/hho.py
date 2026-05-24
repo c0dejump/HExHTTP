@@ -70,7 +70,7 @@ def HHO(
             if (
                 probe.status_code in [400, 413, 431, 500, 502, 503]
                 and probe.status_code != main_status_code
-                and combo_key not in exclude_combinations
+                and combo_key not in _exclude_combinations
             ):
                 error_status = probe.status_code
                 error_size = header_size

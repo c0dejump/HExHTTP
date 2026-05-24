@@ -3090,6 +3090,7 @@ sorted_payloads_errors = [
 
     # - [auto] host  (7×) ------
     {"host": 'totototo.com'},
+    {"\x1dHost": "tototo.com"},
     {"Host": 'example.com:80;'},
     {"Host": 'target.com evil.com'},
     {"Host": 'xn--trget-bua.com'},

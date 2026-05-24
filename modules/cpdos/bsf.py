@@ -37,6 +37,7 @@ def backslash_test(
 
     for _ in range(0, 5):
         req_b = s.get(pp, verify=False, timeout=10, allow_redirects=False)
+        
     cache_status = cache_tag_verify(req_b)
     if req_b.status_code != req_main.status_code:
         print(
@@ -118,7 +119,6 @@ def vcp_code(url_b: str, s: requests.Session, req_b: requests.Response) -> bool:
     req_verify = s.get(
         url_b,
         verify=False,
-        headers={"User-agent": "xxxxxxx"},
         timeout=10,
         allow_redirects=False,
     )
@@ -133,7 +133,6 @@ def vcp_len(url_b: str, s: requests.Session, req_b: requests.Response) -> bool:
     req_verify = s.get(
         url_b,
         verify=False,
-        headers={"User-agent": "xxxxxxx"},
         timeout=10,
         allow_redirects=False,
     )

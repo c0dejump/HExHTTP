@@ -17,9 +17,16 @@ EXCLUDE_RESPONSE = [200, 301, 302, 403, 404, 307, 308, 303, 429]
 logger = configure_logger(__name__)
 
 
+def _new_conn(parsed_url) -> http.client.HTTPConnection | http.client.HTTPSConnection:
+    host = parsed_url.netloc
+    if parsed_url.scheme == "https":
+        return http.client.HTTPSConnection(host, timeout=10)
+    return http.client.HTTPConnection(host, timeout=10)
+
+
 def verify_cache_poisoning(
     VULN_TYPE: str,
-    conn: http.client.HTTPConnection | http.client.HTTPSConnection,
+    parsed_url,
     url: str,
     payload: str,
     main_status_code: int,
@@ -30,22 +37,19 @@ def verify_cache_poisoning(
     res_status = 0
     try:
         for _ in range(5):
-            conn.putrequest(
-                "GET", f"/?CPDoS={cb}"
-            )  #  discrepancy between conn and req : url endpoint isn't reflected in the putrequest
+            conn = _new_conn(parsed_url)
+            conn.putrequest("GET", f"/?CPDoS={cb}")
             conn.putheader("User-Agent", "xxxx")
 
             if VULN_TYPE == "RDH":
                 conn.putheader("Referer", "xy")
                 conn.putheader("Referer", "x")
-
             elif VULN_TYPE == "HDH":
                 conn.putheader("Host", f"{host}")
                 conn.putheader("Host", "toto.com")
             elif VULN_TYPE == "XFH":
                 conn.putheader("x-forwarded-host", f"{host}")
                 conn.putheader("x-forwarded-host", "evil.com")
-
             else:
                 conn.putheader(f"{VULN_TYPE}", "xxxx")
                 conn.putheader(f"{VULN_TYPE}", "xxxx")
@@ -66,7 +70,7 @@ def verify_cache_poisoning(
 
 
 def duplicate_headers(
-    conn: http.client.HTTPConnection | http.client.HTTPSConnection,
+    parsed_url,
     url: str,
     mh: str,
     main_status_code: int,
@@ -74,7 +78,7 @@ def duplicate_headers(
 ) -> tuple:
     """VULN_TYPE =  DH"""
     cb = random.randrange(9999)
-
+    conn = _new_conn(parsed_url)
     try:
         conn.putrequest("GET", f"/?cb={cb}")
         conn.putheader("User-Agent", "xxxx")
@@ -95,11 +99,12 @@ def duplicate_headers(
                 if "age" in rh.lower() or "hit" in rh.lower():
                     return response, cb
 
+        return None, cb
+
     except KeyboardInterrupt:
         conn.close()
         raise
     except Exception as e:
-        #logger.exception(e)
         return None, cb
     finally:
         try:
@@ -109,14 +114,14 @@ def duplicate_headers(
 
 
 def referer_duplicate_headers(
-    conn: http.client.HTTPConnection | http.client.HTTPSConnection,
+    parsed_url,
     url: str,
     main_status_code: int,
     authent: tuple[str, str] | None,
 ) -> tuple:
     """VULN_TYPE = RDH"""
     cb = random.randrange(9999)
-
+    conn = _new_conn(parsed_url)
     try:
         conn.putrequest("GET", f"/?cb={cb}")
         conn.putheader("User-Agent", "xxxx")
@@ -136,15 +141,19 @@ def referer_duplicate_headers(
                 if "age" in rh.lower() or "hit" in rh.lower():
                     return response, cb
 
+        return None, cb
+
     except Exception:
         return None, cb
     finally:
-        conn.close()
-        return None, cb
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def host_duplicate_headers(
-    conn: http.client.HTTPConnection | http.client.HTTPSConnection,
+    parsed_url,
     host: str,
     url: str,
     main_status_code: int,
@@ -152,7 +161,7 @@ def host_duplicate_headers(
 ) -> tuple:
     """VULN_TYPE = HDH"""
     cb = random.randrange(9999)
-
+    conn = _new_conn(parsed_url)
     try:
         conn.putrequest("GET", f"/?cb={cb}")
         conn.putheader("User-Agent", "xxxx")
@@ -172,24 +181,27 @@ def host_duplicate_headers(
                 if "age" in rh.lower() or "hit" in rh.lower():
                     return response, cb
 
+        return None, cb
+
     except Exception:
-        conn.close()
         return None, cb
     finally:
-        conn.close()
-        return None, cb
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def xforwardedhost_duplicate_headers(
-    conn: http.client.HTTPConnection | http.client.HTTPSConnection,
+    parsed_url,
     host: str,
     url: str,
     main_status_code: int,
     authent: tuple[str, str] | None,
 ) -> tuple:
-    """VULN_TYPE = HDH"""
+    """VULN_TYPE = XFH"""
     cb = random.randrange(9999)
-
+    conn = _new_conn(parsed_url)
     try:
         conn.putrequest("GET", f"/?cb={cb}")
         conn.putheader("User-Agent", "xxxx")
@@ -209,12 +221,15 @@ def xforwardedhost_duplicate_headers(
                 if "age" in rh.lower() or "hit" in rh.lower():
                     return response, cb
 
+        return None, cb
+
     except Exception:
-        conn.close()
         return None, cb
     finally:
-        conn.close()
-        return None, cb
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def MSH(
@@ -225,20 +240,12 @@ def MSH(
     try:
         parsed_url = urlparse(url)
         host = parsed_url.netloc
-        conn: http.client.HTTPConnection | http.client.HTTPSConnection
-        if parsed_url.scheme == "https":
-            conn = http.client.HTTPSConnection(host, timeout=10)
-        else:
-            conn = http.client.HTTPConnection(host, timeout=10)
 
-        RDH = referer_duplicate_headers(conn, url, main_status_code, authent)
-        HDH = host_duplicate_headers(conn, host, url, main_status_code, authent)
-        XFH = xforwardedhost_duplicate_headers(conn, host, url, main_status_code, authent)
+        RDH = referer_duplicate_headers(parsed_url, url, main_status_code, authent)
+        HDH = host_duplicate_headers(parsed_url, host, url, main_status_code, authent)
+        XFH = xforwardedhost_duplicate_headers(parsed_url, host, url, main_status_code, authent)
 
-        mhc_res = ["RDH", "HDH", "XFH"]
-
-        for vuln_type in mhc_res:
-            vuln_type_res = locals()[vuln_type]
+        for vuln_type, vuln_type_res in [("RDH", RDH), ("HDH", HDH), ("XFH", XFH)]:
             print(f" {Colors.BLUE} {VULN_NAME} : {url}{Colors.RESET}\r", end="")
             print("\033[K", end="")
             if (
@@ -253,33 +260,33 @@ def MSH(
                     payload = "[Referer: xy, Referer: x]"
                 elif vuln_type == "HDH":
                     payload = f"[Host: {host}, Host: toto.com]"
+                elif vuln_type == "XFH":
+                    payload = f"[x-forwarded-host: {host}, x-forwarded-host: evil.com]"
+                else:
+                    payload = f"[{vuln_type}: xxxx, {vuln_type}: xxxx]"
 
                 print_results(Identify.behavior, VULN_NAME, reason, cachetag, f"{url}?cb={vuln_type_res[1]}", payload)
-                conn.close()
                 verify_cache_poisoning(
-                    vuln_type, conn, url, payload, main_status_code, authent, host
+                    vuln_type, parsed_url, url, payload, main_status_code, authent, host
                 )
 
-        # m_heads = ["Authorization", "Accept", "Content-Type", "Cookie", "X-Requested-With", "user-agent"]
         m_heads = wcp_headers
         for mh in m_heads:
-            DH = duplicate_headers(conn, url, mh, main_status_code, authent)
+            DH = duplicate_headers(parsed_url, url, mh, main_status_code, authent)
             if DH and DH[0] is not None and isinstance(DH, tuple):
                 reason = f"DIFFERENT STATUS-CODE  {main_status_code} > {DH[0].status}"
                 cachetag = cache_tag_verify(req_main)
                 payload = f"[{mh}: xxxx, {mh}: xxxx]"
 
-                print_results(Identify.behavior, VULN_NAME, reason, cachetag, f"{url}?cb={vuln_type_res[1]}", payload)
-                conn.close()
+                print_results(Identify.behavior, VULN_NAME, reason, cachetag, f"{url}?cb={DH[1]}", payload)
                 verify_cache_poisoning(
-                    mh, conn, url, payload, main_status_code, authent, host
+                    mh, parsed_url, url, payload, main_status_code, authent, host
                 )
             human_time(human)
             print(f" {Colors.BLUE} {VULN_NAME} : {mh}{Colors.RESET}\r", end="")
             print("\033[K", end="")
 
     except requests.Timeout as t:
-        #logger.error(t)
         pass
     except Exception as e:
         logger.exception(f"{VULN_NAME}: {str(e)}")

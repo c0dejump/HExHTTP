@@ -14,7 +14,6 @@ from utils.utils import (
     human_time,
     random,
     requests,
-    sys,
     re,
     random_ua,
 )
@@ -146,7 +145,7 @@ def detect_format(content: bytes, headers: dict) -> str | bool:
 
     if content_stripped[:1] in (b'{', b'['):
         try:
-            json.loads(content)
+            json.loads(content[:10000])
             return 'JSON'
         except (json.JSONDecodeError, ValueError):
             pass
@@ -279,7 +278,7 @@ def format_poisoning(url, s, initial_response, authent, human):
     df_init = detect_format(init_content, initial_response.headers)
 
     for cfp in cfp_payloads:
-        uri = f"{url}{random.randrange(9999)}"
+        uri = f"{url}{random.randrange(999)}"
         try:
             s.headers.update(random_ua())
             req = s.get(uri, headers=cfp, verify=False, auth=authent, timeout=10, allow_redirects=False)
@@ -348,6 +347,7 @@ def format_poisoning(url, s, initial_response, authent, human):
                             "payload": cfp,
                             "evidence": evidence_base,
                         })
+            human_time(human)
 
         except UnicodeEncodeError:
             pass
@@ -358,5 +358,5 @@ def format_poisoning(url, s, initial_response, authent, human):
             print(e)
             logger.exception(e)
 
-        print(f" {Colors.BLUE} CFP : {cfp}{Colors.RESET}\r", end="")
         print("\033[K", end="")
+        print(f" {Colors.BLUE} CFP : {cfp}{Colors.RESET}\r", end="")

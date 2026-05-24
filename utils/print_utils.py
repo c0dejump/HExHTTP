@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import requests
-from utils.style import Colors
+from utils.style import Colors, Identify
 
 def cache_tag_verify(req: requests.Response) -> str:
     cachetag = False
@@ -61,4 +61,7 @@ def format_payload(payload: dict) -> str:
 
 
 def print_results(identify, vulnerability_type, reason, cachetag, url, payload):
-	print(f" {identify} | {vulnerability_type} | {reason} | CACHETAG: {cachetag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}")
+    print(f" {identify} | {vulnerability_type} | {reason} | CACHETAG: {cachetag} | {Colors.BLUE}{url}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload)}{Colors.RESET}")
+    if identify == Identify.confirmed:
+        from utils.screenshot import take_screenshot
+        take_screenshot(url)

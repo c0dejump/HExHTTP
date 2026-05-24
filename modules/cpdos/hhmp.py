@@ -159,7 +159,7 @@ def HHMP(
         except requests.exceptions.InvalidHeader as ih:
             try:
                 raw = True
-                send_global_requests(url, s, authent, fp_results, VULN_NAME, human, pk, initialResponse, raw)
+                send_global_requests(url, s, authent, fp_results, VULN_NAME, human, hl, initialResponse, raw)
             except Exception as ihi:
                 #print(ih)
                 #logger.exception(ih)
@@ -167,7 +167,7 @@ def HHMP(
         except UnicodeEncodeError as u:
             try:
                 raw = True
-                send_global_requests(url, s, authent, fp_results, VULN_NAME, human, pk, initialResponse, raw)
+                send_global_requests(url, s, authent, fp_results, VULN_NAME, human, hl, initialResponse, raw)
             except Exception as uu:
                 #print(uu)
                 #logger.exception(uu)
