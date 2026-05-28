@@ -376,8 +376,8 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
         from utils.proxy import proxy_request
         proxy_request(
             s,
-            "GET",
             uri,
+            "GET",
             headers=payload_header,
             data=None,
             severity=severity,
