@@ -78,24 +78,25 @@ def proxy_request(
 
     try:
         s.request(method, url, headers=headers, data=data)
-        if severity == "behavior":
-            create_burp_issue(
-                s,
-                url,
-                "[HExHTTP] Behavior",
-                f"Cache poisoning vulnerability detected on {url}",
-                "Medium",
-                headers,
-            )
-        elif severity == "confirmed":
-            create_burp_issue(
-                s,
-                url,
-                "[HExHTTP] Confirmed",
-                f"Cache poisoning vulnerability detected on {url}",
-                "High",
-                headers,
-            )
+        if burp_enabled:
+            if severity == "behavior":
+                create_burp_issue(
+                    s,
+                    url,
+                    "[HExHTTP] Behavior",
+                    f"Cache poisoning vulnerability detected on {url}",
+                    "Medium",
+                    headers,
+                )
+            elif severity == "confirmed":
+                create_burp_issue(
+                    s,
+                    url,
+                    "[HExHTTP] Confirmed",
+                    f"Cache poisoning vulnerability detected on {url}",
+                    "High",
+                    headers,
+                )
     except Exception as e:
         print(f"Error : {e}")
 
