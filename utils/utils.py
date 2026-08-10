@@ -223,6 +223,19 @@ def random_ua():
 
 
 def new_session(base_session=None):
+    # Preserve stealth (curl_cffi TLS impersonation) when the base session is a
+    # StealthSession — a plain requests.Session would silently drop it.
+    if base_session is not None:
+        from utils.configure_session import StealthSession
+        if isinstance(base_session, StealthSession):
+            s = StealthSession()
+            s.headers.update(dict(base_session.headers))
+            if base_session.proxies:
+                s.proxies = dict(base_session.proxies)
+            if base_session.cookies:
+                s.cookies.update(base_session.cookies)
+            return s
+
     s = requests.Session()
 
     if base_session:

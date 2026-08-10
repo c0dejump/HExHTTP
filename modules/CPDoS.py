@@ -26,8 +26,10 @@ def crawl_files(
     human: str,
 ) -> None:
     try:
-        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
-        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
+        #regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
+        #regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
+        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css))(?=")'
+        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css))(?=")'
         # regexp3 = r'(?<=src=")(\/[^\/].+?)(?=")'
         # regexp4 = r'(?<=href=")(\/[^\/].+?)(?=")'
 
@@ -70,7 +72,7 @@ def top_vuln_paths(
 
     for vp in vuln_paths:
         uri = f"{url}{vp}"
-        req_vp = requests.get(uri, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, auth=authent, timeout=6)
+        req_vp = s.get(uri, verify=False, allow_redirects=False, auth=authent, timeout=6)
         if req_vp.status_code in [200, 301, 302]:
             run_cpdos_modules(uri, s, authent, human, crawl=True)
             backslash_poisoning(uri, s, authent, human)
@@ -90,7 +92,7 @@ def run_cpdos_modules(
 ) -> None:
 
 
-    req_main = requests.get(randomiz_url(url), headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, auth=authent, timeout=8)
+    req_main = s.get(randomiz_url(url), verify=False, allow_redirects=False, auth=authent, timeout=8)
     fp_results = fp_baseline(randomiz_url(url), s)
 
     try:
@@ -124,10 +126,10 @@ def run_cpdos_modules(
         HBH(randomiz_url(url), s, req_main, authent, fp_results, human)
         verify_waf(url, s, req_main)
         #Multiple Same Header
-        MSH(url, req_main, authent, human)
+        MSH(url, s, req_main, authent, human)
         verify_waf(url, s, req_main)
         #ORIGIN CORS poisoning
-        OCP(randomiz_url(url), authent)
+        OCP(randomiz_url(url), s, authent)
         verify_waf(url, s, req_main)
         
         path_traversal_check(url, s, req_main, authent)

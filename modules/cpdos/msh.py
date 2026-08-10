@@ -24,6 +24,13 @@ def _new_conn(parsed_url) -> http.client.HTTPConnection | http.client.HTTPSConne
     return http.client.HTTPConnection(host, timeout=10)
 
 
+def _add_cookie(conn, cookie: str | None) -> None:
+    # Carry the session Cookie into raw http.client requests so WAF/CDN
+    # protections (e.g. Cloudflare cf_clearance) don't block the probe.
+    if cookie:
+        conn.putheader("Cookie", cookie)
+
+
 def verify_cache_poisoning(
     VULN_TYPE: str,
     parsed_url,
@@ -32,6 +39,8 @@ def verify_cache_poisoning(
     main_status_code: int,
     authent: tuple[str, str] | None,
     host: str,
+    s,
+    cookie: str | None = None,
 ) -> None:
     cb = random.randrange(9999)
     res_status = 0
@@ -40,6 +49,7 @@ def verify_cache_poisoning(
             conn = _new_conn(parsed_url)
             conn.putrequest("GET", f"/?CPDoS={cb}")
             conn.putheader("User-Agent", "xxxx")
+            _add_cookie(conn, cookie)
 
             if VULN_TYPE == "RDH":
                 conn.putheader("Referer", "xy")
@@ -60,7 +70,7 @@ def verify_cache_poisoning(
             conn.close()
 
         uri = f"{url}?CPDoS={cb}"
-        req = requests.get(uri, auth=authent, verify=False, allow_redirects=False, timeout=10)
+        req = s.get(uri, auth=authent, verify=False, allow_redirects=False, timeout=10)
         if req.status_code == res_status and res_status != main_status_code:
             reason = f"{main_status_code} > {response.status}"
             cachetag = cache_tag_verify(req)
@@ -75,6 +85,7 @@ def duplicate_headers(
     mh: str,
     main_status_code: int,
     authent: tuple[str, str] | None,
+    cookie: str | None = None,
 ) -> tuple:
     """VULN_TYPE =  DH"""
     cb = random.randrange(9999)
@@ -82,6 +93,7 @@ def duplicate_headers(
     try:
         conn.putrequest("GET", f"/?cb={cb}")
         conn.putheader("User-Agent", "xxxx")
+        _add_cookie(conn, cookie)
         conn.putheader(f"{mh}", "xxxx")
         conn.putheader(f"{mh}", "xxxx")
         conn.endheaders()
@@ -118,6 +130,7 @@ def referer_duplicate_headers(
     url: str,
     main_status_code: int,
     authent: tuple[str, str] | None,
+    cookie: str | None = None,
 ) -> tuple:
     """VULN_TYPE = RDH"""
     cb = random.randrange(9999)
@@ -125,6 +138,7 @@ def referer_duplicate_headers(
     try:
         conn.putrequest("GET", f"/?cb={cb}")
         conn.putheader("User-Agent", "xxxx")
+        _add_cookie(conn, cookie)
         conn.putheader("Referer", "xy")
         conn.putheader("Referer", "x")
         conn.endheaders()
@@ -158,6 +172,7 @@ def host_duplicate_headers(
     url: str,
     main_status_code: int,
     authent: tuple[str, str] | None,
+    cookie: str | None = None,
 ) -> tuple:
     """VULN_TYPE = HDH"""
     cb = random.randrange(9999)
@@ -165,6 +180,7 @@ def host_duplicate_headers(
     try:
         conn.putrequest("GET", f"/?cb={cb}")
         conn.putheader("User-Agent", "xxxx")
+        _add_cookie(conn, cookie)
         conn.putheader("Host", f"{host}")
         conn.putheader("Host", "toto.com")
         conn.endheaders()
@@ -198,6 +214,7 @@ def xforwardedhost_duplicate_headers(
     url: str,
     main_status_code: int,
     authent: tuple[str, str] | None,
+    cookie: str | None = None,
 ) -> tuple:
     """VULN_TYPE = XFH"""
     cb = random.randrange(9999)
@@ -205,6 +222,7 @@ def xforwardedhost_duplicate_headers(
     try:
         conn.putrequest("GET", f"/?cb={cb}")
         conn.putheader("User-Agent", "xxxx")
+        _add_cookie(conn, cookie)
         conn.putheader("x-forwarded-host", f"{host}")
         conn.putheader("x-forwarded-host", "toto.com")
         conn.endheaders()
@@ -233,17 +251,18 @@ def xforwardedhost_duplicate_headers(
 
 
 def MSH(
-    url: str, req_main: requests.Response, authent: tuple[str, str] | None, human: str
+    url: str, s, req_main: requests.Response, authent: tuple[str, str] | None, human: str
 ) -> None:
 
     main_status_code = req_main.status_code
+    cookie = s.headers.get("Cookie")
     try:
         parsed_url = urlparse(url)
         host = parsed_url.netloc
 
-        RDH = referer_duplicate_headers(parsed_url, url, main_status_code, authent)
-        HDH = host_duplicate_headers(parsed_url, host, url, main_status_code, authent)
-        XFH = xforwardedhost_duplicate_headers(parsed_url, host, url, main_status_code, authent)
+        RDH = referer_duplicate_headers(parsed_url, url, main_status_code, authent, cookie)
+        HDH = host_duplicate_headers(parsed_url, host, url, main_status_code, authent, cookie)
+        XFH = xforwardedhost_duplicate_headers(parsed_url, host, url, main_status_code, authent, cookie)
 
         for vuln_type, vuln_type_res in [("RDH", RDH), ("HDH", HDH), ("XFH", XFH)]:
             print(f" {Colors.BLUE} {VULN_NAME} : {url}{Colors.RESET}\r", end="")
@@ -267,12 +286,12 @@ def MSH(
 
                 print_results(Identify.behavior, VULN_NAME, reason, cachetag, f"{url}?cb={vuln_type_res[1]}", payload)
                 verify_cache_poisoning(
-                    vuln_type, parsed_url, url, payload, main_status_code, authent, host
+                    vuln_type, parsed_url, url, payload, main_status_code, authent, host, s, cookie
                 )
 
         m_heads = wcp_headers
         for mh in m_heads:
-            DH = duplicate_headers(parsed_url, url, mh, main_status_code, authent)
+            DH = duplicate_headers(parsed_url, url, mh, main_status_code, authent, cookie)
             if DH and DH[0] is not None and isinstance(DH, tuple):
                 reason = f"DIFFERENT STATUS-CODE  {main_status_code} > {DH[0].status}"
                 cachetag = cache_tag_verify(req_main)
@@ -280,7 +299,7 @@ def MSH(
 
                 print_results(Identify.behavior, VULN_NAME, reason, cachetag, f"{url}?cb={DH[1]}", payload)
                 verify_cache_poisoning(
-                    mh, parsed_url, url, payload, main_status_code, authent, host
+                    mh, parsed_url, url, payload, main_status_code, authent, host, s, cookie
                 )
             human_time(human)
             print(f" {Colors.BLUE} {VULN_NAME} : {mh}{Colors.RESET}\r", end="")

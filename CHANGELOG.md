@@ -1,6 +1,15 @@
 Changelog:
 ----------
 
+- 2.7
+---------
+	Updated:
+	- New payloads
+	- Fix bugs
+	- Check CPDoS with bad HTTP version
+	- Cleaner output when scanning multiple URLs and fewer bugs with threads
+---------
+	
 
 - 2.6
 ---------
