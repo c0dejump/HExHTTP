@@ -11,3 +11,8 @@ todo.md
 *.egg-info/
 .py3
 .coverage
+.claude
+results/*.html
+cfp_scan.py
+.agents
+skills-lock.json

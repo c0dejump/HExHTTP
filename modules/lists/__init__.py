@@ -9,6 +9,8 @@ import os
 from modules.lists.big_payloads_errors import big_payloads_keys
 from modules.lists.sorted_payloads_errors import sorted_payloads_errors
 from modules.lists.payloads_errors import payloads_keys
+from modules.lists.top_payloads_errors import top_payloads_errors
+from modules.lists.top_reflected_payloads import top_reflected_payloads, REFLECT_MARKER
 
 __all__ = [
     "load_payloads_from",
@@ -16,6 +18,9 @@ __all__ = [
     "payloads_keys",
     "big_payloads_keys",
     "sorted_payloads_errors",
+    "top_payloads_errors",
+    "top_reflected_payloads",
+    "REFLECT_MARKER",
     "wcp_headers",
 ]
 

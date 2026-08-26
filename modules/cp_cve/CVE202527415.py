@@ -82,30 +82,42 @@ def test_nuxt_poisoning(
 
 
 def verify_cache_persistence(
-    poison_url: str,
+    base_url: str,
+    req_baseline: requests.Response,
     s: requests.Session,
     authent: tuple[str, str] | None,
 ) -> tuple[bool, str]:
     """
-    Vérifie la persistence du cache empoisonné SANS header malveillant
+    Vérifie la persistence du cache empoisonné SANS header malveillant.
+
+    On NE re-teste PAS l'URL `?/_payload.json` (qui renvoie du JSON par nature),
+    mais bien la *page de base* : si une requête propre sur la page HTML renvoie
+    désormais le payload JSON — alors que la baseline était du HTML — le cache
+    est effectivement empoisonné.
 
     Args:
-        poison_url: URL du _payload.json à vérifier
+        base_url: URL de la page de base (page sans risque, sans `?/_payload.json`)
+        req_baseline: réponse baseline de cette page (attendue : HTML, non-JSON)
         s: Session requests
         authent: Credentials optionnels
 
     Returns:
         Tuple (is_persisted, detection_type)
     """
-    # Requête propre — aucun header malveillant
+    # La baseline ne doit pas déjà être du JSON, sinon aucune conclusion possible.
+    if is_json_response(req_baseline):
+        return (False, "BASELINE_ALREADY_JSON")
+
+    # Requête propre sur la page de base — aucun header malveillant.
     req_verify = s.get(
-        poison_url,
+        base_url,
         verify=False,
         auth=authent,
         timeout=10,
         allow_redirects=False,
     )
 
+    # Empoisonné si la page HTML sert maintenant du JSON à un client propre.
     if is_json_response(req_verify):
         return (True, "CACHE_POISONED_JSON")
 
@@ -161,9 +173,9 @@ def nuxt_check(
                 logger.error("poison request failed %s: %s", poison_url, e)
                 break
 
-        # Vérification de persistence SANS header malveillant
+        # Vérification de persistence SANS header malveillant, sur la page de base
         is_persisted, persist_type = verify_cache_persistence(
-            poison_url, s, authent
+            unrisk_page, req_baseline, s, authent
         )
 
         if is_persisted:

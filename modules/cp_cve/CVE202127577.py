@@ -1,366 +1,195 @@
 #!/usr/bin/env python3
 
 """
-CVE-2021-27577 Detection Script
-Apache Traffic Server URL Fragment Cache Poisoning Vulnerability
-Affects: Apache Traffic Server 7.0.0-7.1.12, 8.0.0-8.1.1, 9.0.0-9.0.1
+CVE-2021-27577 — Apache Traffic Server URL normalization / cache-key confusion.
+Affecte : ATS 7.0.0-7.1.12, 8.0.0-8.1.1, 9.0.0-9.0.1
 youst.in/posts/cache-poisoning-at-scale/
+
+Réécriture body-based : on NE conclut PLUS à partir des headers de cache
+(`X-Cache-Status`, `Age`, patterns hit/miss) — trop bruités et facilement
+falsifiés. On compare les CORPS de réponse selon la méthodo cache-poisoning :
+
+  1. requête « poison » d'abord, sur une variante de chemin (délimiteur qui
+     atteint réellement le serveur : `//`, `/..;/`, `%2f`, `%23`…) avec un
+     cache-buster frais -> si un MISS survient, le cache mémorise la réponse
+     sous une clé potentiellement confondue ;
+  2. requête PROPRE sur la forme canonique (même cb) ;
+  3. requête de contrôle indépendante (cb différent) = baseline.
+
+On signale un `behavior` seulement si la forme canonique renvoie soudainement
+le corps de la variante empoisonnée ALORS QUE la baseline en diffère.
+
+Note : la vraie variante « fragment » (`#`) nécessite d'injecter le `#` brut
+dans la request-line via socket (requests le retire) et un ATS de test — non
+automatisable de façon fiable ici. Ce module se limite donc aux délimiteurs
+transmis par requests et rapporte un signal à vérifier manuellement, jamais un
+faux « confirmed » issu des headers.
 """
 
-from typing import Any
-
-from utils.style import Colors
-from utils.utils import configure_logger, random, requests, string, time
+from utils.style import Colors, Identify
+from utils.utils import configure_logger, random, requests, string
 
 logger = configure_logger(__name__)
 
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+)
 
-class CVE202127577Checker:
-    """Détecteur pour CVE-2021-27577 (Apache Traffic Server fragment cache poisoning)"""
-    
-    def __init__(self) -> None:
-        self.session = requests.Session()
-        self.session.verify = False
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        })
+# Statuts sans intérêt pour une comparaison de corps.
+SKIP_STATUS_CODES = {403, 429, 503}
 
-    def generate_random_string(self, length: int = 8) -> str:
-        """Génère une chaîne aléatoire pour les identifiants uniques"""
-        return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
-
-    def detect_apache_traffic_server(self, url: str) -> tuple[bool, str]:
-        """Détecte si la cible utilise Apache Traffic Server"""
-        try:
-            response = self.session.get(url, timeout=10)
-
-            # Vérification du header Server
-            server_header = response.headers.get("Server", "").lower()
-            if "ats" in server_header or "apache traffic server" in server_header:
-                return True, f"Server header: {response.headers.get('Server')}"
-
-            # Vérification des headers spécifiques à ATS
-            ats_headers = [
-                "X-Cache-Status",
-                "X-Cache-Key",
-                "X-Cache-Generation",
-                "ATS-Internal",
-                "X-ATS-Cache-Status",
-            ]
-
-            for header in ats_headers:
-                if header in response.headers:
-                    return True, f"ATS header detected: {header}"
-
-            # Vérification du header Via pour signature ATS
-            via_header = response.headers.get("Via", "").lower()
-            if "ats" in via_header or "apache traffic server" in via_header:
-                return True, f"Via header: {response.headers.get('Via')}"
-
-            return False, "No ATS indicators found"
-
-        except Exception as e:
-            logger.exception(f"Error detecting ATS: {e}")
-            return False, "Error detecting ATS"
-
-    def test_fragment_cache_poisoning(self, url: str) -> list[dict]:
-        """Teste la vulnérabilité de cache poisoning via fragments d'URL"""
-        results = []
-        base_path = "/test_" + self.generate_random_string()
-
-        # Cas de test avec différents types de fragments
-        test_cases = [
-            {
-                "name": "Basic Fragment Test",
-                "url1": f"{url}{base_path}",
-                "url2": f"{url}{base_path}#fragment",
-                "description": "Test if fragments affect cache keys",
-            },
-            {
-                "name": "Fragment with Cache-Busting",
-                "url1": f"{url}{base_path}?v=1",
-                "url2": f"{url}{base_path}?v=1#cachebust",
-                "description": "Test fragment impact on parameterized URLs",
-            },
-            {
-                "name": "Fragment Injection",
-                "url1": f"{url}{base_path}",
-                "url2": f"{url}{base_path}#/../admin",
-                "description": "Test path traversal via fragments",
-            },
-            {
-                "name": "Fragment with Special Characters",
-                "url1": f"{url}{base_path}",
-                "url2": f"{url}{base_path}#%2F..%2F",
-                "description": "Test encoded characters in fragments",
-            },
-            {
-                "name": "Fragment Cache Key Confusion",
-                "url1": f"{url}{base_path}?cache=normal",
-                "url2": f"{url}{base_path}?cache=normal#admin",
-                "description": "Test if fragments create different cache entries",
-            },
-        ]
-
-        for test_case in test_cases:
-            try:
-                result = self.execute_fragment_test(test_case)
-                results.append(result)
-                time.sleep(0.5)
-            except Exception as e:
-                logger.exception(f"Error in test {test_case['name']}: {e}")
-
-        return results
-
-    def execute_fragment_test(self, test_case: dict[str, str]) -> dict:
-        """Exécute un test individuel de cache poisoning par fragment"""
-        try:
-            # Étape 1: Prime cache avec première URL
-            resp1 = self.session.get(test_case["url1"], timeout=10)
-            time.sleep(0.1)
-
-            # Étape 2: Requête avec fragment
-            resp2 = self.session.get(test_case["url2"], timeout=10)
-            time.sleep(0.1)
-
-            # Étape 3: Vérification du comportement du cache
-            resp3 = self.session.get(test_case["url1"], timeout=10)
-
-            # Analyse des réponses
-            analysis = self.analyze_fragment_responses(resp1, resp2, resp3, test_case)
-            return analysis
-
-        except Exception as e:
-            logger.exception(f"Error executing fragment test: {e}")
-            return {
-                "test_name": test_case["name"],
-                "vulnerable": False,
-                "error": str(e),
-                "description": test_case["description"],
-            }
-
-    def analyze_fragment_responses(
-        self,
-        resp1: requests.Response,
-        resp2: requests.Response,
-        resp3: requests.Response,
-        test_case: dict[str, str],
-    ) -> dict:
-        """Analyse les réponses pour détecter les indicateurs de cache poisoning"""
-        details: dict[str, Any] = {}
-        result: dict[str, Any] = {
-            "test_name": test_case["name"],
-            "vulnerable": False,
-            "confidence": "Low",
-            "details": details,
-            "description": test_case["description"],
-        }
-
-        # Vérification des status codes
-        statuses = [resp1.status_code, resp2.status_code, resp3.status_code]
-        details["status_codes"] = statuses
-
-        # Vérification des content lengths
-        lengths = [len(resp1.content), len(resp2.content), len(resp3.content)]
-        details["content_lengths"] = lengths
-
-        # Extraction des headers de cache
-        cache_headers_1 = self.extract_cache_headers(resp1)
-        cache_headers_2 = self.extract_cache_headers(resp2)
-        cache_headers_3 = self.extract_cache_headers(resp3)
-
-        details["cache_headers"] = {
-            "resp1": cache_headers_1,
-            "resp2": cache_headers_2,
-            "resp3": cache_headers_3,
-        }
-
-        # Indicateurs de vulnérabilité
-        indicators = []
-
-        # Indicateur 1: Status de cache différent pour URLs avec/sans fragments
-        if (
-            cache_headers_1.get("cache_status") != cache_headers_2.get("cache_status")
-            and cache_headers_1.get("cache_status")
-            and cache_headers_2.get("cache_status")
-        ):
-            indicators.append("Different cache status for fragment URLs")
-            result["vulnerable"] = True
-
-        # Indicateur 2: Fragment affectant la génération de cache key
-        if (
-            cache_headers_1.get("cache_key") != cache_headers_2.get("cache_key")
-            and cache_headers_1.get("cache_key")
-            and cache_headers_2.get("cache_key")
-        ):
-            indicators.append("Fragments affecting cache key generation")
-            result["vulnerable"] = True
-
-        # Indicateur 3: Différences de réponse indiquant confusion de cache
-        if (
-            resp1.status_code == resp2.status_code == resp3.status_code
-            and len(resp1.content) != len(resp2.content)
-            and abs(len(resp1.content) - len(resp2.content)) > 100
-        ):
-            indicators.append("Content length differences suggest cache confusion")
-            result["vulnerable"] = True
-
-        # Indicateur 4: Pattern anormal de cache hit/miss
-        cache_pattern = [
-            cache_headers_1.get("cache_hit", False),
-            cache_headers_2.get("cache_hit", False),
-            cache_headers_3.get("cache_hit", False),
-        ]
-
-        if cache_pattern == [False, False, True] or cache_pattern == [False, True, False]:
-            indicators.append("Abnormal cache hit/miss pattern")
-            result["vulnerable"] = True
-
-        # Indicateur 5: Incohérences dans le header Age
-        ages = [
-            cache_headers_1.get("age"),
-            cache_headers_2.get("age"),
-            cache_headers_3.get("age"),
-        ]
-
-        if (
-            ages[0] is not None
-            and ages[1] is not None
-            and isinstance(ages[0], int)
-            and isinstance(ages[1], int)
-            and abs(ages[0] - ages[1]) > 5
-        ):
-            indicators.append("Age header inconsistencies")
-            result["vulnerable"] = True
-
-        result["indicators"] = indicators
-
-        # Niveau de confiance
-        if len(indicators) >= 3:
-            result["confidence"] = "High"
-        elif len(indicators) >= 2:
-            result["confidence"] = "Medium"
-        elif len(indicators) >= 1:
-            result["confidence"] = "Low"
-
-        return result
-
-    def extract_cache_headers(self, response: requests.Response) -> dict[str, Any]:
-        """Extrait les headers liés au cache de la réponse"""
-        cache_info: dict[str, Any] = {}
-
-        # Headers de status de cache
-        cache_status_headers = [
-            "X-Cache-Status",
-            "X-Cache",
-            "CF-Cache-Status",
-            "X-Served-By",
-            "X-Cache-Lookup",
-            "X-ATS-Cache-Status",
-        ]
-
-        for header in cache_status_headers:
-            if header in response.headers:
-                cache_info["cache_status"] = response.headers[header]
-                # Correction: retourner un booléen, pas une string
-                cache_info["cache_hit"] = "hit" in response.headers[header].lower()
-                break
-
-        # Cache key
-        if "X-Cache-Key" in response.headers:
-            cache_info["cache_key"] = response.headers["X-Cache-Key"]
-
-        # Header Age
-        if "Age" in response.headers:
-            try:
-                cache_info["age"] = int(response.headers["Age"])
-            except (ValueError, TypeError):
-                cache_info["age"] = None
-
-        # Header Via pour détection de proxy
-        if "Via" in response.headers:
-            cache_info["via"] = response.headers["Via"]
-
-        return cache_info
-
-    def test_version_fingerprinting(self, url: str) -> list[str]:
-        """Tente de fingerprinter la version d'Apache Traffic Server"""
-        try:
-            test_headers = {"X-Forwarded-For": "127.0.0.1", "Connection": "close"}
-            response = self.session.get(url, headers=test_headers, timeout=10)
-
-            version_indicators = []
-
-            # Vérification du header Server pour la version
-            server = response.headers.get("Server", "")
-            if "Apache Traffic Server" in server or "ATS" in server:
-                version_indicators.append(f"Server: {server}")
-
-            # Vérification du header Via pour info de version
-            via = response.headers.get("Via", "")
-            if "ATS" in via:
-                version_indicators.append(f"Via: {via}")
-
-            return version_indicators
-
-        except Exception as e:
-            logger.exception(f"Error fingerprinting version: {e}")
-            return []
+# Délimiteurs de chemin qui ATTEIGNENT le serveur (contrairement au fragment `#`
+# brut retiré par requests) et sur lesquels ATS a montré des normalisations
+# divergentes entre clé de cache et résolution origine.
+PATH_DELIMITERS = [
+    "%23",       # '#' encodé -> confusion fragment côté ATS
+    "//",        # double slash
+    "/..;/",     # traversal + paramètre matrix
+    "%2f..%2f",  # slash encodé + traversal
+    "%00",       # null byte encodé
+]
 
 
-def apache_cp(url: str, authent: tuple[str, str] | None = None) -> bool:
+def _rand(length: int = 8) -> str:
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
+
+def detect_apache_traffic_server(
+    url: str, s: requests.Session
+) -> tuple[bool, str]:
+    """Fingerprint ATS via les headers Server / Via / X-*-Cache (détection seule)."""
+    try:
+        response = s.get(url, timeout=10, allow_redirects=True)
+    except requests.exceptions.RequestException as e:
+        logger.debug("ATS detection request failed: %s", e)
+        return False, "request failed"
+
+    server = response.headers.get("Server", "").lower()
+    if "ats" in server or "apache traffic server" in server:
+        return True, f"Server: {response.headers.get('Server')}"
+
+    via = response.headers.get("Via", "").lower()
+    if "ats" in via or "apache traffic server" in via:
+        return True, f"Via: {response.headers.get('Via')}"
+
+    for header in ("X-ATS-Cache-Status", "ATS-Internal", "X-Cache-Generation"):
+        if header in response.headers:
+            return True, f"ATS header: {header}"
+
+    return False, "no ATS indicators"
+
+
+def _get(uri: str, s: requests.Session, authent):
+    return s.get(
+        uri,
+        verify=False,
+        auth=authent,
+        allow_redirects=False,
+        timeout=10,
+    )
+
+
+def _test_delimiter(
+    url: str,
+    delimiter: str,
+    s: requests.Session,
+    authent: tuple[str, str] | None,
+) -> bool:
     """
-    Fonction principale pour vérifier CVE-2021-27577
-    
+    Sonde un délimiteur. Retourne True si une confusion de cache est suspectée.
+    """
+    marker = _rand()
+    base_path = f"/cptest_{marker}"
+    cb = _rand()
+
+    canonical = f"{url}{base_path}?cb={cb}"
+    poison = f"{url}{base_path}{delimiter}?cb={cb}"
+
+    try:
+        # 1. Poison d'abord (le MISS mémorise la variante sous la clé confondue).
+        r_poison = _get(poison, s, authent)
+        # 2. Forme canonique propre, même cb.
+        r_verify = _get(canonical, s, authent)
+        # 3. Baseline de contrôle, cb indépendant.
+        r_control = _get(f"{url}{base_path}?cb={_rand()}", s, authent)
+    except requests.exceptions.RequestException as e:
+        logger.debug("delimiter probe failed %s: %s", delimiter, e)
+        return False
+
+    if any(r.status_code in SKIP_STATUS_CODES for r in (r_poison, r_verify, r_control)):
+        return False
+
+    # Décision strictement body-based :
+    # la canonique doit servir le corps du poison ET différer de la baseline.
+    poisoned = (
+        r_verify.content == r_poison.content
+        and r_verify.content != r_control.content
+        and r_verify.status_code == r_poison.status_code
+    )
+
+    if poisoned:
+        print(
+            f" {Identify.behavior} | CVE-2021-27577 | POSSIBLE CACHE-KEY CONFUSION"
+            f" | {Colors.BLUE}{canonical}{Colors.RESET}"
+            f" | delimiter: {delimiter!r}"
+            f" | canonical={len(r_verify.content)}b poison={len(r_poison.content)}b"
+            f" control={len(r_control.content)}b"
+        )
+        print(
+            " └─ [i] Corps canonique aligné sur la variante empoisonnée."
+            " Vérification manuelle requise (injection du fragment brut via"
+            " socket contre l'ATS)."
+        )
+        return True
+
+    return False
+
+
+def apache_cp(
+    url: str,
+    authent: tuple[str, str] | None = None,
+    s: requests.Session | None = None,
+) -> bool:
+    """
+    Point d'entrée CVE-2021-27577.
+
     Args:
         url: URL cible
-        authent: Credentials HTTP Basic (non utilisé pour cette CVE)
-        
+        authent: credentials HTTP Basic optionnels
+        s: session partagée optionnelle (sinon une session éphémère est créée)
+
     Returns:
-        True si vulnérable, False sinon
+        True si une confusion de cache est suspectée (à vérifier manuellement).
     """
-    checker = CVE202127577Checker()
+    own_session = s is None
+    if own_session:
+        s = requests.Session()
+        s.verify = False
+        s.headers.update({"User-Agent": DEFAULT_USER_AGENT})
 
-    # Étape 1: Détection d'Apache Traffic Server
-    is_ats, ats_info = checker.detect_apache_traffic_server(url)
+    try:
+        is_ats, ats_info = detect_apache_traffic_server(url, s)
+        if not is_ats:
+            return False
 
-    if not is_ats:
+        print(f" ├── {Colors.GREEN}Apache Traffic Server detected{Colors.RESET} ({ats_info})")
+        print(" ├── Testing cache-key confusion (body-based)...")
+
+        detected = False
+        for delimiter in PATH_DELIMITERS:
+            if _test_delimiter(url, delimiter, s, authent):
+                detected = True
+
+        if not detected:
+            logger.debug("no cache-key confusion detected on %s", url)
+        return detected
+
+    except requests.exceptions.RequestException as e:
+        logger.error("error testing CVE-2021-27577 %s: %s", url, e)
         return False
-
-    print(f" ├── {Colors.GREEN}Apache Traffic Server detected{Colors.RESET}")
-    print(f" │   └─ {ats_info}")
-
-    # Étape 2: Fingerprinting de version
-    version_info = checker.test_version_fingerprinting(url)
-    if version_info:
-        print(" ├── Version indicators:")
-        for info in version_info:
-            print(f" │   └─ {info}")
-
-    # Étape 3: Test de cache poisoning par fragment d'URL
-    print(" ├── Testing URL fragment cache poisoning...")
-
-    test_results = checker.test_fragment_cache_poisoning(url)
-
-    vulnerable_tests = [r for r in test_results if r.get("vulnerable", False)]
-
-    if vulnerable_tests:
-        print(f" ├── {Colors.RED}VULNERABLE to CVE-2021-27577{Colors.RESET}")
-        print(
-            f" │   └─ {len(vulnerable_tests)}/{len(test_results)} tests indicate vulnerability"
-        )
-
-        for result in vulnerable_tests:
-            print(
-                f" ├── {Colors.RED}[{result['confidence']}]{Colors.RESET} {result['test_name']}"
-            )
-            for indicator in result.get("indicators", []):
-                print(f" │   └─ {indicator}")
-
-        return True
-    else:
-        print(f" └── {Colors.GREEN}Not vulnerable{Colors.RESET}")
-        return False
+    finally:
+        if own_session:
+            s.close()
 
 
 if __name__ == "__main__":
@@ -370,5 +199,4 @@ if __name__ == "__main__":
         print("Usage: python CVE202127577.py <URL>")
         sys.exit(1)
 
-    target_url = sys.argv[1]
-    apache_cp(target_url)
+    apache_cp(sys.argv[1])

@@ -164,6 +164,8 @@ options:
 
 > Tips:
   --ocp, --only-cp      Only cache poisoning modules
+  --only-top            Run ONLY the top CP/CPDoS module (curated error + reflected-XSS payloads) and skip every other check
+  --screen [DIR]        Take a screenshot of confirmed poisoned pages (requires playwright). Default dir: screenshots/
 
 ```
 

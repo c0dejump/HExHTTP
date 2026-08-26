@@ -179,9 +179,16 @@ def test_cache_poisoning(url: str, s: requests.Session) -> None:
         logger.warning("error testing cache poisoning %s: %s", url, e)
 
 
-def middleware(url: str, s: requests.Session) -> bool:
+def middleware(
+    url: str,
+    s: requests.Session,
+    custom_header: dict | None = None,
+) -> bool:
     """
     Point d'entrée principal pour tester CVE-2025-29927
+
+    `custom_header` est accepté pour homogénéité avec les autres modules cp_cve
+    mais n'est pas utilisé : le test s'appuie sur ses propres headers de bypass.
     """
     try:
         req_main = s.get(url, verify=False, timeout=10,

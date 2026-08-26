@@ -13,6 +13,7 @@ from modules.cachepoisoning.cache_poisoning_nf_files import check_cache_files
 from modules.cachepoisoning.cache_poisoning import check_cache_poisoning
 from modules.cpdos.fmp import check_methods_poisoning
 from modules.CPDoS import check_CPDoS
+from modules.top_cp import check_top_cp
 from modules.CVE import check_cpcve
 from modules.header_checks.cachetag_header import check_cachetag_header
 
@@ -61,6 +62,7 @@ human: str | None = None
 url_file: str | None = None
 custom_header: list[str] | None = None
 only_cp: bool | None = None
+only_top: bool | None = None
 threads: int | None = None
 stealth: bool = False
 
@@ -124,21 +126,23 @@ def process_modules(url: str, s: requests.Session, stealth, a_tech: Technology, 
 
         if initStatusCode == 403 and url_file:
             return
-        else:
-            if not only_cp:
-                check_cachetag_header(resp_main_headers)
-                check_server_error(url, auth)
-                check_vhost(url)
-                check_localhost(url, s, get_domain_from_url(url), auth)
-                check_methods(url, auth, human or "")
-                verify_waf(url, s, initResponse)
-                check_http_debug(url, s, initStatusCode, initResponseLen, initHeader, auth, human or "")
-                verify_waf(url, s, initResponse)
-                check_cpcve(url, s, initResponse, ph, auth, fp_results, human or "")
 
-            check_http_version(url)
+        if not only_cp:
+            check_cachetag_header(resp_main_headers)
+            check_server_error(url, auth)
+            check_vhost(url)
+            check_localhost(url, s, get_domain_from_url(url), auth)
+            check_methods(url, auth, human or "")
+            verify_waf(url, s, initResponse)
+            check_http_debug(url, s, initStatusCode, initResponseLen, initHeader, auth, human or "")
+            verify_waf(url, s, initResponse)
             detected_tech = get_technos(url, s, initResponse, a_tech) or "Unknown"
-            check_uncommon_header(url, s, initResponse, dict(initHeader), fp_results, auth)
+
+        check_cpcve(url, s, initResponse, ph, auth, fp_results, human or "")
+        check_http_version(url)
+        check_uncommon_header(url, s, initResponse, dict(initHeader), fp_results, auth)
+        check_top_cp(url, s, initResponse, ph, auth, human or "")
+        if not only_top:
             check_CPDoS(url, s, initResponse, ph, auth, human or "")
             check_methods_poisoning(url, s, ph, auth)
             verify_waf(url, s, initResponse)
@@ -217,7 +221,7 @@ def cli_main() -> None:
     """Entry point for the CLI command."""
     parser = args()
 
-    global human, url_file, custom_header, only_cp, threads, stealth
+    global human, url_file, custom_header, only_cp, only_top, threads, stealth
 
     url = parser.url
     url_file = parser.url_file
@@ -229,6 +233,7 @@ def cli_main() -> None:
     proxy_arg = parser.proxy
     burp_arg = parser.burp
     only_cp = parser.only_cp
+    only_top = parser.only_top
     output_html = parser.output_html
     stealth = parser.stealth
 

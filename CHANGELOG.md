@@ -8,6 +8,9 @@ Changelog:
 	- Fix bugs
 	- Check CPDoS with bad HTTP version
 	- Cleaner output when scanning multiple URLs and fewer bugs with threads
+	New:
+	- Top CP/CPDoS analysis before big analysis
+	- CVE-2026-44581 module adding
 ---------
 	
 
