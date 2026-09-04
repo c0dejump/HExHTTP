@@ -296,61 +296,6 @@ def reflected_cache_poisoning(
         logger.error("%s error: %s", VULN_NAME, e)
 
 
-def reflected_xss_cache_poisoning(
-    url: str,
-    s: requests.Session,
-    initial_response: requests.Response,
-    custom_header: dict,
-    authent: tuple[str, str] | None,
-    human: str,
-) -> None:
-    """
-    Curated reflected Cache-Poisoning -> XSS pass.
-
-    Sends the `top_reflected_payloads` (headers carrying real XSS break-out
-    payloads) and flags a finding only when the payload is reflected *verbatim*
-    (unencoded) in the response body — i.e. the raw `<`, `>`, `"` survive, which
-    means the value is executable in that context. A verbatim match is then
-    re-checked through the cache (`dvcp`) to confirm it is actually poisoned.
-    """
-    VULN_NAME = "WCP-XSS"
-
-    if initial_response.status_code in NOISE_CODES:
-        logger.debug("WCP-XSS skipped for %s — baseline is %s", url, initial_response.status_code)
-        return
-
-    try:
-        for payload in top_reflected_payloads:
-            header = {**payload, **(custom_header or {})}
-            marker_value = next(iter(payload.values()))
-            uri = randomiz_url(url)
-
-            s.headers.update(random_ua())
-            try:
-                response = s.get(uri, headers=header, verify=False,
-                                 allow_redirects=False, timeout=6, auth=authent)
-            except requests.exceptions.RequestException as e:
-                logger.error("%s request failed %s: %s", VULN_NAME, uri, e)
-                continue
-
-            # Only interesting if the marker is present AND the raw payload is
-            # reflected verbatim (unencoded) -> executable XSS context.
-            if REFLECT_MARKER not in response.text or marker_value not in response.text:
-                print(f" {Colors.BLUE} {VULN_NAME} : {header}{Colors.RESET}\r", end="")
-                print("\033[K", end="")
-                continue
-
-            ctv = cache_tag_verify(response)
-            print_(Identify.behavior, VULN_NAME, "UNENCODED BODY REFLECTION (XSS)", ctv, uri, header, s)
-
-            verif_req = dvcp(uri, s, header, authent)
-            if marker_value in verif_req.text:
-                print_(Identify.confirmed, VULN_NAME, "UNENCODED BODY REFLECTION (XSS)", ctv, uri, header, s)
-
-    except Exception as e:
-        logger.error("%s error: %s", VULN_NAME, e)
-
-
 def check_cache_poisoning(
     url: str,
     s: requests.Session,

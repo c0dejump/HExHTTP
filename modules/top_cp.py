@@ -16,7 +16,7 @@ an order of magnitude faster.
 
 from modules.lists import top_payloads_errors, top_reflected_payloads
 from modules.cpdos.basic_cpdos import _run_cpdos_payloads
-from modules.cachepoisoning.cache_poisoning import reflected_xss_cache_poisoning
+from modules.cachepoisoning.cache_poisoning import reflected_cache_poisoning
 from utils.style import Colors
 from utils.utils import configure_logger, random, requests, new_session, fp_baseline
 
@@ -53,6 +53,6 @@ def check_top_cp(
     # 2) Reflected Cache-Poisoning -> XSS — curated top payloads only
     try:
         print(f"{Colors.CYAN} ├─ Reflected CP [{len(top_reflected_payloads)}]{Colors.RESET}")
-        reflected_xss_cache_poisoning(url, s, req_main, custom_header, authent, human)
+        reflected_cache_poisoning(url, s, req_main, custom_header, authent, human)
     except Exception as e:
         logger.exception(f"check_top_cp (reflected): {e}")
