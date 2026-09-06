@@ -141,6 +141,12 @@ def generate_headers(url: str) -> list[dict]:
     headers_list.append({"Host": "[::1]"})
     headers_list.append({"Host": "[::ffff:127.0.0.1]"})
     headers_list.append({"Host": f"[::1]:{domain.split(':')[-1]}" if ':' in domain else "[::1]:80"})
+
+    headers_list.append({"Host": f"::ffff:{'.'.join(str(int(o)) for o in domain.split('.')[:4] if o.isdigit())}"})
+    headers_list.append({"Host": f"0177.0.0.1"})   # octal localhost
+    headers_list.append({"Host": f"2130706433"})   # decimal localhost
+    headers_list.append({"Host": f"0x7f000001"})   # hex localhost
+    headers_list.append({"Host": f"{domain}%09"})
  
 
     return headers_list

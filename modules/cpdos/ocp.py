@@ -17,9 +17,9 @@ def print_result(status: str, vuln: str, reason: str, url: str, payload: str) ->
         )
 
 
-def verify_ocd_caching(url: str, method: str, headers: dict[str, str]) -> None:
+def verify_ocd_caching(url: str, s, method: str, headers: dict[str, str]) -> None:
     for _ in range(5):
-        requests.request(
+        s.request(
             method,
             url=url,
             headers=headers,
@@ -27,7 +27,7 @@ def verify_ocd_caching(url: str, method: str, headers: dict[str, str]) -> None:
             allow_redirects=False,
             timeout=10,
         )
-    req_main = requests.get(url, verify=False, allow_redirects=False, timeout=10)
+    req_main = s.get(url, verify=False, allow_redirects=False, timeout=10)
     if "geluorigin" in req_main.text:
         print_result(
             Identify.confirmed,
@@ -48,10 +48,11 @@ def verify_ocd_caching(url: str, method: str, headers: dict[str, str]) -> None:
 
 def get_ocd(
     url: str,
+    s,
     headers: dict[str, str],
     authent: tuple[str, str] | None,
 ) -> None:
-    req_get = requests.get(
+    req_get = s.get(
         url,
         headers=headers,
         verify=False,
@@ -67,7 +68,7 @@ def get_ocd(
             url,
             "PAYLOAD: 'Origin: https://geluorigin.chat'",
         )
-        verify_ocd_caching(url, "GET", headers)
+        verify_ocd_caching(url, s, "GET", headers)
     if "geluorigin" in req_get.headers:
         print_result(
             Identify.behavior,
@@ -76,15 +77,16 @@ def get_ocd(
             url,
             "PAYLOAD: 'Origin: https://geluorigin.chat'",
         )
-        verify_ocd_caching(url, "GET", headers)
+        verify_ocd_caching(url, s, "GET", headers)
 
 
 def options_ocd(
     url: str,
+    s,
     headers: dict[str, str],
     authent: tuple[str, str] | None,
 ) -> None:
-    req_options = requests.options(
+    req_options = s.options(
         url,
         headers=headers,
         verify=False,
@@ -100,7 +102,7 @@ def options_ocd(
             url,
             "PAYLOAD: 'Origin: https://geluorigin.chat'",
         )
-        verify_ocd_caching(url, "OPTIONS", headers)
+        verify_ocd_caching(url, s, "OPTIONS", headers)
     if "geluorigin" in req_options.headers:
         print_result(
             Identify.behavior,
@@ -109,11 +111,11 @@ def options_ocd(
             url,
             "PAYLOAD: 'Origin: https://geluorigin.chat'",
         )
-        verify_ocd_caching(url, "OPTIONS", headers)
+        verify_ocd_caching(url, s, "OPTIONS", headers)
 
 
-def OCP(url: str, authent: tuple[str, str] | None) -> None:
+def OCP(url: str, s, authent: tuple[str, str] | None) -> None:
     headers = {"Origin": "https://geluorigin.chat"}
-    get_ocd(f"{url}{random.randrange(999)}", headers, authent)
-    options_ocd(f"{url}{random.randrange(999)}", headers, authent)
+    get_ocd(f"{url}{random.randrange(999)}", s, headers, authent)
+    options_ocd(f"{url}{random.randrange(999)}", s, headers, authent)
 

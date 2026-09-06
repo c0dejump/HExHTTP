@@ -26,8 +26,10 @@ def crawl_files(
     human: str,
 ) -> None:
     try:
-        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
-        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
+        #regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
+        #regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css|html|htm|jsp|svg|txt))(?=")'
+        regexp1 = r'(?<=src=")(\/[^\/].+?\.(js|css))(?=")'
+        regexp2 = r'(?<=href=")(\/[^\/].+?\.(js|css))(?=")'
         # regexp3 = r'(?<=src=")(\/[^\/].+?)(?=")'
         # regexp4 = r'(?<=href=")(\/[^\/].+?)(?=")'
 
@@ -59,8 +61,26 @@ def crawl_files(
         logger.exception(e)
 
 
+def top_vuln_paths(
+    url: str,
+    s: requests.Session,
+    authent: tuple[str, str] | None,
+    human: str,
+) -> None:
+    
+    vuln_paths = ["checkout", "logout", "auth/callback", "cart"]
+
+    for vp in vuln_paths:
+        uri = f"{url}{vp}"
+        req_vp = s.get(uri, verify=False, allow_redirects=False, auth=authent, timeout=6)
+        if req_vp.status_code in [200, 301, 302]:
+            run_cpdos_modules(uri, s, authent, human, crawl=True)
+            backslash_poisoning(uri, s, authent, human)
+
+
+
 def randomiz_url(url):
-    return f"{url}?CPDoS={random.randint(1, 99)}"
+    return f"{url}?CPDoS={random.randint(133, 337)}"
 
 
 def run_cpdos_modules(
@@ -71,10 +91,9 @@ def run_cpdos_modules(
     crawl = False
 ) -> None:
 
-    uri = f"{url}?CPDoS={random.randint(1337, 7331)}"
 
-    req_main = requests.get(uri, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"}, verify=False, allow_redirects=False, auth=authent, timeout=8)
-    fp_results = fp_baseline(uri, s)
+    req_main = s.get(randomiz_url(url), verify=False, allow_redirects=False, auth=authent, timeout=8)
+    fp_results = fp_baseline(randomiz_url(url), s)
 
     try:
 
@@ -107,10 +126,10 @@ def run_cpdos_modules(
         HBH(randomiz_url(url), s, req_main, authent, fp_results, human)
         verify_waf(url, s, req_main)
         #Multiple Same Header
-        MSH(url, req_main, authent, human)
+        MSH(url, s, req_main, authent, human)
         verify_waf(url, s, req_main)
         #ORIGIN CORS poisoning
-        OCP(randomiz_url(url), authent)
+        OCP(randomiz_url(url), s, authent)
         verify_waf(url, s, req_main)
         
         path_traversal_check(url, s, req_main, authent)
@@ -142,3 +161,4 @@ def check_CPDoS(
 
     run_cpdos_modules(url, s, authent, human)
     crawl_files(url, s, req_main, authent, human)
+    top_vuln_paths(url, s, authent, human)

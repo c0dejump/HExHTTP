@@ -13,6 +13,7 @@ from modules.cachepoisoning.cache_poisoning_nf_files import check_cache_files
 from modules.cachepoisoning.cache_poisoning import check_cache_poisoning
 from modules.cpdos.fmp import check_methods_poisoning
 from modules.CPDoS import check_CPDoS
+from modules.top_cp import check_top_cp
 from modules.CVE import check_cpcve
 from modules.header_checks.cachetag_header import check_cachetag_header
 
@@ -46,6 +47,8 @@ from utils.utils import (
 from utils.collect import init_url, update_url, add_finding, add_error, get_results
 from utils.configure_session import build_session, clone_session
 import utils.proxy as proxy
+import utils.screenshot as screenshot_mod
+import utils.output as output
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -59,6 +62,7 @@ human: str | None = None
 url_file: str | None = None
 custom_header: list[str] | None = None
 only_cp: bool | None = None
+only_top: bool | None = None
 threads: int | None = None
 stealth: bool = False
 
@@ -122,22 +126,23 @@ def process_modules(url: str, s: requests.Session, stealth, a_tech: Technology, 
 
         if initStatusCode == 403 and url_file:
             return
-        else:
-            if not only_cp:
-                check_cachetag_header(resp_main_headers)
-                check_server_error(url, auth)
-                check_vhost(url)
-                check_localhost(url, s, get_domain_from_url(url), auth)
-                check_methods(url, auth, human or "")
-                check_http_version(url)
-                verify_waf(url, s, initResponse)
-                check_http_debug(url, s, initStatusCode, initResponseLen, initHeader, auth, human or "")
-                verify_waf(url, s, initResponse)
-                check_cpcve(url, s, initResponse, ph, auth, fp_results, human or "")
 
+        if not only_cp:
+            check_cachetag_header(resp_main_headers)
+            check_server_error(url, auth)
+            check_vhost(url)
+            check_localhost(url, s, get_domain_from_url(url), auth)
+            check_methods(url, auth, human or "")
+            verify_waf(url, s, initResponse)
+            check_http_debug(url, s, initStatusCode, initResponseLen, initHeader, auth, human or "")
+            verify_waf(url, s, initResponse)
             detected_tech = get_technos(url, s, initResponse, a_tech) or "Unknown"
 
-            check_uncommon_header(url, s, initResponse, dict(initHeader), fp_results, auth)
+        check_cpcve(url, s, initResponse, ph, auth, fp_results, human or "")
+        check_http_version(url)
+        check_uncommon_header(url, s, initResponse, dict(initHeader), fp_results, auth)
+        check_top_cp(url, s, initResponse, ph, auth, human or "")
+        if not only_top:
             check_CPDoS(url, s, initResponse, ph, auth, human or "")
             check_methods_poisoning(url, s, ph, auth)
             verify_waf(url, s, initResponse)
@@ -182,20 +187,23 @@ def worker_main(s: requests.Session, auth: str | None) -> None:
         except Empty:
             break
         
+        # Tag this thread's output with the target host (multi-URL live view)
+        output.set_current(url)
         try:
             worker_session = clone_session()
-            
+
             # Handle auth
             auth_tuple = check_auth(auth, url) if auth else None
-            
+
             process_modules(url, worker_session, stealth, a_tech, auth_tuple)
-            
+
         except WafAbortError as e:
             add_error(url, f"WAF abort: {e}")
             print(f" └── [!] Skipping {url} — WAF persistent after retries")
         except Exception as e:
             logger.exception(f"Error processing URL {url}: {e}")
         finally:
+            output.advance()
             enclosure_queue.task_done()
             if 'worker_session' in locals():
                 worker_session.close()
@@ -213,7 +221,7 @@ def cli_main() -> None:
     """Entry point for the CLI command."""
     parser = args()
 
-    global human, url_file, custom_header, only_cp, threads, stealth
+    global human, url_file, custom_header, only_cp, only_top, threads, stealth
 
     url = parser.url
     url_file = parser.url_file
@@ -225,10 +233,15 @@ def cli_main() -> None:
     proxy_arg = parser.proxy
     burp_arg = parser.burp
     only_cp = parser.only_cp
+    only_top = parser.only_top
     output_html = parser.output_html
     stealth = parser.stealth
 
     configure_logging(parser.verbose, parser.log, parser.log_file)
+
+    if parser.screenshot:
+        screenshot_mod.screenshot_enabled = True
+        screenshot_mod.screenshot_dir = parser.screenshot
 
     human = humans
     start_time_report = time.time()
@@ -238,25 +251,32 @@ def cli_main() -> None:
 
         if url_file and threads != 1337:
             with open(url_file) as url_file_handle:
-                urls = url_file_handle.read().splitlines()
-            
+                urls = [u.strip() for u in url_file_handle.read().splitlines() if u.strip()]
+
+            n_threads = min(threads or 1, len(urls)) or 1
+            print(f"{Colors.SALMON}[STARTED]{Colors.RESET} Scanning "
+                  f"{Colors.GREEN}{len(urls)}{Colors.RESET} URLs "
+                  f"with {Colors.GREEN}{n_threads}{Colors.RESET} threads\n")
+            output.install(len(urls))
+
             try:
                 for url in urls:
                     enclosure_queue.put(url)
-                
+
                 worker_threads = []
-                for _ in range(threads or 1):
+                for _ in range(n_threads):
                     worker = Thread(target=worker_main, args=(s, auth))
                     worker.daemon = True
                     worker.start()
                     worker_threads.append(worker)
-                
+
                 enclosure_queue.join()
-                
+
                 for worker in worker_threads:
                     worker.join(timeout=60)
 
             except KeyboardInterrupt:
+                output.uninstall()
                 print("Exiting")
                 if output_html:
                     create_report(parser, start_time_report)
@@ -266,7 +286,9 @@ def cli_main() -> None:
                 sys.exit()
             except Exception as e:
                 logger.exception(e)
-            print("Scan finish")
+            output.uninstall()
+            print(f"\n{Colors.GREEN}[DONE]{Colors.RESET} Scan finished — "
+                  f"{len(urls)} URLs processed")
             
         elif url_file and threads == 1337:
             with open(url_file) as url_file_handle:

@@ -14,7 +14,7 @@ from utils.utils import (
     requests,
 )
 from utils.print_utils import cache_tag_verify
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse
 
 try:
     import httpx
@@ -50,6 +50,7 @@ def verify(
 
         req_cb = s.get(url_cb, verify=False, timeout=10, allow_redirects=False)
         #logger.debug(f"req_cb.status_code: {req_cb.status_code} | req_verify.status_code: {req_verify.status_code} | req_main.status_code: {req_main.status_code}")
+        cache_status = cache_tag_verify(req_cb)
         if req_cb.status_code in [301, 302, 303, 307, 308]:
             location = req_cb.headers.get("Location", "")
             # No Location header = interesting behavior
@@ -57,7 +58,7 @@ def verify(
                 print(
                     f" {Identify.behavior} | {VULN_NAME} Cached Redirect (no Location) {req_cb.status_code} | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
                 )
-            elif location.rstrip("/") in ["", url_parsed_path]:
+            elif location.rstrip("/") in ["", urlparse(url).path]:
                 if any(ext in url.lower() for ext in [".js", ".css"]):
                     print(
                         f" {Identify.behavior} | {VULN_NAME} Cached Asset Redirect → {location} | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
@@ -66,7 +67,6 @@ def verify(
                 print(
                     f" {Identify.behavior} | {VULN_NAME} Cached Redirect → {location} | CACHETAG : {cache_status} | {Colors.BLUE}{url_cb}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{url_test}{Colors.RESET}"
                 )
-        cache_status = cache_tag_verify(req_cb)
         if (
             req_cb.status_code == req_verify.status_code
             and req_cb.status_code != req_main.status_code

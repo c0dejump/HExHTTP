@@ -65,7 +65,15 @@ def HMC(
         r":", 
         r"CR\rLF\n",
         r"\r\n\r\n",  
-        r"\x00\x00\x00\x00",    
+        r"\x00\x00\x00\x00",
+        r"\x09",           # tab dans valeur (distinct de header name)
+        r"\x0d\x0a",       # CRLF réel (pas raw string)
+        r"\u00ad",         # soft hyphen — confond certains parsers
+        r"\u180e",         # Mongolian vowel separator
+        r"\u2060",         # word joiner / zero-width
+        r"\ufffd",         # replacement character
+        r"\xc0\xae",       # overlong encoding de "."
+        r"\xf8\x80\x80\x80\x80",  # overlong 5-byte
     ]
     for meta_character in meta_characters:
         try:

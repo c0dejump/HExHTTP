@@ -31,7 +31,7 @@ def _get_combos(base_url):
 
 def _cb():
     """Unique cache buster to avoid cross-thread cache collision."""
-    return uuid.uuid4().hex[:12]
+    return uuid.uuid4().hex[:8]
 
 
 BODY_PAYLOADS = [
@@ -368,12 +368,16 @@ def send_global_requests(url, s, authent, fp_results, VULN_NAME, human, payload_
                 f" {status} | {VULN_NAME} [RAW] | {reason} | CACHETAG {cache_tag_verify(probe)} | {Colors.BLUE}{uri}{Colors.RESET} | PAYLOAD: {Colors.THISTLE}{format_payload(payload_header)}{Colors.RESET}"
             )
     
+    if severity == "confirmed":
+        from utils.screenshot import take_screenshot
+        take_screenshot(uri)
+
     if reason and proxy.proxy_enabled:
         from utils.proxy import proxy_request
         proxy_request(
             s,
-            "GET",
             uri,
+            "GET",
             headers=payload_header,
             data=None,
             severity=severity,

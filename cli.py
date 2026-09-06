@@ -43,6 +43,7 @@ def args() -> argparse.Namespace:
         -p, --proxy: proxy all requests through this proxy (format: host:port, default: 127.0.0.1:8080)
         --burp: send behavior and confirmed requests to Burp proxy (format: host:port, default: 127.0.0.1:8080)
         --ocp, --only-cp: Only cache poisoning modules
+        --only-top: Run only the top CP/CPDoS module (curated error + reflected-XSS payloads), skip everything else
 
     If no argument is provided, the function will print the help message and exit.
     """
@@ -172,6 +173,22 @@ def args() -> argparse.Namespace:
         action="store_true",
         dest="only_cp",
         help="Only cache poisoning modules",
+        required=False,
+    )
+    group.add_argument(
+        "--only-top",
+        action="store_true",
+        dest="only_top",
+        help="Run ONLY the top CP/CPDoS module (curated error + reflected-XSS payloads) and skip every other check",
+        required=False,
+    )
+    group.add_argument(
+        "--screen",
+        dest="screenshot",
+        nargs="?",
+        const="screenshots",
+        metavar="DIR",
+        help=f"Take a screenshot of confirmed poisoned pages (requires playwright). {Colors.GREEN}Default dir: screenshots/{Colors.RESET}",
         required=False,
     )
 
